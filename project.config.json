@@ -40,7 +40,7 @@
     "useCompilerPlugins": []
   },
   "appid": "wx YOUR_APP_ID",
-  "projectname": "couple-trip-map",
+  "projectname": "yuting-map",
   "libVersion": "2.19.4",
   "cloudfunctionTemplateRoot": "cloudfunctionTemplate/",
   "condition": {},
