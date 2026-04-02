@@ -1,0 +1,245 @@
+/* pages/city/city.wxss */
+.container {
+  padding: 20rpx;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.city-header {
+  background: white;
+  border-radius: 20rpx;
+  padding: 40rpx;
+  margin-bottom: 30rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.05);
+}
+
+.city-name {
+  display: block;
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.province-name {
+  display: block;
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 20rpx;
+}
+
+.city-stats {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  font-size: 24rpx;
+  color: #888;
+  margin: 5rpx 10rpx;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 30rpx;
+}
+
+.btn-add-trip {
+  flex: 1;
+  background: #1AAD19;
+  color: white;
+  border: none;
+  border-radius: 10rpx;
+  padding: 20rpx;
+  font-size: 28rpx;
+  margin-right: 15rpx;
+}
+
+.btn-refresh {
+  flex: 1;
+  background: #007AFF;
+  color: white;
+  border: none;
+  border-radius: 10rpx;
+  padding: 20rpx;
+  font-size: 28rpx;
+  margin-left: 15rpx;
+}
+
+.attractions-section {
+  background: white;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.05);
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 30rpx;
+}
+
+.attractions-scroll {
+  white-space: nowrap;
+}
+
+.attractions-container {
+  display: inline-flex;
+}
+
+.attraction-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30rpx;
+  margin-right: 20rpx;
+  background: #f8f9fa;
+  border-radius: 15rpx;
+  min-width: 160rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.1);
+}
+
+.attraction-icon {
+  font-size: 48rpx;
+  margin-bottom: 15rpx;
+}
+
+.attraction-name {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+  margin-bottom: 10rpx;
+}
+
+.attraction-type {
+  font-size: 20rpx;
+  color: #888;
+}
+
+.trips-section {
+  background: white;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.05);
+}
+
+.trips-container {
+  max-height: 400rpx;
+  overflow-y: auto;
+}
+
+.trip-item {
+  padding: 25rpx;
+  border-bottom: 1rpx solid #eee;
+  background: #fafafa;
+  border-radius: 10rpx;
+  margin-bottom: 20rpx;
+}
+
+.trip-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.trip-date {
+  font-size: 24rpx;
+  color: #888;
+  margin-bottom: 10rpx;
+}
+
+.trip-location {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.trip-notes {
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 10rpx;
+}
+
+.trip-photos-count {
+  font-size: 22rpx;
+  color: #1AAD19;
+}
+
+.photos-section {
+  background: white;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.05);
+}
+
+.photos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15rpx;
+}
+
+.photo-item {
+  position: relative;
+  border-radius: 10rpx;
+  overflow: hidden;
+  aspect-ratio: 1;
+}
+
+.photo-image {
+  width: 100%;
+  height: 100%;
+}
+
+.photo-description {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.5);
+  color: white;
+  font-size: 20rpx;
+  padding: 10rpx;
+  text-align: center;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 100rpx 40rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 适配小屏幕 */
+@media screen and (max-width: 375px) {
+  .action-buttons {
+    flex-direction: column;
+    gap: 20rpx;
+  }
+  
+  .btn-add-trip, .btn-refresh {
+    margin: 0;
+  }
+  
+  .attraction-item {
+    min-width: 140rpx;
+    padding: 20rpx;
+  }
+  
+  .attraction-icon {
+    font-size: 40rpx;
+  }
+  
+  .attraction-name {
+    font-size: 24rpx;
+  }
+}

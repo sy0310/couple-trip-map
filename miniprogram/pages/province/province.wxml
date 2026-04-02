@@ -1,0 +1,54 @@
+<!-- pages/province/province.wxml -->
+<view class="container">
+  <!-- 省份头部信息 -->
+  <view class="province-header">
+    <text class="province-name">{{provinceName}}</text>
+    <view class="province-stats">
+      <text class="stat-item">已访问 {{provinceStats.visitedCities}}/{{provinceStats.totalCities}} 个城市</text>
+      <text class="stat-item">完成度 {{provinceStats.completionRate}}%</text>
+    </view>
+  </view>
+
+  <!-- 进度条 -->
+  <view class="progress-container">
+    <view 
+      class="progress-bar" 
+      style="width: {{provinceStats.completionRate}}%"
+    ></view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-buttons">
+    <button class="btn-add-trip" bindtap="addTripRecord">+ 添加旅行记录</button>
+    <button class="btn-refresh" bindtap="refreshData">刷新数据</button>
+  </view>
+
+  <!-- 城市列表 -->
+  <view class="cities-container">
+    <view class="section-title">城市列表</view>
+    <view class="cities-grid">
+      <block wx:for="{{cities}}" wx:key="index">
+        <view 
+          class="city-item {{isCityVisited(item) ? 'visited' : 'not-visited'}}" 
+          data-city="{{item}}"
+          bindtap="goToCity"
+        >
+          <text class="city-name">{{item}}</text>
+          <text class="city-status">{{isCityVisited(item) ? '✓' : '+'}}</text>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 访问过的城市列表（可选） -->
+  <view class="visited-section" wx:if="{{visitedCities.length > 0}}">
+    <view class="section-title">已访问城市</view>
+    <view class="visited-list">
+      <block wx:for="{{visitedCities}}" wx:key="index">
+        <view class="visited-item">
+          <text>{{item}}</text>
+        </view>
+      </block>
+    </view>
+  </view>
+</view>

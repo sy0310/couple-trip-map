@@ -1,0 +1,71 @@
+<!-- pages/profile/profile.wxml -->
+<view class="container">
+  <!-- 用户信息区域 -->
+  <view class="user-section">
+    <view class="user-avatar">
+      <image src="{{userInfo.avatarUrl}}" mode="aspectFill"></image>
+    </view>
+    <view class="user-info">
+      <text class="nickname">{{userInfo.nickName}}</text>
+      <text class="openid">OpenID: {{userInfo.openId}}</text>
+    </view>
+  </view>
+
+  <!-- 情侣绑定状态 -->
+  <view class="couple-section">
+    <view class="section-header">
+      <text class="section-title">情侣绑定</text>
+      <text class="section-status">{{isCoupleBound ? '已绑定' : '未绑定'}}</text>
+    </view>
+    
+    <!-- 已绑定状态 -->
+    <block wx:if="{{isCoupleBound && coupleInfo}}">
+      <view class="bound-info">
+        <view class="partner-info">
+          <image src="{{coupleInfo.partnerAvatar}}" mode="aspectFill"></image>
+          <text>{{coupleInfo.partnerNickName}}</text>
+        </view>
+        <view class="bind-time">
+          绑定时间: {{coupleInfo.bindTime}}
+        </view>
+        <button class="btn-unbind" bindtap="unbindCouple">解除绑定</button>
+      </view>
+    </block>
+
+    <!-- 未绑定状态 -->
+    <block wx:else>
+      <view class="unbind-actions">
+        <button class="btn-primary" bindtap="createCouple">创建情侣关系</button>
+        <view class="divider">或</view>
+        <view class="join-section">
+          <input 
+            class="bind-input" 
+            placeholder="输入绑定码" 
+            value="{{bindCode}}" 
+            bindinput="onBindCodeInput"
+          />
+          <button class="btn-secondary" bindtap="joinCouple">加入情侣关系</button>
+          <button class="btn-generate" bindtap="generateBindCode">生成绑定码</button>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 功能入口 -->
+  <view class="features-section">
+    <view class="section-header">
+      <text class="section-title">功能入口</text>
+    </view>
+    <view class="feature-grid">
+      <navigator url="/pages/album/album" class="feature-item">
+        <text>旅行相册</text>
+      </navigator>
+      <navigator url="/pages/map/map" class="feature-item">
+        <text>旅行地图</text>
+      </navigator>
+      <navigator url="/pages/statistics/statistics" class="feature-item">
+        <text>统计分析</text>
+      </navigator>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,82 @@
+<!-- pages/city/city.wxml -->
+<view class="container">
+  <!-- 城市头部信息 -->
+  <view class="city-header">
+    <text class="city-name">{{cityName}}</text>
+    <text class="province-name">{{provinceName}}</text>
+    <view class="city-stats">
+      <text class="stat-item">旅行 {{cityStats.totalTrips}} 次</text>
+      <text class="stat-item">照片 {{cityStats.totalPhotos}} 张</text>
+      <text class="stat-item" wx:if="{{cityStats.firstVisit}}">首次访问 {{cityStats.firstVisit}}</text>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-buttons">
+    <button class="btn-add-trip" bindtap="addTripRecord">+ 添加旅行记录</button>
+    <button class="btn-refresh" bindtap="refreshData">刷新数据</button>
+  </view>
+
+  <!-- 景点列表 -->
+  <view class="attractions-section">
+    <view class="section-title">热门景点</view>
+    <scroll-view class="attractions-scroll" scroll-x="true">
+      <view class="attractions-container">
+        <block wx:for="{{attractions}}" wx:key="index">
+          <view 
+            class="attraction-item" 
+            data-attraction="{{item}}"
+            bindtap="goToAttraction"
+          >
+            <view class="attraction-icon">🏛️</view>
+            <text class="attraction-name">{{item.name}}</text>
+            <text class="attraction-type">{{item.type}}</text>
+          </view>
+        </block>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 旅行记录列表 -->
+  <view class="trips-section">
+    <view class="section-title">旅行记录</view>
+    <view class="trips-container">
+      <block wx:for="{{tripRecords}}" wx:key="index">
+        <view 
+          class="trip-item" 
+          data-trip="{{item}}"
+          bindtap="goToTripDetail"
+        >
+          <view class="trip-date">{{item.visitTime}}</view>
+          <view class="trip-location">{{item.locationName}}</view>
+          <view class="trip-notes">{{item.notes}}</view>
+          <view class="trip-photos-count" wx:if="{{item.photos.length > 0}}">
+            📷 {{item.photos.length}} 张照片
+          </view>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 照片墙 -->
+  <view class="photos-section" wx:if="{{photos.length > 0}}">
+    <view class="section-title">照片墙</view>
+    <view class="photos-grid">
+      <block wx:for="{{photos}}" wx:key="index">
+        <view class="photo-item" bindtap="viewPhoto" data-src="{{item.fileId}}">
+          <image 
+            class="photo-image" 
+            src="{{item.fileId}}" 
+            mode="aspectFill"
+          ></image>
+          <text class="photo-description" wx:if="{{item.description}}">{{item.description}}</text>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{tripRecords.length === 0 && photos.length === 0}}">
+    <text class="empty-text">还没有{{cityName}}的旅行记录和照片，快去添加吧！</text>
+  </view>
+</view>

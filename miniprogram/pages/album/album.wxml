@@ -1,0 +1,104 @@
+<!-- pages/album/album.wxml -->
+<view class="container">
+  <!-- 顶部操作栏 -->
+  <view class="header">
+    <text class="title">旅行相册</text>
+    <button class="btn-add" bindtap="addTripRecord">+ 添加</button>
+  </view>
+
+  <!-- 年份选择 -->
+  <view class="years-selector" wx:if="{{years.length > 0}}">
+    <scroll-view class="years-scroll" scroll-x="true">
+      <view class="years-container">
+        <block wx:for="{{years}}" wx:key="index">
+          <view 
+            class="year-item {{selectedYear === item ? 'selected' : ''}}" 
+            data-year="{{item}}"
+            bindtap="selectYear"
+          >
+            <text>{{item}}年</text>
+          </view>
+        </block>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 相册内容 -->
+  <view class="album-content" wx:if="{{!loading}}">
+    <!-- 按年份展示的相册 -->
+    <view class="yearly-albums" wx:if="{{selectedYear && albums[selectedYear] && albums[selectedYear].length > 0}}">
+      <view class="section-title">{{selectedYear}}年旅行</view>
+      <view class="albums-grid">
+        <block wx:for="{{albums[selectedYear]}}" wx:key="index">
+          <view 
+            class="album-item" 
+            data-trip="{{item}}"
+            bindtap="goToTripDetail"
+          >
+            <view class="album-cover">
+              <image 
+                src="{{item.photos && item.photos.length > 0 ? item.photos[0] : '/images/default-cover.jpg'}}" 
+                mode="aspectFill"
+              ></image>
+              <view class="album-overlay">
+                <text class="album-location">{{item.locationName}}</text>
+                <text class="album-date">{{item.dateStr || item.visitTime}}</text>
+              </view>
+            </view>
+            <view class="album-info">
+              <text class="album-title">{{item.locationName}}</text>
+              <text class="album-desc">{{item.notes}}</text>
+            </view>
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 时间线视图 -->
+    <view class="timeline-section" wx:else>
+      <view class="section-title">时间线</view>
+      <view class="timeline">
+        <block wx:for="{{timeline}}" wx:key="index">
+          <view class="timeline-item">
+            <view class="timeline-date">{{item.dateStr}}</view>
+            <view class="timeline-content">
+              <view class="timeline-location">{{item.locationName}}</view>
+              <view class="timeline-notes">{{item.notes}}</view>
+              
+              <!-- 照片网格 -->
+              <view class="timeline-photos" wx:if="{{item.photos.length > 0}}">
+                <block wx:for="{{item.photos}}" wx:key="index">
+                  <view class="photo-wrapper">
+                    <image 
+                      class="timeline-photo" 
+                      src="{{item}}" 
+                      mode="aspectFill"
+                      data-trip="{{timeline[index]}}"
+                      data-index="{{index}}"
+                      bindtap="viewPhoto"
+                    ></image>
+                  </view>
+                </block>
+              </view>
+            </view>
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{timeline.length === 0}}">
+      <text class="empty-text">还没有旅行记录，快去添加第一段美好回忆吧！</text>
+    </view>
+  </view>
+
+  <!-- 刷新按钮 -->
+  <view class="refresh-btn" bindtap="refreshData">
+    <text>🔄 刷新</text>
+  </view>
+</view>
