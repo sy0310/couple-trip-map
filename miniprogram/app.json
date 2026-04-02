@@ -1,0 +1,44 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/province/province",
+    "pages/city/city",
+    "pages/album/album",
+    "pages/profile/profile"
+  ],
+  "window": {
+    "backgroundColor": "#F6F6F6",
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#FF6B81",
+    "navigationBarTitleText": "情侣旅行地图",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#FF6B81",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "地图",
+        "iconPath": "images/map.png",
+        "selectedIconPath": "images/map-active.png"
+      },
+      {
+        "pagePath": "pages/album/album",
+        "text": "相册",
+        "iconPath": "images/album.png",
+        "selectedIconPath": "images/album-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "images/profile.png",
+        "selectedIconPath": "images/profile-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

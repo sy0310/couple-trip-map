@@ -1,0 +1,62 @@
+<!--pages/index/index.wxml-->
+<view class="container">
+  <!-- 头部统计 -->
+  <view class="card stats-card">
+    <view class="stats-header">
+      <text class="stats-title">我们一起走过</text>
+      <text class="stats-subtitle">记录每一次相聚</text>
+    </view>
+    <view class="stats-content flex flex-between">
+      <view class="stat-item text-center">
+        <text class="stat-number text-primary">{{visitedCount}}</text>
+        <text class="stat-label">去过的省份</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item text-center">
+        <text class="stat-number text-primary">{{totalCount}}</text>
+        <text class="stat-label">全国省份</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item text-center">
+        <text class="stat-number text-primary">{{(visitedCount/totalCount*100).toFixed(1)}}%</text>
+        <text class="stat-label">完成度</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 地图区域 -->
+  <view class="card map-card">
+    <view class="map-header flex flex-between">
+      <text class="map-title">旅行地图</text>
+      <text class="map-action text-primary" bindtap="onBindCouple">绑定 TA →</text>
+    </view>
+    
+    <!-- 地图占位 - 实际使用高德地图组件 -->
+    <view class="map-placeholder" bindtap="onProvinceTap" data-name="北京">
+      <text class="map-tip">点击省份查看详情</text>
+      <image 
+        src="https://webapi.amap.com/staticmap?center=105,38&zoom=4&size=750*600&key=你的高德地图 Key" 
+        mode="aspectFit"
+        class="map-image"
+      />
+    </view>
+  </view>
+
+  <!-- 最近旅行 -->
+  <view class="card recent-card">
+    <view class="card-header flex flex-between">
+      <text class="card-title">最近旅行</text>
+      <text class="card-more text-primary">查看全部 →</text>
+    </view>
+    <view class="recent-list">
+      <view class="recent-item flex" wx:for="{{2}}" wx:key="index">
+        <image class="recent-cover" src="/images/placeholder.png" mode="aspectFill" />
+        <view class="recent-info">
+          <text class="recent-location">北京市 · 故宫</text>
+          <text class="recent-date">2026-02-14</text>
+          <text class="recent-count">📷 12 张照片</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
