@@ -1,9 +1,0 @@
-{
-  "buildCommand": "cd yuting && npm install && npm run build",
-  "outputDirectory": "yuting/.next",
-  "devCommand": "cd yuting && npm run dev",
-  "installCommand": "cd yuting && npm install",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
-  ]
-}
