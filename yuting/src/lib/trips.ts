@@ -158,16 +158,19 @@ export async function getCoupleInfo(userId?: string): Promise<{ id: string; part
   if (!couple) return null;
 
   const partnerId = couple.user_a_id === uid ? couple.user_b_id! : couple.user_a_id;
-  const { data: partnerUser } = await supabase
-    .from('users')
-    .select('nickname')
-    .eq('id', partnerId)
-    .maybeSingle() as { data: Pick<Database['public']['Tables']['users']['Row'], 'nickname'> | null; error: { message: string } | null };
+
+  const { data: rpcResult } = await supabase.rpc('get_partner_nickname') as {
+    data: { couple_id: string; partner_id: string; partner_nickname: string }[] | null;
+    error: { message: string } | null;
+  };
+  const partnerNickname = rpcResult && rpcResult.length > 0
+    ? rpcResult[0].partner_nickname || partnerId.slice(0, 8)
+    : partnerId.slice(0, 8);
 
   return {
     id: couple.id,
     partnerId,
-    partnerNickname: partnerUser?.nickname || partnerId.slice(0, 8),
+    partnerNickname,
   };
 }
 
