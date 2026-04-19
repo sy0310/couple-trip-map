@@ -77,17 +77,16 @@ export default function AlbumPage() {
     trip.urls.map((url) => ({ url, trip, key: `${trip.tripId}-${url}` }))
   );
 
+  const heroTrip = trips.find((t) => t.urls.length > 0);
+
   if (!user) {
     return (
-      <div className="container">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold tracking-tight" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
-            旅行相册
-          </h1>
-        </div>
-        <div className="text-center py-32" style={{ color: '#9A8B7A' }}>
-          <p className="text-base mb-2">请先登录</p>
-          <a href="/login" className="text-sm underline" style={{ color: '#c99a6c' }}>前往登录 →</a>
+      <div className="min-h-screen relative pb-32" style={{ background: 'linear-gradient(135deg, #4a2e1d 0%, #352118 50%, #2a1b14 100%)' }}>
+        <div className="relative z-10 max-w-5xl mx-auto px-6 py-12">
+          <div className="text-center py-32" style={{ color: '#9A8B7A' }}>
+            <p className="text-base mb-2" style={{ fontFamily: "'Newsreader', serif", fontStyle: 'italic', fontSize: '1.25rem' }}>请先登录</p>
+            <a href="/login" className="text-sm underline" style={{ color: '#c99a6c' }}>前往登录 →</a>
+          </div>
         </div>
         <BottomNav />
       </div>
@@ -96,22 +95,18 @@ export default function AlbumPage() {
 
   if (loading) {
     return (
-      <div className="container">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold tracking-tight" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
-            旅行相册
-          </h1>
-        </div>
-        <div className="text-center py-24" style={{ color: '#9A8B7A' }}>
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl border flex items-center justify-center"
-            style={{ borderColor: 'rgba(255,222,165,0.15)', background: 'rgba(255,255,255,0.04)' }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c99a6c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <path d="M21 15l-5-5L5 21" />
-            </svg>
+      <div className="min-h-screen relative pb-32" style={{ background: 'linear-gradient(135deg, #4a2e1d 0%, #352118 50%, #2a1b14 100%)' }}>
+        <div className="relative z-10 max-w-5xl mx-auto px-6 py-12">
+          <div className="text-center py-24" style={{ color: '#9A8B7A' }}>
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl border flex items-center justify-center" style={{ borderColor: 'rgba(255,222,165,0.15)', background: 'rgba(255,255,255,0.04)' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c99a6c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+            </div>
+            <p className="text-sm" style={{ fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>加载中...</p>
           </div>
-          <p className="text-sm">加载中...</p>
         </div>
         <BottomNav />
       </div>
@@ -119,155 +114,202 @@ export default function AlbumPage() {
   }
 
   return (
-    <div className="container">
-      {/* Header */}
-      <div className="mb-6 flex items-end justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
-            旅行相册
-          </h1>
-          <p className="text-sm mt-1" style={{ color: '#dac2b6' }}>
-            {trips.length > 0 ? `${trips.length} 段回忆 · ${allPhotos.length} 张照片` : '记录美好时光'}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowAddTrip(true)}
-          className="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-95"
-          style={{
-            background: 'linear-gradient(135deg, #c99a6c, #b8895e)',
-            color: '#221a0f',
-            boxShadow: '0 4px 12px rgba(201,154,108,0.3)',
-          }}
-        >
-          + 添加旅行
-        </button>
-      </div>
-
-      {/* Year filter — dark wooden pills */}
-      {years.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-8" style={{ borderBottom: '1px solid rgba(255,222,165,0.08)' }}>
+    <div className="min-h-screen relative pb-32 overflow-hidden" style={{ background: 'linear-gradient(135deg, #4a2e1d 0%, #352118 50%, #2a1b14 100%)' }}>
+      <div className="relative z-10 max-w-5xl mx-auto px-6 py-12">
+        {/* Header */}
+        <div className="mb-8 flex items-end justify-between">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
+              旅行相册
+            </h1>
+            <p className="text-sm mt-1" style={{ color: '#dac2b6', fontFamily: "'Manrope', sans-serif" }}>
+              {trips.length > 0 ? `${trips.length} 段回忆 · ${allPhotos.length} 张照片` : '记录美好时光'}
+            </p>
+          </div>
           <button
-            onClick={() => setSelectedYear('all')}
-            className="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200"
+            onClick={() => setShowAddTrip(true)}
+            className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95"
             style={{
-              background: selectedYear === 'all' ? 'linear-gradient(135deg, #c99a6c, #b8895e)' : 'rgba(255,255,255,0.06)',
-              color: selectedYear === 'all' ? '#221a0f' : '#9A8B7A',
-              border: selectedYear === 'all' ? 'none' : '1px solid rgba(255,222,165,0.12)',
+              background: 'linear-gradient(135deg, #c99a6c, #b8895e)',
+              color: '#221a0f',
+              boxShadow: '2px 4px 0 rgba(34,26,15,0.4)',
+              borderBottom: '2px solid rgba(218,194,182,0.3)',
             }}
           >
-            全部
+            + 添加旅行
           </button>
-          {years.map((year) => (
-            <button
-              key={year}
-              onClick={() => setSelectedYear(year)}
-              className="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200"
-              style={{
-                background: selectedYear === year ? 'linear-gradient(135deg, #c99a6c, #b8895e)' : 'rgba(255,255,255,0.06)',
-                color: selectedYear === year ? '#221a0f' : '#9A8B7A',
-                border: selectedYear === year ? 'none' : '1px solid rgba(255,222,165,0.12)',
-              }}
-            >
-              {year}年
-            </button>
-          ))}
         </div>
-      )}
 
-      {allPhotos.length === 0 ? (
-        <div className="text-center py-32" style={{ color: '#9A8B7A' }}>
-          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center border"
-            style={{ borderColor: 'rgba(255,222,165,0.1)', background: 'rgba(255,255,255,0.03)' }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c99a6c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <path d="M21 15l-5-5L5 21" />
-            </svg>
+        {allPhotos.length === 0 ? (
+          <div className="text-center py-32" style={{ color: '#9A8B7A' }}>
+            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center border" style={{ borderColor: 'rgba(255,222,165,0.1)', background: 'rgba(255,255,255,0.03)' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c99a6c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+            </div>
+            <p className="text-base" style={{ fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>还没有照片</p>
+            <p className="text-sm mt-1 opacity-70">添加旅行时上传照片吧</p>
           </div>
-          <p className="text-base">还没有照片</p>
-          <p className="text-sm mt-1 opacity-70">添加旅行时上传照片吧</p>
-        </div>
-      ) : (
-        <>
-          {/* Masonry-style photo gallery */}
-          <div className="columns-2 md:columns-3 gap-4 space-y-4">
-            {allPhotos.map((photo) => (
-              <div
-                key={photo.key}
-                className="group relative rounded-xl overflow-hidden border transition-all duration-200 cursor-pointer hover:scale-[1.02]"
-                style={{ borderColor: 'rgba(255,222,165,0.1)', breakInside: 'avoid' }}
-                onClick={() => setExpandedUrl(photo.url)}
-              >
-                <img src={photo.url} alt="" className="w-full h-auto object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <div className="text-xs" style={{ color: '#ffdea5' }}>{photo.trip.locationName}</div>
-                    <div className="text-[11px]" style={{ color: '#dac2b6' }}>{new Date(photo.trip.visitDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}</div>
+        ) : (
+          <>
+            {/* Hero Photo — Polaroid frame */}
+            {heroTrip && heroTrip.urls.length > 0 && (
+              <div className="mb-12">
+                <div
+                  className="relative group transform -rotate-1"
+                  style={{
+                    background: '#352118',
+                    boxShadow: '0 15px 45px rgba(0,0,0,0.5), 0 0 0 8px #4a2e1d, 0 0 0 12px rgba(201,154,108,0.15)',
+                    padding: '12px 12px 60px 12px',
+                  }}
+                >
+                  <div className="relative overflow-hidden cursor-pointer" onClick={() => setExpandedUrl(heroTrip.urls[0])}>
+                    <img src={heroTrip.urls[0]} alt={heroTrip.locationName} className="w-full aspect-[4/3] md:aspect-[16/9] object-cover" />
+                    <div className="absolute inset-0 shadow-[inset_0_0_80px_rgba(0,0,0,0.4)]" />
+                  </div>
+                  <div className="mt-4 px-2 flex items-end justify-between">
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-bold" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
+                        {heroTrip.locationName}
+                      </h2>
+                      <p className="text-sm mt-1" style={{ color: '#dac2b6', fontFamily: "'Newsreader', serif", fontStyle: 'italic', opacity: 0.8 }}>
+                        {heroTrip.province} · {heroTrip.city} · {new Date(heroTrip.visitDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
 
-          {/* Trip detail cards */}
-          {filteredTrips.filter((t) => t.notes || t.urls.length > 3).length > 0 && (
-            <div className="mt-12">
-              <h2 className="text-lg font-semibold mb-4" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
-                旅行记忆
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredTrips.filter((t) => t.notes || t.urls.length > 3).map((trip) => (
-                  <div
-                    key={trip.tripId}
-                    className="rounded-xl p-5 border"
+            {/* Year filter */}
+            {years.length > 0 && (
+              <div className="flex items-center gap-4 mb-8">
+                <div className="h-px flex-1" style={{ background: 'rgba(218,194,182,0.3)' }} />
+                <div className="flex gap-2 overflow-x-auto pb-2 max-w-[60%]">
+                  <button
+                    onClick={() => setSelectedYear('all')}
+                    className="px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200"
                     style={{
-                      background: 'linear-gradient(180deg, #4a2e1d 0%, #352118 100%)',
-                      borderColor: 'rgba(255,222,165,0.1)',
+                      background: selectedYear === 'all' ? 'linear-gradient(135deg, #c99a6c, #b8895e)' : 'rgba(255,255,255,0.06)',
+                      color: selectedYear === 'all' ? '#221a0f' : '#9A8B7A',
+                      border: selectedYear === 'all' ? 'none' : '1px solid rgba(255,222,165,0.12)',
                     }}
                   >
-                    <div className="text-xs uppercase tracking-wider mb-1" style={{ color: '#9A8B7A', letterSpacing: '0.1em' }}>
-                      {new Date(trip.visitDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
-                    </div>
-                    <h3 className="font-semibold mb-0.5" style={{ color: '#ffdea5' }}>{trip.locationName}</h3>
-                    <div className="text-xs mb-2" style={{ color: '#dac2b6' }}>{trip.province} · {trip.city}</div>
-                    {trip.notes && <p className="text-sm leading-relaxed mb-3" style={{ color: '#dac2b6' }}>{trip.notes}</p>}
-                    {trip.urls.length > 0 && (
-                      <div className="flex gap-2 overflow-x-auto pb-1">
-                        {trip.urls.slice(0, 4).map((url, i) => (
-                          <img
-                            key={i}
-                            src={url}
-                            alt=""
-                            className="w-16 h-16 rounded-lg object-cover flex-shrink-0 border cursor-pointer transition-colors hover:border-[#c99a6c]"
-                            style={{ borderColor: 'rgba(255,222,165,0.15)' }}
-                            onClick={() => setExpandedUrl(url)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                    全部
+                  </button>
+                  {years.map((year) => (
+                    <button
+                      key={year}
+                      onClick={() => setSelectedYear(year)}
+                      className="px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200"
+                      style={{
+                        background: selectedYear === year ? 'linear-gradient(135deg, #c99a6c, #b8895e)' : 'rgba(255,255,255,0.06)',
+                        color: selectedYear === year ? '#221a0f' : '#9A8B7A',
+                        border: selectedYear === year ? 'none' : '1px solid rgba(255,222,165,0.12)',
+                      }}
+                    >
+                      {year}年
+                    </button>
+                  ))}
+                </div>
+                <div className="h-px flex-1" style={{ background: 'rgba(218,194,182,0.3)' }} />
               </div>
-            </div>
-          )}
-        </>
-      )}
+            )}
+
+            {/* Horizontal scroll — rotated photo cards */}
+            <section className="mb-16">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="h-px flex-1" style={{ background: 'rgba(218,194,182,0.3)' }} />
+                <h3 className="text-xl italic font-medium whitespace-nowrap" style={{ color: '#c99a6c', fontFamily: "'Newsreader', serif" }}>
+                  其他回忆
+                </h3>
+                <div className="h-px flex-1" style={{ background: 'rgba(218,194,182,0.3)' }} />
+              </div>
+              <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
+                {allPhotos.slice(0, 12).map((photo, i) => {
+                  const rotations = ['rotate-2', '-rotate-1', 'rotate-3', '-rotate-2', 'rotate-1'];
+                  const rotation = rotations[i % rotations.length];
+                  return (
+                    <div
+                      key={photo.key}
+                      className={`flex-none w-52 snap-center cursor-pointer transition-all duration-300 hover:scale-105 ${rotation}`}
+                      onClick={() => setExpandedUrl(photo.url)}
+                    >
+                      <div className="p-2 rounded-sm shadow-xl border" style={{ background: 'rgba(141,67,31,0.4)', borderColor: 'rgba(111,45,10,0.3)' }}>
+                        <img src={photo.url} alt="" className="w-full h-36 object-cover rounded-sm" style={{ filter: 'grayscale(0.2)', transition: 'filter 0.5s' }} onMouseEnter={(e) => (e.currentTarget.style.filter = 'grayscale(0)')} onMouseLeave={(e) => (e.currentTarget.style.filter = 'grayscale(0.2)')} />
+                      </div>
+                      <div className="mt-2 px-1">
+                        <p className="text-xs truncate" style={{ color: '#dac2b6', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
+                          {photo.trip.locationName}
+                        </p>
+                        <p className="text-[10px]" style={{ color: '#9A8B7A' }}>
+                          {new Date(photo.trip.visitDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Trip memory cards */}
+            {filteredTrips.filter((t) => t.notes || t.urls.length > 3).length > 0 && (
+              <div className="relative mb-12">
+                <div className="p-6 md:p-8 rounded-xl relative overflow-hidden border" style={{ background: 'rgba(255,242,226,0.05)', borderColor: 'rgba(218,194,182,0.1)' }}>
+                  <h2 className="text-2xl mb-6 relative z-10" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
+                    旅行记忆
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                    {filteredTrips.filter((t) => t.notes || t.urls.length > 3).map((trip) => (
+                      <div
+                        key={trip.tripId}
+                        className="rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 hover:shadow-lg"
+                        style={{
+                          background: 'linear-gradient(180deg, rgba(74,46,29,0.8) 0%, rgba(53,33,24,0.9) 100%)',
+                          borderColor: 'rgba(255,222,165,0.08)',
+                          boxShadow: '2px 4px 0 rgba(34,26,15,0.3)',
+                        }}
+                        onClick={() => trip.urls.length > 0 && setExpandedUrl(trip.urls[0])}
+                      >
+                        {trip.urls.length > 0 && (
+                          <img src={trip.urls[0]} alt="" className="w-full h-48 object-cover" />
+                        )}
+                        <div className="p-5">
+                          <div className="flex items-center gap-2 mb-2 text-xs" style={{ color: '#9A8B7A' }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <rect x="3" y="4" width="18" height="18" rx="2" />
+                              <path d="M16 2v4M8 2v4M3 10h18" />
+                            </svg>
+                            {new Date(trip.visitDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                          </div>
+                          <h3 className="text-lg font-bold mb-1" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}>
+                            {trip.locationName}
+                          </h3>
+                          <div className="text-xs mb-3" style={{ color: '#dac2b6' }}>{trip.province} · {trip.city}</div>
+                          {trip.notes && (
+                            <p className="text-sm leading-relaxed" style={{ color: '#dac2b6' }}>
+                              {trip.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* Full-screen photo viewer */}
       {expandedUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setExpandedUrl(null)}>
           <div className="absolute inset-0 bg-black/90" />
-          <img
-            src={expandedUrl}
-            alt="照片"
-            className="relative max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <button
-            onClick={() => setExpandedUrl(null)}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.6)', color: '#ffdea5' }}
-          >
+          <img src={expandedUrl} alt="照片" className="relative max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
+          <button onClick={() => setExpandedUrl(null)} className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: 'rgba(0,0,0,0.6)', color: '#ffdea5' }}>
             ✕
           </button>
         </div>
