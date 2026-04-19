@@ -231,7 +231,13 @@ export const PROVINCES: Province[] = [
 
 export const TOTAL_PROVINCES = PROVINCES.length;
 
-/** Get province by display name */
+/** Get province by display name (strips trailing "市" for matching) */
 export function getProvinceByName(name: string): Province | undefined {
-  return PROVINCES.find((p) => p.name === name);
+  const normalized = name.endsWith('市') ? name.slice(0, -1) : name;
+  return PROVINCES.find((p) => p.name === normalized);
+}
+
+/** Normalize province name by stripping trailing "市" */
+export function normalizeProvinceName(name: string): string {
+  return name.endsWith('市') ? name.slice(0, -1) : name;
 }

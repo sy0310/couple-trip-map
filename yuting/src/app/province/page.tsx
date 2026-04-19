@@ -7,11 +7,11 @@ import { RoomPanel } from '@/components/furniture';
 import { ProvinceMap } from '@/components/province-map';
 import { getCoupleId, getVisitedCities, getVisitedProvinces } from '@/lib/trips';
 import { AddTripForm } from '@/components/add-trip-form';
-import { getProvinceByName } from '@/lib/provinces';
+import { getProvinceByName, normalizeProvinceName } from '@/lib/provinces';
 
 function ProvinceContent() {
   const searchParams = useSearchParams();
-  const provinceName = searchParams.get('name') || '';
+  const provinceName = normalizeProvinceName(searchParams.get('name') || '');
 
   const [cities, setCities] = useState<string[]>([]);
   const [visitedCities, setVisitedCities] = useState<string[]>([]);

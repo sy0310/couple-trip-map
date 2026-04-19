@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { PROVINCES } from '@/lib/provinces';
+import { PROVINCES, normalizeProvinceName } from '@/lib/provinces';
 import { createTrip, uploadPhoto, createPhotoRecord } from '@/lib/trips';
 
 interface AddTripFormProps {
@@ -57,10 +57,12 @@ export function AddTripForm({
     setError('');
 
     // Step 1: Create or find existing trip
+    const normalizedProvince = normalizeProvinceName(province);
+    const normalizedCity = normalizeProvinceName(city);
     const trip = await createTrip(coupleId, {
-      location_name: scenicSpot ? `${province}·${city}·${scenicSpot}` : `${province}·${city}`,
-      province,
-      city,
+      location_name: scenicSpot ? `${normalizedProvince}·${normalizedCity}·${scenicSpot}` : `${normalizedProvince}·${normalizedCity}`,
+      province: normalizedProvince,
+      city: normalizedCity,
       scenic_spot: scenicSpot || undefined,
       visit_date: visitDate,
       notes: notes || undefined,
@@ -165,7 +167,7 @@ export function AddTripForm({
               type="text"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              placeholder="例如：广州市"
+              placeholder="例如：广州"
               className="w-full px-3 py-2.5 rounded-lg text-sm placeholder:text-white/30"
               style={{
                 background: 'rgba(255,255,255,0.08)',

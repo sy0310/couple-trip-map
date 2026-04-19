@@ -7,6 +7,8 @@ import { RoomPanel } from '@/components/furniture';
 import { getCoupleId, getTripsByCity, getPhotosByTrip } from '@/lib/trips';
 import { AddTripForm } from '@/components/add-trip-form';
 
+import { normalizeProvinceName } from '@/lib/provinces';
+
 const CITY_ATTRACTIONS: Record<string, { name: string; type: string }[]> = {
   '北京': [
     { name: '故宫', type: '历史文化' },
@@ -31,8 +33,8 @@ const CITY_ATTRACTIONS: Record<string, { name: string; type: string }[]> = {
 
 function CityContent() {
   const searchParams = useSearchParams();
-  const cityName = searchParams.get('name') || '';
-  const provinceName = searchParams.get('province') || '';
+  const cityName = normalizeProvinceName(searchParams.get('name') || '');
+  const provinceName = normalizeProvinceName(searchParams.get('province') || '');
 
   const [attractions] = useState(CITY_ATTRACTIONS[cityName] || []);
   const [tripRecords, setTripRecords] = useState<{
