@@ -14,6 +14,7 @@ interface TripPhoto {
   visitDate: string;
   notes: string | null;
   urls: string[];
+  coverUrl: string | null;
 }
 
 export default function AlbumPage() {
@@ -23,6 +24,7 @@ export default function AlbumPage() {
   const [expandedUrl, setExpandedUrl] = useState<string | null>(null);
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [coupleId, setCoupleId] = useState<string | null>(null);
+  const [selectingCover, setSelectingCover] = useState<string | null>(null);
   const { user } = useAuth();
 
   const loadTrips = useCallback(async () => {
@@ -33,9 +35,9 @@ export default function AlbumPage() {
 
     const sup = await import('@/lib/supabase-browser');
     const client = sup.createClient();
-    const { data: tripsData }: { data: { id: string; location_name: string; province: string; city: string; visit_date: string; notes: string | null }[] | null } = await client
+    const { data: tripsData }: { data: { id: string; location_name: string; province: string; city: string; visit_date: string; notes: string | null; cover_url: string | null }[] | null } = await client
       .from('trips')
-      .select('id, location_name, province, city, visit_date, notes')
+      .select('id, location_name, province, city, visit_date, notes, cover_url')
       .eq('couple_id', cid)
       .order('visit_date', { ascending: false });
 
@@ -52,6 +54,7 @@ export default function AlbumPage() {
         visitDate: trip.visit_date,
         notes: trip.notes,
         urls: photos.map((p) => p.file_url),
+        coverUrl: trip.cover_url,
       });
     }
     setTrips(loaded);
@@ -88,6 +91,16 @@ export default function AlbumPage() {
     loadTrips();
   };
 
+  const handleSetCover = async (tripId: string, url: string) => {
+    const sup = await import('@/lib/supabase-browser');
+    const client = sup.createClient();
+    const { error } = await client.from('trips').update({ cover_url: url } as never).eq('id', tripId);
+    if (!error) {
+      setTrips((prev) => prev.map((t) => t.tripId === tripId ? { ...t, coverUrl: url } : t));
+    }
+    setSelectingCover(null);
+  };
+
   const years = [...new Set(trips.map((t) => new Date(t.visitDate).getFullYear().toString()))].sort((a, b) => parseInt(b) - parseInt(a));
   const filteredTrips = selectedYear === 'all' ? trips : trips.filter((t) => new Date(t.visitDate).getFullYear().toString() === selectedYear);
 
@@ -95,7 +108,8 @@ export default function AlbumPage() {
     trip.urls.map((url) => ({ url, trip, key: `${trip.tripId}-${url}` }))
   );
 
-  const heroTrip = trips.find((t) => t.urls.length > 0);
+  const heroTrip = trips.find((t) => (t.coverUrl || t.urls[0]));
+  const heroCover = heroTrip?.coverUrl || heroTrip?.urls[0];
 
   if (!user) {
     return (
@@ -173,7 +187,7 @@ export default function AlbumPage() {
         ) : (
           <>
             {/* Hero Photo — Polaroid frame */}
-            {heroTrip && heroTrip.urls.length > 0 && (
+            {heroTrip && heroCover && (
               <div className="mb-12">
                 <div
                   className="relative group transform -rotate-1"
@@ -183,8 +197,8 @@ export default function AlbumPage() {
                     padding: '12px 12px 60px 12px',
                   }}
                 >
-                  <div className="relative overflow-hidden cursor-pointer" onClick={() => setExpandedUrl(heroTrip.urls[0])}>
-                    <img src={heroTrip.urls[0]} alt={heroTrip.locationName} className="w-full aspect-[4/3] md:aspect-[16/9] object-cover" />
+                  <div className="relative overflow-hidden cursor-pointer" onClick={() => setExpandedUrl(heroCover!)}>
+                    <img src={heroCover} alt={heroTrip.locationName} className="w-full aspect-[4/3] md:aspect-[16/9] object-cover" />
                     <div className="absolute inset-0 shadow-[inset_0_0_80px_rgba(0,0,0,0.4)]" />
                   </div>
                   <div className="mt-4 px-2 flex items-end justify-between">
@@ -280,40 +294,80 @@ export default function AlbumPage() {
                     旅行记忆
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
-                    {filteredTrips.filter((t) => t.notes || t.urls.length > 3).map((trip) => (
-                      <div
-                        key={trip.tripId}
-                        className="rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 hover:shadow-lg"
-                        style={{
-                          background: 'linear-gradient(180deg, rgba(74,46,29,0.8) 0%, rgba(53,33,24,0.9) 100%)',
-                          borderColor: 'rgba(255,222,165,0.08)',
-                          boxShadow: '2px 4px 0 rgba(34,26,15,0.3)',
-                        }}
-                        onClick={() => trip.urls.length > 0 && setExpandedUrl(trip.urls[0])}
-                      >
-                        {trip.urls.length > 0 && (
-                          <img src={trip.urls[0]} alt="" className="w-full h-48 object-cover" />
-                        )}
-                        <div className="p-5">
-                          <div className="flex items-center gap-2 mb-2 text-xs" style={{ color: '#9A8B7A' }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <rect x="3" y="4" width="18" height="18" rx="2" />
-                              <path d="M16 2v4M8 2v4M3 10h18" />
-                            </svg>
-                            {new Date(trip.visitDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
-                          </div>
-                          <h3 className="text-lg font-bold mb-1" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}>
-                            {trip.locationName}
-                          </h3>
-                          <div className="text-xs mb-3" style={{ color: '#dac2b6' }}>{trip.province} · {trip.city}</div>
-                          {trip.notes && (
-                            <p className="text-sm leading-relaxed" style={{ color: '#dac2b6' }}>
-                              {trip.notes}
-                            </p>
+                    {filteredTrips.filter((t) => t.notes || t.urls.length > 3).map((trip) => {
+                      const cover = trip.coverUrl || trip.urls[0];
+                      return (
+                        <div
+                          key={trip.tripId}
+                          className="rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 hover:shadow-lg relative"
+                          style={{
+                            background: 'linear-gradient(180deg, rgba(74,46,29,0.8) 0%, rgba(53,33,24,0.9) 100%)',
+                            borderColor: 'rgba(255,222,165,0.08)',
+                            boxShadow: '2px 4px 0 rgba(34,26,15,0.3)',
+                          }}
+                          onClick={() => (trip.urls.length > 0 && cover) && setExpandedUrl(cover)}
+                        >
+                          {cover && (
+                            <div className="relative">
+                              <img src={cover} alt="" className="w-full h-48 object-cover" />
+                              {trip.urls.length > 1 && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setSelectingCover(selectingCover === trip.tripId ? null : trip.tripId); }}
+                                  className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-xs"
+                                  style={{ background: 'rgba(0,0,0,0.6)', color: '#ffdea5', border: '1px solid rgba(255,222,165,0.3)' }}
+                                  aria-label="选择封面"
+                                >
+                                  ★
+                                </button>
+                              )}
+                            </div>
                           )}
+                          {/* Cover selection overlay */}
+                          {selectingCover === trip.tripId && trip.urls.length > 1 && (
+                            <div className="absolute inset-0 z-20 bg-black/80 p-4 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                              <p className="text-xs text-center mb-3" style={{ color: '#dac2b6' }}>选择封面照片</p>
+                              <div className="grid grid-cols-3 gap-2">
+                                {trip.urls.map((url) => (
+                                  <button
+                                    key={url}
+                                    onClick={() => handleSetCover(trip.tripId, url)}
+                                    className="relative rounded overflow-hidden"
+                                    style={{ border: url === trip.coverUrl ? '2px solid #ffdea5' : '1px solid rgba(255,222,165,0.2)' }}
+                                  >
+                                    <img src={url} alt="" className="w-full h-16 object-cover" />
+                                  </button>
+                                ))}
+                              </div>
+                              <button
+                                onClick={() => setSelectingCover(null)}
+                                className="w-full mt-3 py-2 rounded-lg text-xs"
+                                style={{ background: 'rgba(255,255,255,0.1)', color: '#dac2b6' }}
+                              >
+                                关闭
+                              </button>
+                            </div>
+                          )}
+                          <div className="p-5">
+                            <div className="flex items-center gap-2 mb-2 text-xs" style={{ color: '#9A8B7A' }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" />
+                                <path d="M16 2v4M8 2v4M3 10h18" />
+                              </svg>
+                              {new Date(trip.visitDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            </div>
+                            <h3 className="text-lg font-bold mb-1" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}>
+                              {trip.locationName}
+                            </h3>
+                            <div className="text-xs mb-3" style={{ color: '#dac2b6' }}>{trip.province} · {trip.city}</div>
+                            {trip.notes && (
+                              <p className="text-sm leading-relaxed" style={{ color: '#dac2b6' }}>
+                                {trip.notes}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
