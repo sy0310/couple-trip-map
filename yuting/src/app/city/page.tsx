@@ -216,7 +216,7 @@ function CityContent() {
 
       {/* Expanded photo viewer */}
       {expandedPhoto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setExpandedPhoto(null)}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={() => setExpandedPhoto(null)}>
           <div className="absolute inset-0 bg-black/80" />
           <img
             src={expandedPhoto}

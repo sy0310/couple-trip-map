@@ -527,13 +527,13 @@ export default function ProfilePage() {
 
         {/* Couple binding modal */}
         {showCoupleModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/70" onClick={() => { setShowCoupleModal(false); setBindingCode(''); }} />
             <div
               className="relative w-full max-w-md rounded-2xl overflow-hidden max-h-[85vh] overflow-y-auto"
               style={{ background: 'linear-gradient(180deg, #4a2e1d 0%, #352118 100%)', boxShadow: '0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,222,165,0.1)' }}
             >
-              <div className="p-6">
+              <div className="p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
                 {coupleModalContent}
                 <button
                   onClick={() => { setShowCoupleModal(false); setBindingCode(''); }}
@@ -549,13 +549,13 @@ export default function ProfilePage() {
 
         {/* Settings modal */}
         {showSettingsModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/70" onClick={() => { setShowSettingsModal(false); setNewNickname(''); setNicknameError(''); }} />
             <div
               className="relative w-full max-w-md rounded-2xl overflow-hidden max-h-[85vh] overflow-y-auto"
               style={{ background: 'linear-gradient(180deg, #4a2e1d 0%, #352118 100%)', boxShadow: '0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,222,165,0.1)' }}
             >
-              <div className="p-6">
+              <div className="p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
                 {settingsModalContent}
                 <button
                   onClick={() => setShowSettingsModal(false)}

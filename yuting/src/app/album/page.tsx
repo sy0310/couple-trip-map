@@ -306,7 +306,7 @@ export default function AlbumPage() {
 
       {/* Full-screen photo viewer */}
       {expandedUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setExpandedUrl(null)}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={() => setExpandedUrl(null)}>
           <div className="absolute inset-0 bg-black/90" />
           <img src={expandedUrl} alt="照片" className="relative max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
           <button onClick={() => setExpandedUrl(null)} className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: 'rgba(0,0,0,0.6)', color: '#ffdea5' }}>
@@ -323,7 +323,7 @@ export default function AlbumPage() {
             onCancel={() => setShowAddTrip(false)}
           />
         ) : (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center">
             <div className="absolute inset-0 bg-black/50" onClick={() => setShowAddTrip(false)} />
             <div className="relative rounded-2xl overflow-hidden p-8 max-w-sm w-full mx-4 text-center" style={{ background: 'linear-gradient(180deg, #4a2e1d 0%, #352118 100%)', border: '1px solid rgba(255,222,165,0.1)' }}>
               <p className="text-base mb-3" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>

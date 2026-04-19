@@ -92,7 +92,7 @@ export function AddTripForm({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
 
@@ -287,7 +287,7 @@ export function AddTripForm({
           )}
 
           {/* Buttons */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
             <button
               type="button"
               onClick={onCancel}
