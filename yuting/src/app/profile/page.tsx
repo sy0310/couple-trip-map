@@ -118,7 +118,7 @@ export default function ProfilePage() {
     setNicknameError('');
     const sup = await import('@/lib/supabase-browser');
     const client = sup.createClient();
-    const { error } = await client.from('users').update({ nickname: trimmed, updated_at: new Date().toISOString() } as never).eq('id', user.id);
+    const { error } = await client.from('users').update({ nickname: trimmed } as never).eq('id', user.id);
     setNicknameSaving(false);
     if (error) {
       setNicknameError(error.message);
