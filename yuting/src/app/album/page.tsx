@@ -21,6 +21,7 @@ export default function AlbumPage() {
   const [trips, setTrips] = useState<TripPhoto[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [loadingExpanded, setLoadingExpanded] = useState<Record<string, boolean>>({});
   const [expandedUrl, setExpandedUrl] = useState<string | null>(null);
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [coupleId, setCoupleId] = useState<string | null>(null);
@@ -259,11 +260,11 @@ export default function AlbumPage() {
               const previewPhotos = trip.urls.slice(0, 6);
               const remainingCount = trip.urls.length - 6;
               return (
-                <div key={trip.tripId} className="mb-8">
+                <div key={trip.tripId} className="mb-8 relative">
                   {/* Trip header */}
                   <div className="flex items-center gap-4 mb-3">
                     <div className="h-px flex-1" style={{ background: 'rgba(218,194,182,0.3)' }} />
-                    <div className="text-center whitespace-nowrap cursor-pointer" onClick={() => setExpandedTrip(isExpanded ? null : trip.tripId)}>
+                    <div className="text-center whitespace-nowrap cursor-pointer" onClick={(e) => { e.stopPropagation(); setExpandedTrip(isExpanded ? null : trip.tripId); }}>
                       <h3 className="text-xl font-bold" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}>
                         {trip.locationName}
                       </h3>
@@ -313,7 +314,15 @@ export default function AlbumPage() {
 
                   {/* Expanded photo grid */}
                   {isExpanded && (
-                    <div className="mt-4 p-4 rounded-xl border" style={{ background: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,222,165,0.1)' }}>
+                    <div className="mt-4 p-4 rounded-xl border relative" style={{ background: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,222,165,0.1)' }}>
+                      {loadingExpanded[trip.tripId] && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-xl" style={{ background: 'rgba(0,0,0,0.7)', zIndex: 10 }}>
+                          <div className="text-center">
+                            <div className="w-10 h-10 mx-auto mb-2 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#c99a6c', borderTopColor: 'transparent' }} />
+                            <p className="text-xs" style={{ color: '#dac2b6' }}>加载照片中...</p>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between mb-4">
                         <p className="text-sm font-medium" style={{ color: '#dac2b6' }}>全部照片 · {trip.urls.length} 张</p>
                         <button
@@ -334,29 +343,37 @@ export default function AlbumPage() {
                     </div>
                   )}
 
-                  {/* Cover selection overlay */}
+                  {/* Cover selection overlay — modal */}
                   {selectingCover === trip.tripId && (
-                    <div className="mt-3 rounded-xl p-4 border" style={{ background: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,222,165,0.15)' }}>
-                      <p className="text-xs text-center mb-3" style={{ color: '#dac2b6' }}>选择封面照片</p>
-                      <div className="grid grid-cols-5 gap-2">
-                        {trip.urls.map((url) => (
-                          <button
-                            key={url}
-                            onClick={() => handleSetCover(trip.tripId, url)}
-                            className="relative rounded overflow-hidden transition-all"
-                            style={{ border: url === trip.coverUrl ? '2px solid #ffdea5' : '1px solid rgba(255,222,165,0.2)', opacity: url === cover ? 0.5 : 1 }}
-                          >
-                            <img src={url} alt="" className="w-full h-16 object-cover" />
-                          </button>
-                        ))}
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center" onClick={() => setSelectingCover(null)}>
+                      <div className="absolute inset-0 bg-black/70" />
+                      <div className="relative w-full max-w-sm mx-4 rounded-2xl p-5 border" style={{ background: '#352118', borderColor: 'rgba(255,222,165,0.15)' }} onClick={(e) => e.stopPropagation()}>
+                        <p className="text-sm text-center mb-4 font-medium" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>选择封面照片</p>
+                        <div className="grid grid-cols-4 gap-2 max-h-[60vh] overflow-y-auto pb-4">
+                          {trip.urls.map((url) => (
+                            <button
+                              key={url}
+                              onClick={() => handleSetCover(trip.tripId, url)}
+                              className="relative rounded-lg overflow-hidden transition-all aspect-square"
+                              style={{ border: url === trip.coverUrl ? '3px solid #ffdea5' : '2px solid rgba(255,222,165,0.2)' }}
+                            >
+                              <img src={url} alt="" className="w-full h-full object-cover" />
+                              {url === trip.coverUrl && (
+                                <div className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: '#ffdea5', color: '#352118' }}>
+                                  <span className="text-xs">✓</span>
+                                </div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => setSelectingCover(null)}
+                          className="w-full mt-4 py-2.5 rounded-lg text-sm font-medium"
+                          style={{ background: 'linear-gradient(135deg, #c99a6c, #b8895e)', color: '#221a0f' }}
+                        >
+                          取消
+                        </button>
                       </div>
-                      <button
-                        onClick={() => setSelectingCover(null)}
-                        className="w-full mt-3 py-2 rounded-lg text-xs"
-                        style={{ background: 'rgba(255,255,255,0.1)', color: '#dac2b6' }}
-                      >
-                        关闭
-                      </button>
                     </div>
                   )}
 

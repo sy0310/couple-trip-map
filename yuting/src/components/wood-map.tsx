@@ -28,103 +28,94 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   }, [onMapReady]);
 
   const option = {
-    tooltip: {
-      trigger: 'item' as const,
-      backgroundColor: 'rgba(53,33,24,0.9)',
-      borderColor: '#c99a6c',
-      textStyle: { color: '#ffdea5', fontFamily: 'Manrope' },
-      formatter: (params: { name: string; value: number }) => {
-        const isVisited = visitedProvinces.includes(params.name);
-        return `${params.name}<br/>${isVisited ? '✓ 已走过' : '未探索'}`;
+    geo: {
+      map: 'china',
+      roam: false,
+      zoom: 1.15,
+      label: { show: false },
+      itemStyle: {
+        areaColor: {
+          type: 'linear' as const,
+          x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [
+            { offset: 0, color: '#c99a6c' },
+            { offset: 0.5, color: '#d4a87c' },
+            { offset: 1, color: '#b8895e' },
+          ],
+        },
+        borderColor: '#8d6b2a',
+        borderWidth: 1,
       },
-    },
-    series: [
-      {
-        name: '中国地图',
-        type: 'map' as const,
-        map: 'china',
-        roam: false,
-        zoom: 1.15,
-        label: {
-          show: false,
-          color: '#3e2a24',
-          fontSize: 9,
-          fontFamily: 'Manrope',
-          fontWeight: 500,
+      emphasis: {
+        label: { color: '#1f120c', fontSize: 11, fontWeight: 700 },
+        itemStyle: {
+          areaColor: '#8d6b2a',
+          borderColor: '#352118',
+          borderWidth: 2,
+          shadowColor: 'rgba(53,33,24,0.4)',
+          shadowBlur: 10,
         },
-        emphasis: {
-          label: { color: '#1f120c', fontSize: 11, fontWeight: 700 },
-          itemStyle: {
-            areaColor: '#8d6b2a',
-            borderColor: '#352118',
-            borderWidth: 2,
-            shadowColor: 'rgba(53,33,24,0.4)',
-            shadowBlur: 10,
-          },
-        },
+      },
+      regions: visitedProvinces.map((name) => ({
+        name,
         itemStyle: {
           areaColor: {
             type: 'linear' as const,
             x: 0, y: 0, x2: 0, y2: 1,
             colorStops: [
-              { offset: 0, color: '#c99a6c' },
-              { offset: 0.5, color: '#d4a87c' },
-              { offset: 1, color: '#b8895e' },
+              { offset: 0, color: '#352118' },
+              { offset: 0.5, color: '#4a2e1d' },
+              { offset: 1, color: '#2a1b14' },
             ],
           },
-          borderColor: '#8d6b2a',
-          borderWidth: 1,
+          borderColor: '#ffdea5',
+          borderWidth: 1.5,
+          shadowColor: 'rgba(255,222,165,0.3)',
+          shadowBlur: 6,
         },
-        data: visitedProvinces.map((name) => ({
-          name,
-          value: 1,
-          itemStyle: {
-            areaColor: {
-              type: 'linear' as const,
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: '#352118' },
-                { offset: 0.5, color: '#4a2e1d' },
-                { offset: 1, color: '#2a1b14' },
-              ],
-            },
-            borderColor: '#ffdea5',
-            borderWidth: 1.5,
-            shadowColor: 'rgba(255,222,165,0.3)',
-            shadowBlur: 6,
-          },
-          label: {
-            color: '#ffdea5',
-            fontWeight: 700,
-            fontSize: 10,
-          },
-        })),
+        label: {
+          color: '#ffdea5',
+          fontWeight: 700,
+          fontSize: 10,
+        },
+      })),
+    },
+    tooltip: {
+      trigger: 'item' as const,
+      backgroundColor: 'rgba(53,33,24,0.9)',
+      borderColor: '#c99a6c',
+      textStyle: { color: '#ffdea5', fontFamily: 'Manrope' },
+      formatter: (params: { name: string; seriesType?: string }) => {
+        if (params.seriesType === 'scatter') {
+          return `<b>${params.name}</b>`;
+        }
+        const isVisited = visitedProvinces.includes(params.name);
+        return `${params.name}<br/>${isVisited ? '✓ 已走过' : '未探索'}`;
       },
-      // City markers as scatter points
+    },
+    series: [
+      // City markers as scatter points on the geo coordinate system
       {
         name: '已访问城市',
-        type: 'scatter' as const,
+        type: 'effectScatter' as const,
         coordinateSystem: 'geo' as const,
-        geoIndex: 0,
-        symbolSize: (val: number[], params: { data: { photoCount: number } }) => {
-          const base = 8;
-          const scale = params.data.photoCount > 10 ? 1.5 : 1;
-          return base * scale;
+        symbolSize: (val: number[]) => {
+          const base = 10;
+          return base;
+        },
+        showEffectOn: 'render' as const,
+        rippleEffect: {
+          brushType: 'stroke' as const,
+          period: 4,
+          scale: 3,
         },
         label: {
           show: false,
         },
         itemStyle: {
-          color: {
-            type: 'radial' as const,
-            x: 0.5, y: 0.5, r: 0.5,
-            colorStops: [
-              { offset: 0, color: '#ffdea5' },
-              { offset: 1, color: '#c99a6c' },
-            ],
-          },
+          color: '#ffdea5',
           borderColor: '#352118',
-          borderWidth: 1.5,
+          borderWidth: 2,
           shadowColor: 'rgba(255,222,165,0.5)',
           shadowBlur: 8,
         },
@@ -145,14 +136,12 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
         },
         data: visitedCities.map((city) => ({
           name: city.name,
-          value: [city.lng, city.lat, city.photoCount],
-          photoCount: city.photoCount,
-          coverUrl: city.coverUrl,
+          value: [city.lng, city.lat],
         })),
         tooltip: {
-          formatter: (params: { data: { name: string; photoCount: number } }) => {
-            const d = params.data;
-            return `<b>${d.name}</b><br/>${d.photoCount} 张照片`;
+          formatter: (params: { name: string }) => {
+            const city = visitedCities.find((c) => c.name === params.name);
+            return `<b>${params.name}</b><br/>${city?.photoCount || 0} 张照片`;
           },
         },
         zlevel: 2,
