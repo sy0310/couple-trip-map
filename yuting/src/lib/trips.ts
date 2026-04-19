@@ -104,6 +104,42 @@ export async function getCoupleId(userId?: string): Promise<string | null> {
 }
 
 /**
+ * Get the couple_id and partner info for the currently logged-in user.
+ * Returns null if the user is not in any couple.
+ */
+export async function getCoupleInfo(userId?: string): Promise<{ id: string; partnerId: string; partnerNickname: string } | null> {
+  const supabase = createClient();
+
+  let uid = userId;
+  if (!uid) {
+    const { data: { user } } = await supabase.auth.getUser();
+    uid = user?.id;
+  }
+  if (!uid) return null;
+
+  const { data: couple } = await supabase
+    .from('couples')
+    .select('id, user_a_id, user_b_id')
+    .or(`user_a_id.eq.${uid},user_b_id.eq.${uid}`)
+    .maybeSingle() as { data: Pick<CoupleRow, 'id' | 'user_a_id' | 'user_b_id'> | null; error: { message: string } | null };
+
+  if (!couple) return null;
+
+  const partnerId = couple.user_a_id === uid ? couple.user_b_id! : couple.user_a_id;
+  const { data: partnerUser } = await supabase
+    .from('users')
+    .select('nickname')
+    .eq('id', partnerId)
+    .maybeSingle() as { data: Pick<Database['public']['Tables']['users']['Row'], 'nickname'> | null; error: { message: string } | null };
+
+  return {
+    id: couple.id,
+    partnerId,
+    partnerNickname: partnerUser?.nickname || partnerId.slice(0, 8),
+  };
+}
+
+/**
  * Fetch distinct visited province names for a couple.
  */
 export async function getVisitedProvinces(coupleId: string): Promise<string[]> {

@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { BottomNav } from '@/components/bottom-nav';
-import { getCoupleId, generateBindingCode, acceptBindingCode } from '@/lib/trips';
+import { getCoupleInfo, generateBindingCode, acceptBindingCode } from '@/lib/trips';
 import { useAuth, signOut } from '@/lib/auth';
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const [coupleId, setCoupleId] = useState<string | null>(null);
+  const [partnerNickname, setPartnerNickname] = useState<string | null>(null);
   const [visitedProvinces, setVisitedProvinces] = useState(0);
   const [tripCount, setTripCount] = useState(0);
   const [showCoupleModal, setShowCoupleModal] = useState(false);
@@ -21,21 +22,22 @@ export default function ProfilePage() {
   useEffect(() => {
     const load = async () => {
       if (!user) return;
-      const id = await getCoupleId();
-      setCoupleId(id);
-      if (id) {
+      const coupleInfo = await getCoupleInfo();
+      setCoupleId(coupleInfo?.id ?? null);
+      setPartnerNickname(coupleInfo?.partnerNickname ?? null);
+      if (coupleInfo?.id) {
         const sup = await import('@/lib/supabase-browser');
         const client = sup.createClient();
         const { count: tripTotal } = await client
           .from('trips')
           .select('*', { count: 'exact', head: true })
-          .eq('couple_id', id);
+          .eq('couple_id', coupleInfo.id);
         setTripCount(tripTotal ?? 0);
 
         const { data: provinces }: { data: { province: string }[] | null } = await client
           .from('trips')
           .select('province')
-          .eq('couple_id', id);
+          .eq('couple_id', coupleInfo.id);
         setVisitedProvinces(new Set((provinces ?? []).map((t) => t.province)).size);
       }
     };
@@ -81,8 +83,9 @@ export default function ProfilePage() {
     setAcceptLoading(false);
     if (success) {
       setInputCode('');
-      const id = await getCoupleId();
-      setCoupleId(id);
+      const info = await getCoupleInfo();
+      setCoupleId(info?.id ?? null);
+      setPartnerNickname(info?.partnerNickname ?? null);
       setShowCoupleModal(false);
     } else {
       setBindError('绑定码无效或已被使用');
@@ -98,7 +101,7 @@ export default function ProfilePage() {
   const coupleModalContent = (
     <div className="space-y-6">
       <h3 className="text-xl font-bold text-center" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
-        {coupleId ? '情侣关系' : '绑定情侣'}
+        {coupleId ? `情侣 · ${partnerNickname || '对方'}` : '绑定情侣'}
       </h3>
 
       {coupleId ? (
@@ -111,8 +114,10 @@ export default function ProfilePage() {
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </div>
-          <p className="text-sm mb-2" style={{ color: '#dac2b6' }}>已绑定情侣关系</p>
-          <p className="text-xs" style={{ color: '#9A8B7A' }}>一起记录旅行回忆吧</p>
+          <p className="text-sm mb-1" style={{ color: '#dac2b6' }}>已绑定情侣关系</p>
+          <p className="text-lg font-bold" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
+            {partnerNickname || '对方'}
+          </p>
         </div>
       ) : (
         <>
@@ -385,7 +390,7 @@ export default function ProfilePage() {
               </div>
               <div className="text-left">
                 <h3 className="text-lg font-bold" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}>
-                  {coupleId ? '情侣关系' : '情侣绑定'}
+                  {coupleId ? `情侣 · ${partnerNickname || '对方'}` : '情侣绑定'}
                 </h3>
                 <p className="text-xs" style={{ color: '#9A8B7A' }}>
                   {coupleId ? '已成功绑定，一起记录旅行回忆' : '生成绑定码分享给另一半'}
