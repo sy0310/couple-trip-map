@@ -2,17 +2,18 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn, useAuth } from '@/lib/auth';
+import { signInWithPassword, signUp, useAuth } from '@/lib/auth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  if (!loading && user) {
+  if (!authLoading && user) {
     router.push('/');
     return null;
   }
@@ -23,17 +24,24 @@ export default function LoginPage() {
       setError('请输入有效的邮箱地址');
       return;
     }
+    if (password.length < 6) {
+      setError('密码至少需要6个字符');
+      return;
+    }
 
-    setSending(true);
+    setLoading(true);
     setError('');
 
-    const { error: err } = await signIn(email);
+    const { error: err } = isSignUp
+      ? await signUp(email, password)
+      : await signInWithPassword(email, password);
+
     if (err) {
       setError(err);
     } else {
-      setSent(true);
+      router.push('/');
     }
-    setSending(false);
+    setLoading(false);
   };
 
   return (
@@ -69,70 +77,75 @@ export default function LoginPage() {
             </span>
           </div>
           <p className="text-sm" style={{ color: '#dac2b6' }}>
-            {sent ? '请检查邮箱' : '登录以共享旅行回忆'}
+            {isSignUp ? '创建新账号' : '登录以共享旅行回忆'}
           </p>
         </div>
 
         <div className="relative">
-          {sent ? (
-            <div className="text-center py-6">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,222,165,0.1)' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffdea5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                  <polyline points="22,6 12,13 2,6" />
-                </svg>
-              </div>
-              <p className="text-sm mb-4" style={{ color: '#dac2b6' }}>
-                我们已向 <strong style={{ color: '#ffdea5' }}>{email}</strong> 发送了登录链接。<br />
-                点击链接后即可自动登录。
-              </p>
-              <button
-                onClick={() => setSent(false)}
-                className="text-xs underline"
-                style={{ color: '#c99a6c' }}
-              >
-                重新输入邮箱
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit}>
-              <label className="block text-xs mb-1.5 uppercase tracking-wider" style={{ color: '#dac2b6', letterSpacing: '0.1em' }}>
-                邮箱地址
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                placeholder="your@email.com"
-                className="w-full px-4 py-3 rounded-lg text-sm mb-4"
-                style={{
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,222,165,0.2)',
-                  color: '#ffdea5',
-                  fontFamily: 'var(--font-manrope)',
-                }}
-                autoFocus
-              />
+          <form onSubmit={handleSubmit}>
+            <label className="block text-xs mb-1.5 uppercase tracking-wider" style={{ color: '#dac2b6', letterSpacing: '0.1em' }}>
+              邮箱地址
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setError(''); }}
+              placeholder="your@email.com"
+              className="w-full px-4 py-3 rounded-lg text-sm mb-3"
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,222,165,0.2)',
+                color: '#ffdea5',
+                fontFamily: 'var(--font-manrope)',
+              }}
+              autoFocus
+            />
 
-              {error && (
-                <p className="text-xs mb-3" style={{ color: '#ff9a76' }}>{error}</p>
-              )}
+            <label className="block text-xs mb-1.5 uppercase tracking-wider" style={{ color: '#dac2b6', letterSpacing: '0.1em' }}>
+              密码
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setError(''); }}
+              placeholder="至少6个字符"
+              className="w-full px-4 py-3 rounded-lg text-sm mb-4"
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,222,165,0.2)',
+                color: '#ffdea5',
+                fontFamily: 'var(--font-manrope)',
+              }}
+            />
 
-              <button
-                type="submit"
-                disabled={sending}
-                className="w-full py-3 rounded-lg text-sm font-medium disabled:opacity-50 transition-all"
-                style={{
-                  background: 'linear-gradient(135deg, #c99a6c, #b8895e)',
-                  color: '#221a0f',
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 8px rgba(0,0,0,0.3)',
-                  fontFamily: 'var(--font-manrope)',
-                }}
-              >
-                {sending ? '发送中...' : '发送登录链接'}
-              </button>
-            </form>
-          )}
+            {error && (
+              <p className="text-xs mb-3" style={{ color: '#ff9a76' }}>{error}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 rounded-lg text-sm font-medium disabled:opacity-50 transition-all"
+              style={{
+                background: 'linear-gradient(135deg, #c99a6c, #b8895e)',
+                color: '#221a0f',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 8px rgba(0,0,0,0.3)',
+                fontFamily: 'var(--font-manrope)',
+              }}
+            >
+              {loading ? '处理中...' : (isSignUp ? '注册' : '登录')}
+            </button>
+          </form>
+
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
+              className="text-xs"
+              style={{ color: '#c99a6c' }}
+            >
+              {isSignUp ? '已有账号？返回登录' : '没有账号？立即注册'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

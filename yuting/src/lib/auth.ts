@@ -5,16 +5,31 @@ import type { User, Session } from '@supabase/supabase-js';
 import { createClient } from './supabase-browser';
 
 /**
- * Send a Magic Link to the given email.
- * The link redirects to /auth/callback and completes login automatically.
+ * Sign in with email and password.
  */
-export async function signIn(email: string): Promise<{ error: string | null }> {
+export async function signInWithPassword(
+  email: string,
+  password: string
+): Promise<{ error: string | null }> {
   const supabase = createClient();
-  const { error } = await supabase.auth.signInWithOtp({
+  const { error } = await supabase.auth.signInWithPassword({
     email: email.trim().toLowerCase(),
-    options: {
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
-    },
+    password,
+  });
+  return { error: error?.message ?? null };
+}
+
+/**
+ * Sign up with email and password.
+ */
+export async function signUp(
+  email: string,
+  password: string
+): Promise<{ error: string | null }> {
+  const supabase = createClient();
+  const { error } = await supabase.auth.signUp({
+    email: email.trim().toLowerCase(),
+    password,
   });
   return { error: error?.message ?? null };
 }
