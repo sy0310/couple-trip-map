@@ -26,6 +26,21 @@ export default function HomePage() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!coupleId) return;
+    const sup = import('@/lib/supabase-browser').then(m => m.createClient());
+    sup.then(client => {
+      const tripsChannel = client
+        .channel('home-trip-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'trips', filter: `couple_id=eq.${coupleId}` },
+          () => getVisitedProvinces(coupleId).then(setVisitedProvinces)
+        )
+        .subscribe();
+    });
+  }, [coupleId]);
+
   const visitedCount = visitedProvinces.length;
   const completionRate = ((visitedCount / TOTAL_PROVINCES) * 100).toFixed(1);
 

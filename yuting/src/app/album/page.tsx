@@ -61,7 +61,25 @@ export default function AlbumPage() {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     loadTrips();
-  }, [user, loadTrips]);
+
+    if (!coupleId) return;
+    const sup = import('@/lib/supabase-browser').then(m => m.createClient());
+    sup.then(client => {
+      const tripsChannel = client
+        .channel('album-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'trips', filter: `couple_id=eq.${coupleId}` },
+          () => loadTrips()
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'photos' },
+          () => loadTrips()
+        )
+        .subscribe();
+    });
+  }, [user, coupleId, loadTrips]);
 
   const handleTripSuccess = () => {
     setShowAddTrip(false);
