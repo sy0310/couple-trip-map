@@ -26,7 +26,8 @@ export default function AlbumPage() {
   const { user } = useAuth();
 
   const loadTrips = useCallback(async () => {
-    const cid = await getCoupleId();
+    if (!user) return;
+    const cid = await getCoupleId(user.id);
     setCoupleId(cid);
     if (!cid) { setLoading(false); return; }
 
@@ -55,7 +56,7 @@ export default function AlbumPage() {
     }
     setTrips(loaded);
     setLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }

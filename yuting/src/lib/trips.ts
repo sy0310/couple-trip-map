@@ -11,15 +11,20 @@ type TripInsert = Database['public']['Tables']['trips']['Insert'];
  */
 type CoupleRow = Database['public']['Tables']['couples']['Row'];
 
-export async function getCoupleId(): Promise<string | null> {
+export async function getCoupleId(userId?: string): Promise<string | null> {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+
+  let uid = userId;
+  if (!uid) {
+    const { data: { user } } = await supabase.auth.getUser();
+    uid = user?.id;
+  }
+  if (!uid) return null;
 
   const { data } = await supabase
     .from('couples')
     .select('id')
-    .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
+    .or(`user_a_id.eq.${uid},user_b_id.eq.${uid}`)
     .single() as { data: Pick<CoupleRow, 'id'> | null; error: { message: string } | null };
 
   return data?.id ?? null;
