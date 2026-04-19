@@ -9,6 +9,8 @@ import { getCoupleId, getVisitedCities, getVisitedProvinces } from '@/lib/trips'
 import { AddTripForm } from '@/components/add-trip-form';
 import { getProvinceByName, normalizeProvinceName } from '@/lib/provinces';
 
+const MUNICIPALITIES = new Set(['北京', '上海', '天津', '重庆']);
+
 function ProvinceContent() {
   const searchParams = useSearchParams();
   const provinceName = normalizeProvinceName(searchParams.get('name') || '');
@@ -91,8 +93,8 @@ function ProvinceContent() {
         </div>
       </div>
 
-      {/* Province Map */}
-      {visitedCities.length > 0 && (
+      {/* Province Map — skip for municipalities (no sub-province boundaries) */}
+      {visitedCities.length > 0 && !MUNICIPALITIES.has(provinceName) && (
         <div className="mb-6 rounded-xl overflow-hidden border" style={{ borderColor: 'rgba(141,107,42,0.3)' }}>
           <div style={{ height: 300 }}>
             <ProvinceMap
