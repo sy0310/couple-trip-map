@@ -10,6 +10,12 @@ export default function ProfilePage() {
   const [coupleId, setCoupleId] = useState<string | null>(null);
   const [visitedProvinces, setVisitedProvinces] = useState(0);
   const [tripCount, setTripCount] = useState(0);
+  const [showCoupleModal, setShowCoupleModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [bindingCode, setBindingCode] = useState('');
+  const [inputCode, setInputCode] = useState('');
+  const [codeLoading, setCodeLoading] = useState(false);
+  const [acceptLoading, setAcceptLoading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -56,6 +62,176 @@ export default function ProfilePage() {
       </div>
     );
   }
+
+  const generateCode = async () => {
+    setCodeLoading(true);
+    // TODO: call API to generate binding code
+    setTimeout(() => {
+      setBindingCode(Math.random().toString(36).substring(2, 8).toUpperCase());
+      setCodeLoading(false);
+    }, 500);
+  };
+
+  const acceptCode = () => {
+    if (!inputCode.trim()) return;
+    setAcceptLoading(true);
+    setTimeout(async () => {
+      setAcceptLoading(false);
+      setInputCode('');
+      const id = await getCoupleId();
+      setCoupleId(id);
+      setShowCoupleModal(false);
+    }, 1000);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    setShowSettingsModal(false);
+  };
+
+  // Couple binding modal content
+  const coupleModalContent = (
+    <div className="space-y-6">
+      <h3 className="text-xl font-bold text-center" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
+        {coupleId ? '情侣关系' : '绑定情侣'}
+      </h3>
+
+      {coupleId ? (
+        <div className="text-center py-4">
+          <div
+            className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(201,154,108,0.15)' }}
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c99a6c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+          </div>
+          <p className="text-sm mb-2" style={{ color: '#dac2b6' }}>已绑定情侣关系</p>
+          <p className="text-xs" style={{ color: '#9A8B7A' }}>一起记录旅行回忆吧</p>
+        </div>
+      ) : (
+        <>
+          {/* Generate code */}
+          <div className="rounded-xl p-5 border" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,222,165,0.1)' }}>
+            <h4 className="text-sm font-semibold mb-2" style={{ color: '#ffdea5' }}>生成你的绑定码</h4>
+            <p className="text-xs mb-3" style={{ color: '#9A8B7A' }}>生成一个唯一绑定码，分享给你的另一半</p>
+            {bindingCode ? (
+              <div className="text-center">
+                <div
+                  className="text-3xl font-bold tracking-widest py-4 rounded-lg font-mono"
+                  style={{
+                    background: 'rgba(201,154,108,0.1)',
+                    border: '1px solid rgba(201,154,108,0.3)',
+                    color: '#ffdea5',
+                  }}
+                >
+                  {bindingCode}
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(bindingCode);
+                  }}
+                  className="mt-3 text-xs underline"
+                  style={{ color: '#c99a6c' }}
+                >
+                  复制到剪贴板
+                </button>
+                <button
+                  onClick={() => setBindingCode('')}
+                  className="ml-3 text-xs underline"
+                  style={{ color: '#9A8B7A' }}
+                >
+                  重新生成
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={generateCode}
+                disabled={codeLoading}
+                className="w-full py-2.5 rounded-lg text-sm font-medium disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #c99a6c, #b8895e)', color: '#221a0f' }}
+              >
+                {codeLoading ? '生成中...' : '生成绑定码'}
+              </button>
+            )}
+          </div>
+
+          {/* Accept code */}
+          <div className="rounded-xl p-5 border" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,222,165,0.1)' }}>
+            <h4 className="text-sm font-semibold mb-2" style={{ color: '#ffdea5' }}>输入对方的绑定码</h4>
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={inputCode}
+                onChange={(e) => setInputCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+                placeholder="输入6位码"
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm text-center tracking-widest font-mono"
+                maxLength={6}
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,222,165,0.2)',
+                  color: '#ffdea5',
+                }}
+              />
+              <button
+                onClick={acceptCode}
+                disabled={!inputCode || acceptLoading}
+                className="px-5 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50"
+                style={{
+                  background: 'rgba(255,222,165,0.1)',
+                  border: '1px solid rgba(255,222,165,0.2)',
+                  color: '#ffdea5',
+                }}
+              >
+                {acceptLoading ? '绑定中...' : '绑定'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  // Settings modal content
+  const settingsModalContent = (
+    <div className="space-y-6">
+      <h3 className="text-xl font-bold text-center" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
+        设置
+      </h3>
+
+      {/* Account info */}
+      <div className="rounded-xl p-5 border" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,222,165,0.1)' }}>
+        <h4 className="text-sm font-semibold mb-3" style={{ color: '#ffdea5' }}>账号信息</h4>
+        <div className="space-y-3">
+          <div className="flex justify-between text-sm">
+            <span style={{ color: '#9A8B7A' }}>邮箱</span>
+            <span style={{ color: '#dac2b6' }}>{user?.email}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span style={{ color: '#9A8B7A' }}>UID</span>
+            <span className="font-mono text-xs" style={{ color: '#dac2b6' }}>{user?.id?.slice(0, 8)}...</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Danger zone */}
+      <div className="rounded-xl p-5 border" style={{ background: 'rgba(255,50,50,0.05)', borderColor: 'rgba(255,107,129,0.15)' }}>
+        <h4 className="text-sm font-semibold mb-3" style={{ color: '#ff6b6b' }}>退出登录</h4>
+        <p className="text-xs mb-3" style={{ color: '#9A8B7A' }}>退出后需要重新登录才能访问旅行数据</p>
+        <button
+          onClick={handleSignOut}
+          className="w-full py-2.5 rounded-lg text-sm font-medium"
+          style={{
+            background: 'rgba(255,107,129,0.1)',
+            border: '1px solid rgba(255,107,129,0.2)',
+            color: '#FF6B81',
+          }}
+        >
+          确认退出
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen relative pb-32 overflow-hidden" style={{ background: 'linear-gradient(135deg, #4a2e1d 0%, #352118 50%, #2a1b14 100%)' }}>
@@ -175,8 +351,11 @@ export default function ProfilePage() {
 
         {/* Shelf menu */}
         <section className="space-y-3 mb-10">
-          <div
-            className="cursor-pointer rounded-xl p-5 flex items-center justify-between transition-all duration-300 border-b"
+          {/* Couple binding shelf */}
+          <button
+            type="button"
+            onClick={() => setShowCoupleModal(true)}
+            className="w-full cursor-pointer rounded-xl p-5 flex items-center justify-between transition-all duration-300 border-b"
             style={{
               background: 'rgba(255,255,255,0.04)',
               borderColor: 'rgba(255,255,255,0.05)',
@@ -186,27 +365,40 @@ export default function ProfilePage() {
           >
             <div className="flex items-center gap-4">
               <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center"
+                className="w-12 h-12 rounded-lg flex items-center justify-center relative"
                 style={{ background: 'rgba(201,154,108,0.15)' }}
               >
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c99a6c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                 </svg>
+                {!coupleId && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full" style={{ background: '#c99a6c' }} />
+                )}
               </div>
-              <div>
-                <h3 className="text-lg font-bold" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}>情侣绑定</h3>
+              <div className="text-left">
+                <h3 className="text-lg font-bold" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}>
+                  {coupleId ? '情侣关系' : '情侣绑定'}
+                </h3>
                 <p className="text-xs" style={{ color: '#9A8B7A' }}>
                   {coupleId ? '已成功绑定，一起记录旅行回忆' : '生成绑定码分享给另一半'}
                 </p>
               </div>
             </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,222,165,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </div>
+            <div className="flex items-center gap-2">
+              {coupleId && (
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(201,154,108,0.15)', color: '#c99a6c' }}>已绑定</span>
+              )}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,222,165,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </div>
+          </button>
 
-          <div
-            className="cursor-pointer rounded-xl p-5 flex items-center justify-between transition-all duration-300 border-b"
+          {/* Settings shelf */}
+          <button
+            type="button"
+            onClick={() => setShowSettingsModal(true)}
+            className="w-full cursor-pointer rounded-xl p-5 flex items-center justify-between transition-all duration-300 border-b"
             style={{
               background: 'rgba(255,255,255,0.04)',
               borderColor: 'rgba(255,255,255,0.05)',
@@ -224,7 +416,7 @@ export default function ProfilePage() {
                   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                 </svg>
               </div>
-              <div>
+              <div className="text-left">
                 <h3 className="text-lg font-bold" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}>设置</h3>
                 <p className="text-xs" style={{ color: '#9A8B7A' }}>账号与安全设置</p>
               </div>
@@ -232,91 +424,53 @@ export default function ProfilePage() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,222,165,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 18l6-6-6-6" />
             </svg>
-          </div>
+          </button>
         </section>
 
-        {/* Couple binding (inline when not bound) */}
-        {!coupleId && (
-          <div
-            className="rounded-xl overflow-hidden p-6 border mb-6"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              borderColor: 'rgba(218,194,182,0.1)',
-            }}
-          >
-            <h2 className="text-[10px] uppercase tracking-widest mb-4" style={{ color: '#ffdea5' }}>
-              情侣绑定
-            </h2>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="flex-1">
-                <p className="text-sm" style={{ color: '#dac2b6' }}>
-                  生成绑定码分享给另一半，或输入对方的绑定码加入关系。
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
+        {/* Couple binding modal */}
+        {showCoupleModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/70" onClick={() => { setShowCoupleModal(false); setBindingCode(''); }} />
+            <div
+              className="relative w-full max-w-md rounded-2xl overflow-hidden max-h-[85vh] overflow-y-auto"
+              style={{ background: 'linear-gradient(180deg, #4a2e1d 0%, #352118 100%)', boxShadow: '0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,222,165,0.1)' }}
+            >
+              <div className="p-6">
+                {coupleModalContent}
                 <button
-                  onClick={() => {/* TODO: generate binding code */}}
-                  className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all active:scale-95"
-                  style={{
-                    background: 'linear-gradient(135deg, #c99a6c, #b8895e)',
-                    color: '#221a0f',
-                    boxShadow: '2px 4px 0 rgba(34,26,15,0.4)',
-                    borderBottom: '2px solid rgba(218,194,182,0.3)',
-                  }}
+                  onClick={() => { setShowCoupleModal(false); setBindingCode(''); }}
+                  className="w-full mt-6 py-2.5 rounded-lg text-sm font-medium"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,222,165,0.15)', color: '#dac2b6' }}
                 >
-                  生成绑定码
-                </button>
-                <input
-                  type="text"
-                  placeholder="输入绑定码"
-                  className="px-4 py-2.5 rounded-lg text-sm"
-                  style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,222,165,0.15)',
-                    color: '#ffdea5',
-                    width: '160px',
-                  }}
-                />
-                <button
-                  onClick={() => {/* TODO: accept binding code */}}
-                  className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all active:scale-95"
-                  style={{
-                    background: 'rgba(255,222,165,0.1)',
-                    border: '1px solid rgba(255,222,165,0.2)',
-                    color: '#ffdea5',
-                  }}
-                >
-                  加入
+                  关闭
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Account — Sign out */}
-        <div
-          className="rounded-xl overflow-hidden p-5 border flex items-center justify-between"
-          style={{
-            background: 'rgba(255,255,255,0.04)',
-            borderColor: 'rgba(218,194,182,0.1)',
-          }}
-        >
-          <div>
-            <p className="text-sm" style={{ color: '#dac2b6' }}>{user?.email}</p>
-            <p className="text-xs" style={{ color: '#9A8B7A' }}>Supabase 账号</p>
+        {/* Settings modal */}
+        {showSettingsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/70" onClick={() => setShowSettingsModal(false)} />
+            <div
+              className="relative w-full max-w-md rounded-2xl overflow-hidden max-h-[85vh] overflow-y-auto"
+              style={{ background: 'linear-gradient(180deg, #4a2e1d 0%, #352118 100%)', boxShadow: '0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,222,165,0.1)' }}
+            >
+              <div className="p-6">
+                {settingsModalContent}
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="w-full mt-6 py-2.5 rounded-lg text-sm font-medium"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,222,165,0.15)', color: '#dac2b6' }}
+                >
+                  关闭
+                </button>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={() => signOut()}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-all active:scale-95"
-            style={{
-              background: 'rgba(255,107,129,0.1)',
-              border: '1px solid rgba(255,107,129,0.2)',
-              color: '#FF6B81',
-            }}
-          >
-            退出登录
-          </button>
-        </div>
+        )}
+
       </div>
 
       <BottomNav />
