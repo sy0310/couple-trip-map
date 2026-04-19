@@ -315,12 +315,29 @@ export default function AlbumPage() {
         </div>
       )}
 
-      {showAddTrip && coupleId && (
-        <AddTripForm
-          coupleId={coupleId}
-          onSuccess={handleTripSuccess}
-          onCancel={() => setShowAddTrip(false)}
-        />
+      {showAddTrip && (
+        coupleId ? (
+          <AddTripForm
+            coupleId={coupleId}
+            onSuccess={handleTripSuccess}
+            onCancel={() => setShowAddTrip(false)}
+          />
+        ) : (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowAddTrip(false)} />
+            <div className="relative rounded-2xl overflow-hidden p-8 max-w-sm w-full mx-4 text-center" style={{ background: 'linear-gradient(180deg, #4a2e1d 0%, #352118 100%)', border: '1px solid rgba(255,222,165,0.1)' }}>
+              <p className="text-base mb-3" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
+                请先绑定情侣
+              </p>
+              <p className="text-sm mb-6" style={{ color: '#9A8B7A' }}>
+                添加旅行需要先绑定情侣关系，请在个人中心完成绑定
+              </p>
+              <button onClick={() => setShowAddTrip(false)} className="px-6 py-2.5 rounded-lg text-sm font-medium" style={{ background: 'linear-gradient(135deg, #c99a6c, #b8895e)', color: '#221a0f' }}>
+                知道了
+              </button>
+            </div>
+          </div>
+        )
       )}
 
       <BottomNav />
