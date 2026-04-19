@@ -186,15 +186,15 @@ async function handleUpdateTrip(event, wxContext) {
   try {
     // 查找旅行记录
     const tripQuery = await db.collection('trips').doc(tripId).get();
-    
-    if (!tripQuery.data || tripQuery.data.length === 0) {
+
+    if (!tripQuery.data) {
       return {
         success: false,
         message: '旅行记录不存在'
       };
     }
 
-    const trip = tripQuery.data[0];
+    const trip = tripQuery.data;
 
     // 检查权限（只有创建者可以修改）
     if (trip.creator_openid !== openid) {
@@ -242,15 +242,15 @@ async function handleDeleteTrip(event, wxContext) {
   try {
     // 查找旅行记录
     const tripQuery = await db.collection('trips').doc(tripId).get();
-    
-    if (!tripQuery.data || tripQuery.data.length === 0) {
+
+    if (!tripQuery.data) {
       return {
         success: false,
         message: '旅行记录不存在'
       };
     }
 
-    const trip = tripQuery.data[0];
+    const trip = tripQuery.data;
 
     // 检查权限（只有创建者可以删除）
     if (trip.creator_openid !== openid) {

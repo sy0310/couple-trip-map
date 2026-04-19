@@ -3,7 +3,6 @@
   <!-- 顶部操作栏 -->
   <view class="header">
     <text class="title">旅行相册</text>
-    <button class="btn-add" bindtap="addTripRecord">+ 添加</button>
   </view>
 
   <!-- 年份选择 -->
@@ -63,23 +62,23 @@
     <view class="timeline-section" wx:else>
       <view class="section-title">时间线</view>
       <view class="timeline">
-        <block wx:for="{{timeline}}" wx:key="index">
+        <block wx:for="{{timeline}}" wx:key="index" wx:for-item="trip" wx:for-index="tripIdx">
           <view class="timeline-item">
-            <view class="timeline-date">{{item.dateStr}}</view>
+            <view class="timeline-date">{{trip.dateStr}}</view>
             <view class="timeline-content">
-              <view class="timeline-location">{{item.locationName}}</view>
-              <view class="timeline-notes">{{item.notes}}</view>
-              
+              <view class="timeline-location">{{trip.locationName}}</view>
+              <view class="timeline-notes">{{trip.notes}}</view>
+
               <!-- 照片网格 -->
-              <view class="timeline-photos" wx:if="{{item.photos.length > 0}}">
-                <block wx:for="{{item.photos}}" wx:key="index">
+              <view class="timeline-photos" wx:if="{{trip.photos.length > 0}}">
+                <block wx:for="{{trip.photos}}" wx:key="index" wx:for-item="photo" wx:for-index="photoIdx">
                   <view class="photo-wrapper">
-                    <image 
-                      class="timeline-photo" 
-                      src="{{item}}" 
+                    <image
+                      class="timeline-photo"
+                      src="{{photo}}"
                       mode="aspectFill"
-                      data-trip="{{timeline[index]}}"
-                      data-index="{{index}}"
+                      data-trip="{{trip}}"
+                      data-index="{{photoIdx}}"
                       bindtap="viewPhoto"
                     ></image>
                   </view>

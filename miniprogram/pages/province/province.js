@@ -71,31 +71,27 @@ Page({
    * 加载已访问的城市
    */
   loadVisitedCities: function(provinceName) {
-    const that = this;
     wx.cloud.callFunction({
       name: 'trip/list',
       data: {
         province: provinceName,
         page: 1,
-        pageSize: 100  // 获取所有该省份的旅行记录
+        pageSize: 100
       },
       success: res => {
-        console.log('获取省份旅行数据成功', res);
         if(res.result.success) {
           const trips = res.result.data.trips || [];
-          
-          // 提取访问过的城市
+
           const visitedCityNames = [...new Set(trips.map(trip => trip.city))];
-          
-          // 统计数据
+
           const stats = {
             totalCities: this.data.cities.length,
             visitedCities: visitedCityNames.length,
-            completionRate: this.data.cities.length > 0 
-              ? Math.round((visitedCityNames.length / this.data.cities.length) * 100) 
+            completionRate: this.data.cities.length > 0
+              ? Math.round((visitedCityNames.length / this.data.cities.length) * 100)
               : 0
           };
-          
+
           this.setData({
             visitedCities: visitedCityNames,
             provinceStats: stats
@@ -103,8 +99,7 @@ Page({
         }
       },
       fail: err => {
-        console.error('获取省份旅行数据失败', err);
-        // 即使失败也不影响页面显示，只是没有统计数据
+        // 即使失败也不影响页面显示
       }
     });
   },

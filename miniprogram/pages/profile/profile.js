@@ -33,12 +33,10 @@ Page({
    * 检查情侣绑定状态
    */
   checkCoupleStatus: function() {
-    const that = this;
     wx.cloud.callFunction({
       name: 'couple/check',
       data: {},
       success: res => {
-        console.log('检查情侣状态成功', res);
         if(res.result.success) {
           this.setData({
             isCoupleBound: true,
@@ -47,7 +45,7 @@ Page({
         }
       },
       fail: err => {
-        console.error('检查情侣状态失败', err);
+        // 检查状态失败不影响页面显示
       }
     });
   },
@@ -89,7 +87,6 @@ Page({
         action: 'create'
       },
       success: res => {
-        console.log('创建情侣关系成功', res);
         if(res.result.success) {
           wx.showToast({
             title: '创建成功',
@@ -107,7 +104,6 @@ Page({
         }
       },
       fail: err => {
-        console.error('创建情侣关系失败', err);
         wx.showToast({
           title: '创建失败',
           icon: 'error'
@@ -142,7 +138,6 @@ Page({
         bindCode: this.data.bindCode.trim()
       },
       success: res => {
-        console.log('加入情侣关系成功', res);
         if(res.result.success) {
           wx.showToast({
             title: '加入成功',
@@ -160,7 +155,6 @@ Page({
         }
       },
       fail: err => {
-        console.error('加入情侣关系失败', err);
         wx.showToast({
           title: '加入失败',
           icon: 'error'
@@ -185,7 +179,6 @@ Page({
             name: 'couple/unbind',
             data: {},
             success: res => {
-              console.log('解除情侣关系成功', res);
               if(res.result.success) {
                 wx.showToast({
                   title: '解除成功',
@@ -203,7 +196,6 @@ Page({
               }
             },
             fail: err => {
-              console.error('解除情侣关系失败', err);
               wx.showToast({
                 title: '解除失败',
                 icon: 'error'

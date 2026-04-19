@@ -23,12 +23,10 @@ Page({
    * 加载相册数据
    */
   loadAlbumData: function() {
-    const that = this;
     wx.showLoading({
       title: '加载中...'
     });
 
-    // 获取所有旅行记录和照片
     wx.cloud.callFunction({
       name: 'trip/list',
       data: {
@@ -36,17 +34,14 @@ Page({
         pageSize: 100
       },
       success: res => {
-        console.log('获取旅行记录成功', res);
         if(res.result.success) {
           const trips = res.result.data.trips || [];
-          
-          // 整理数据：按年份分组旅行记录
+
           const groupedByYear = this.groupTripsByYear(trips);
           const years = Object.keys(groupedByYear).sort((a, b) => parseInt(b) - parseInt(a));
-          
-          // 构建时间线
+
           const timeline = this.buildTimeline(trips);
-          
+
           this.setData({
             albums: groupedByYear,
             timeline: timeline,
@@ -57,7 +52,6 @@ Page({
         }
       },
       fail: err => {
-        console.error('获取旅行记录失败', err);
         wx.showToast({
           title: '加载失败',
           icon: 'error'
@@ -94,7 +88,7 @@ Page({
    */
   buildTimeline: function(trips) {
     // 按时间排序
-    const sortedTrips = trips.sort((a, b) => new Date(b.visitTime) - new Date(a.visitTime));
+    const sortedTrips = [...trips].sort((a, b) => new Date(b.visitTime) - new Date(a.visitTime));
     
     // 为每条记录添加照片
     const timeline = sortedTrips.map(trip => {

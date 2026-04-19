@@ -181,15 +181,15 @@ async function handleDeletePhoto(event, wxContext) {
   try {
     // 查找照片记录
     const photoQuery = await db.collection('photos').doc(photoId).get();
-    
-    if (!photoQuery.data || photoQuery.data.length === 0) {
+
+    if (!photoQuery.data) {
       return {
         success: false,
         message: '照片不存在'
       };
     }
 
-    const photo = photoQuery.data[0];
+    const photo = photoQuery.data;
 
     // 检查权限（只有上传者可以删除）
     if (photo.uploader_openid !== openid) {

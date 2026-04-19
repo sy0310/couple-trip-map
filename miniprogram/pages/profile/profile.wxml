@@ -60,12 +60,6 @@
       <navigator url="/pages/album/album" class="feature-item">
         <text>旅行相册</text>
       </navigator>
-      <navigator url="/pages/map/map" class="feature-item">
-        <text>旅行地图</text>
-      </navigator>
-      <navigator url="/pages/statistics/statistics" class="feature-item">
-        <text>统计分析</text>
-      </navigator>
     </view>
   </view>
 </view>

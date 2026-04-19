@@ -266,11 +266,17 @@ async function handleUnbind(wxContext) {
 /**
  * 生成唯一绑定码
  */
-function generateUniqueCode() {
+async function generateUniqueCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  let attempts = 0;
+  while (attempts < 10) {
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const existing = await db.collection('couples').where({ binding_code: result }).get();
+    if (existing.data.length === 0) return result;
+    attempts++;
   }
-  return result;
+  throw new Error('生成绑定码失败，请稍后重试');
 }

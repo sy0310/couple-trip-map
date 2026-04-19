@@ -17,7 +17,7 @@ git add .
 
 # 提交更改
 echo "📝 提交更改..."
-git commit -m " feat: 完成核心功能开发
+git commit -m "feat: 完成核心功能开发
 
 - 完成个人中心页面 (profile) - 情侣绑定/解绑功能
 - 完成情侣关系云函数 (couple) - 绑定码生成、加入/创建情侣关系

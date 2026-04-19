@@ -83,26 +83,23 @@ Page({
    * 加载旅行记录
    */
   loadTripRecords: function(cityName) {
-    const that = this;
     wx.cloud.callFunction({
       name: 'trip/list',
       data: {
         city: cityName,
         page: 1,
-        pageSize: 50  // 获取该城市的旅行记录
+        pageSize: 50
       },
       success: res => {
-        console.log('获取城市旅行数据成功', res);
         if(res.result.success) {
           const trips = res.result.data.trips || [];
-          
-          // 统计数据
+
           const stats = {
             totalTrips: trips.length,
             totalPhotos: trips.reduce((sum, trip) => sum + (trip.photos ? trip.photos.length : 0), 0),
             firstVisit: trips.length > 0 ? new Date(Math.min(...trips.map(t => new Date(t.visitTime)))) : null
           };
-          
+
           this.setData({
             tripRecords: trips,
             cityStats: stats
@@ -110,8 +107,7 @@ Page({
         }
       },
       fail: err => {
-        console.error('获取城市旅行数据失败', err);
-        // 即使失败也不影响页面显示
+        // 获取失败不影响页面显示
       }
     });
   },
@@ -120,7 +116,6 @@ Page({
    * 加载城市照片
    */
   loadCityPhotos: function(cityName) {
-    const that = this;
     wx.cloud.callFunction({
       name: 'photo/list',
       data: {
@@ -129,7 +124,6 @@ Page({
         pageSize: 50
       },
       success: res => {
-        console.log('获取城市照片成功', res);
         if(res.result.success) {
           this.setData({
             photos: res.result.data.photos || []
@@ -137,7 +131,7 @@ Page({
         }
       },
       fail: err => {
-        console.error('获取城市照片失败', err);
+        // 获取失败不影响页面显示
       }
     });
   },
