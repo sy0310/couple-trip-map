@@ -8,20 +8,20 @@ import { getCoupleId, getTripsByCity, getPhotosByTrip } from '@/lib/trips';
 import { AddTripForm } from '@/components/add-trip-form';
 
 const CITY_ATTRACTIONS: Record<string, { name: string; type: string }[]> = {
-  '北京市': [
+  '北京': [
     { name: '故宫', type: '历史文化' },
     { name: '天安门广场', type: '地标' },
     { name: '颐和园', type: '园林' },
     { name: '长城', type: '历史古迹' },
     { name: '天坛', type: '历史文化' },
   ],
-  '上海市': [
+  '上海': [
     { name: '外滩', type: '地标' },
     { name: '东方明珠', type: '地标' },
     { name: '豫园', type: '园林' },
     { name: '上海博物馆', type: '文化' },
   ],
-  '广州市': [
+  '广州': [
     { name: '广州塔', type: '地标' },
     { name: '陈家祠', type: '历史文化' },
     { name: '沙面', type: '历史建筑' },

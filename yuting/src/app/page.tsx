@@ -62,8 +62,11 @@ export default function HomePage() {
       onMapClick={() => {
         window.location.href = '/province';
       }}
-      onCityClick={(city) => {
-        window.location.href = `/city?name=${encodeURIComponent(city)}&province=${encodeURIComponent(city)}`;
+      onCityClick={(cityName) => {
+        const city = visitedCities.find((c) => c.name === cityName);
+        if (city) {
+          window.location.href = `/city?name=${encodeURIComponent(city.name)}&province=${encodeURIComponent(city.province)}`;
+        }
       }}
       onDiaryClick={() => {
         window.location.href = '/album';
