@@ -6,7 +6,7 @@ import { WoodMap } from '@/components/wood-map';
 
 interface Room3DProps {
   children?: React.ReactNode;
-  onMapClick?: () => void;
+  onProvinceClick?: (name: string) => void;
   onCityClick?: (cityName: string) => void;
   onDiaryClick?: () => void;
   onAlbumClick?: () => void;
@@ -20,7 +20,7 @@ interface Room3DProps {
 
 export function Room3D({
   children,
-  onMapClick,
+  onProvinceClick,
   onCityClick,
   onDiaryClick,
   onAlbumClick,
@@ -76,7 +76,7 @@ export function Room3D({
             <WoodMap
               visitedProvinces={visitedProvinces}
               visitedCities={visitedCities}
-              onProvinceClick={onMapClick}
+              onProvinceClick={onProvinceClick}
               onCityClick={onCityClick}
             />
           </div>

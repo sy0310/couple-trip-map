@@ -59,8 +59,8 @@ export default function HomePage() {
       visitedCount={loading ? 0 : visitedCount}
       completionRate={loading ? '0.0' : completionRate}
       totalProvinces={TOTAL_PROVINCES}
-      onMapClick={() => {
-        window.location.href = '/province';
+      onProvinceClick={(name) => {
+        window.location.href = `/province?name=${encodeURIComponent(name)}`;
       }}
       onCityClick={(cityName) => {
         const city = visitedCities.find((c) => c.name === cityName);
