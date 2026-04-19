@@ -25,7 +25,7 @@ export async function getCoupleId(userId?: string): Promise<string | null> {
     .from('couples')
     .select('id')
     .or(`user_a_id.eq.${uid},user_b_id.eq.${uid}`)
-    .single() as { data: Pick<CoupleRow, 'id'> | null; error: { message: string } | null };
+    .maybeSingle() as { data: Pick<CoupleRow, 'id'> | null; error: { message: string } | null };
 
   return data?.id ?? null;
 }
