@@ -21,7 +21,6 @@ export default function AlbumPage() {
   const [trips, setTrips] = useState<TripPhoto[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [loading, setLoading] = useState(true);
-  const [loadingExpanded, setLoadingExpanded] = useState<Record<string, boolean>>({});
   const [expandedUrl, setExpandedUrl] = useState<string | null>(null);
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [coupleId, setCoupleId] = useState<string | null>(null);
@@ -149,7 +148,7 @@ export default function AlbumPage() {
 
   return (
     <div className="min-h-screen relative pb-32 overflow-hidden" style={{ background: 'linear-gradient(135deg, #4a2e1d 0%, #352118 50%, #2a1b14 100%)' }}>
-      <div className="relative z-10 max-w-5xl mx-auto px-6 py-12">
+      <div className="relative z-10 max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8 flex items-end justify-between">
           <div>
@@ -190,7 +189,7 @@ export default function AlbumPage() {
           <>
             {/* Hero Photo — Polaroid frame */}
             {heroTrip && heroCover && (
-              <div className="mb-12">
+              <div className="mb-10">
                 <div
                   className="relative group transform -rotate-1"
                   style={{
@@ -257,73 +256,78 @@ export default function AlbumPage() {
               if (trip.urls.length === 0) return null;
               const isExpanded = expandedTrip === trip.tripId;
               const cover = trip.coverUrl || trip.urls[0];
-              const previewPhotos = trip.urls.slice(0, 6);
-              const remainingCount = trip.urls.length - 6;
+              const remainingCount = trip.urls.length - 1;
               return (
                 <div key={trip.tripId} className="mb-8 relative">
                   {/* Trip header */}
                   <div className="flex items-center gap-4 mb-3">
                     <div className="h-px flex-1" style={{ background: 'rgba(218,194,182,0.3)' }} />
-                    <div className="text-center whitespace-nowrap cursor-pointer" onClick={(e) => { e.stopPropagation(); setExpandedTrip(isExpanded ? null : trip.tripId); }}>
+                    <div className="text-center whitespace-nowrap">
                       <h3 className="text-xl font-bold" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}>
                         {trip.locationName}
                       </h3>
                       <p className="text-xs mt-0.5" style={{ color: '#9A8B7A' }}>
-                        {trip.visitDate} · {trip.urls.length} 张照片 {isExpanded ? '▲' : '▼'}
+                        {trip.visitDate} · {trip.urls.length} 张照片
                       </p>
                     </div>
                     <div className="h-px flex-1" style={{ background: 'rgba(218,194,182,0.3)' }} />
                   </div>
 
-                  {/* Cover photo with small preview grid overlay */}
-                  <div className="relative rounded-lg overflow-hidden border cursor-pointer group" style={{ borderColor: 'rgba(255,222,165,0.15)' }}>
-                    <div onClick={() => setExpandedUrl(cover)} className="relative">
-                      {/* Main cover image */}
-                      <img src={cover} alt={trip.locationName} className="w-full aspect-[4/3] object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                  {/* Photo card */}
+                  <div className="relative rounded-lg overflow-hidden border" style={{ borderColor: 'rgba(255,222,165,0.15)' }}>
+                    {/* Cover image — click to expand */}
+                    <div onClick={() => setExpandedTrip(isExpanded ? null : trip.tripId)} className="relative cursor-pointer group">
+                      <img src={cover} alt={trip.locationName} className="w-full aspect-[4/3] object-cover transition-transform group-hover:scale-[1.02]" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
-                      {/* Small photo grid overlay */}
-                      <div className="absolute bottom-3 right-3 flex gap-1.5">
-                        {previewPhotos.slice(1, 4).map((url) => (
-                          <div key={url} className="w-10 h-10 rounded-md overflow-hidden border shadow-lg transition-transform hover:scale-110" style={{ borderColor: 'rgba(255,222,165,0.4)' }} onClick={(e) => { e.stopPropagation(); setExpandedUrl(url); }}>
-                            <img src={url} alt="" className="w-full h-full object-cover" />
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Remaining count badge */}
-                      {trip.urls.length > 4 && (
-                        <div className="absolute bottom-3 left-3 px-2 py-1 rounded-full text-xs font-medium shadow-lg" style={{ background: 'rgba(0,0,0,0.7)', color: '#ffdea5' }}>
-                          +{remainingCount}
+                      {/* Bottom action bar */}
+                      <div className="absolute bottom-0 left-0 right-0 px-4 py-3 flex items-end justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-medium" style={{ background: 'rgba(0,0,0,0.5)', color: '#ffdea5' }}>
+                            {trip.urls.length} 张照片
+                          </span>
+                          {remainingCount > 0 && (
+                            <span className="text-xs" style={{ color: 'rgba(255,222,165,0.8)' }}>
+                              +{remainingCount} 更多
+                            </span>
+                          )}
                         </div>
-                      )}
+                        <div className="flex items-center gap-2">
+                          {/* View all button */}
+                          {trip.urls.length > 1 && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setExpandedTrip(trip.tripId); }}
+                              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                              style={{
+                                background: 'rgba(0,0,0,0.6)',
+                                color: '#ffdea5',
+                                border: '1px solid rgba(255,222,165,0.3)',
+                              }}
+                              aria-label="查看全部照片"
+                            >
+                              查看全部
+                            </button>
+                          )}
+                          {/* Cover selection button */}
+                          {trip.urls.length > 1 && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectingCover(selectingCover === trip.tripId ? null : trip.tripId); }}
+                              className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] transition-all"
+                              style={{ background: 'rgba(0,0,0,0.5)', color: '#ffdea5', border: '1px solid rgba(255,222,165,0.3)' }}
+                              aria-label="选择封面"
+                            >
+                              ★
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-
-                    {/* Cover selection button */}
-                    {trip.urls.length > 1 && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setSelectingCover(selectingCover === trip.tripId ? null : trip.tripId); }}
-                        className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-[10px] transition-all"
-                        style={{ background: 'rgba(0,0,0,0.5)', color: '#ffdea5', border: '1px solid rgba(255,222,165,0.3)' }}
-                        aria-label="选择封面"
-                      >
-                        ★
-                      </button>
-                    )}
                   </div>
 
                   {/* Expanded photo grid */}
                   {isExpanded && (
-                    <div className="mt-4 p-4 rounded-xl border relative" style={{ background: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,222,165,0.1)' }}>
-                      {loadingExpanded[trip.tripId] && (
-                        <div className="absolute inset-0 flex items-center justify-center rounded-xl" style={{ background: 'rgba(0,0,0,0.7)', zIndex: 10 }}>
-                          <div className="text-center">
-                            <div className="w-10 h-10 mx-auto mb-2 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#c99a6c', borderTopColor: 'transparent' }} />
-                            <p className="text-xs" style={{ color: '#dac2b6' }}>加载照片中...</p>
-                          </div>
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between mb-4">
+                    <div className="mt-3 p-4 rounded-xl border" style={{ background: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,222,165,0.1)' }}>
+                      <div className="flex items-center justify-between mb-3">
                         <p className="text-sm font-medium" style={{ color: '#dac2b6' }}>全部照片 · {trip.urls.length} 张</p>
                         <button
                           onClick={() => setExpandedTrip(null)}
@@ -335,8 +339,13 @@ export default function AlbumPage() {
                       </div>
                       <div className="columns-3 md:columns-4 gap-2 space-y-2">
                         {trip.urls.map((url) => (
-                          <div key={url} className="break-inside-avoid rounded-md overflow-hidden border cursor-pointer group transition-transform hover:scale-[1.02]" style={{ borderColor: 'rgba(255,222,165,0.1)' }} onClick={() => setExpandedUrl(url)}>
+                          <div key={url} className="relative break-inside-avoid rounded-md overflow-hidden border cursor-pointer group transition-transform hover:scale-[1.02]" style={{ borderColor: 'rgba(255,222,165,0.1)' }} onClick={() => setExpandedUrl(url)}>
                             <img src={url} alt="" className="w-full object-cover" />
+                            {url === trip.coverUrl && (
+                              <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-medium" style={{ background: 'rgba(255,222,165,0.9)', color: '#352118' }}>
+                                封面
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
