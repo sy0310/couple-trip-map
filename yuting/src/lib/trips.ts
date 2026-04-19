@@ -84,6 +84,37 @@ export async function acceptBindingCode(code: string): Promise<boolean> {
   return true;
 }
 
+/**
+ * Delete the couple binding for the current user.
+ * Returns true on success.
+ */
+export async function deleteCoupleBinding(): Promise<boolean> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data: couple } = await supabase
+    .from('couples')
+    .select('id')
+    .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
+    .not('user_b_id', 'is', null)
+    .maybeSingle() as { data: Pick<CoupleRow, 'id'> | null; error: { message: string } | null };
+
+  if (!couple) return false;
+
+  const { error } = await supabase
+    .from('couples')
+    .delete()
+    .eq('id', couple.id);
+
+  if (error) {
+    console.error('Failed to delete couple binding:', error.message);
+    return false;
+  }
+
+  return true;
+}
+
 export async function getCoupleId(userId?: string): Promise<string | null> {
   const supabase = createClient();
 
@@ -121,6 +152,7 @@ export async function getCoupleInfo(userId?: string): Promise<{ id: string; part
     .from('couples')
     .select('id, user_a_id, user_b_id')
     .or(`user_a_id.eq.${uid},user_b_id.eq.${uid}`)
+    .not('user_b_id', 'is', null)
     .maybeSingle() as { data: Pick<CoupleRow, 'id' | 'user_a_id' | 'user_b_id'> | null; error: { message: string } | null };
 
   if (!couple) return null;

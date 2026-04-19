@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { BottomNav } from '@/components/bottom-nav';
-import { getCoupleInfo, generateBindingCode, acceptBindingCode } from '@/lib/trips';
+import { getCoupleInfo, generateBindingCode, acceptBindingCode, deleteCoupleBinding } from '@/lib/trips';
 import { useAuth, signOut } from '@/lib/auth';
 
 export default function ProfilePage() {
@@ -97,6 +97,16 @@ export default function ProfilePage() {
     setShowSettingsModal(false);
   };
 
+  const handleUnbind = async () => {
+    const success = await deleteCoupleBinding();
+    if (success) {
+      setCoupleId(null);
+      setPartnerNickname(null);
+      setBindingCode('');
+      setShowCoupleModal(false);
+    }
+  };
+
   // Couple binding modal content
   const coupleModalContent = (
     <div className="space-y-6">
@@ -105,19 +115,38 @@ export default function ProfilePage() {
       </h3>
 
       {coupleId ? (
-        <div className="text-center py-4">
-          <div
-            className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(201,154,108,0.15)' }}
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c99a6c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
+        <div className="space-y-6">
+          <div className="text-center py-4">
+            <div
+              className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(201,154,108,0.15)' }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c99a6c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            </div>
+            <p className="text-sm mb-1" style={{ color: '#dac2b6' }}>已绑定情侣关系</p>
+            <p className="text-lg font-bold" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
+              {partnerNickname || '对方'}
+            </p>
           </div>
-          <p className="text-sm mb-1" style={{ color: '#dac2b6' }}>已绑定情侣关系</p>
-          <p className="text-lg font-bold" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
-            {partnerNickname || '对方'}
-          </p>
+
+          {/* Unbind section */}
+          <div className="rounded-xl p-5 border" style={{ background: 'rgba(255,50,50,0.03)', borderColor: 'rgba(255,107,129,0.1)' }}>
+            <h4 className="text-sm font-semibold mb-2" style={{ color: '#ff6b6b' }}>解除绑定</h4>
+            <p className="text-xs mb-3" style={{ color: '#9A8B7A' }}>解除后双方的旅行记录将保持独立</p>
+            <button
+              onClick={handleUnbind}
+              className="w-full py-2.5 rounded-lg text-sm font-medium"
+              style={{
+                background: 'rgba(255,107,129,0.1)',
+                border: '1px solid rgba(255,107,129,0.2)',
+                color: '#FF6B81',
+              }}
+            >
+              解除情侣绑定
+            </button>
+          </div>
         </div>
       ) : (
         <>
