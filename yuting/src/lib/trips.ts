@@ -240,7 +240,8 @@ export async function getTripsByCity(
 }
 
 /**
- * Create a new trip record.
+ * Create a new trip record, or return existing one if
+ * couple + province + city + scenic_spot + date already match.
  */
 export async function createTrip(
   coupleId: string,
@@ -254,31 +255,52 @@ export async function createTrip(
     visit_date: string;
     notes?: string;
   }
-): Promise<{ id: string } | null> {
+): Promise<{ id: string; existed: boolean } | null> {
   const supabase = createClient();
-  const insertData: TripInsert = {
-    couple_id: coupleId,
-    location_name: trip.location_name,
-    province: trip.province,
-    city: trip.city,
-    scenic_spot: trip.scenic_spot ?? null,
-    lat: trip.lat ?? null,
-    lng: trip.lng ?? null,
-    visit_date: trip.visit_date,
-    notes: trip.notes ?? null,
-  };
+
+  // Check for existing trip with same couple + location + date
+  const existingQuery = supabase
+    .from('trips')
+    .select('id')
+    .eq('couple_id', coupleId)
+    .eq('province', trip.province)
+    .eq('city', trip.city)
+    .eq('visit_date', trip.visit_date);
+
+  if (trip.scenic_spot) {
+    (existingQuery as any).eq('scenic_spot', trip.scenic_spot);
+  } else {
+    (existingQuery as any).is('scenic_spot', null);
+  }
+
+  const { data: existing } = await existingQuery.maybeSingle() as { data: Pick<TripRow, 'id'> | null; error: { message: string } | null };
+
+  if (existing) {
+    return { id: existing.id, existed: true };
+  }
 
   const id = crypto.randomUUID();
   const { error } = await supabase
     .from('trips')
-    .insert({ ...insertData, id } as never);
+    .insert({
+      id,
+      couple_id: coupleId,
+      location_name: trip.location_name,
+      province: trip.province,
+      city: trip.city,
+      scenic_spot: trip.scenic_spot ?? null,
+      lat: trip.lat ?? null,
+      lng: trip.lng ?? null,
+      visit_date: trip.visit_date,
+      notes: trip.notes ?? null,
+    } as never);
 
   if (error) {
     console.error('Failed to create trip:', error.message);
     return null;
   }
 
-  return { id };
+  return { id, existed: false };
 }
 
 type PhotoRow = Database['public']['Tables']['photos']['Row'];

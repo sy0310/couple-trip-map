@@ -56,7 +56,7 @@ export function AddTripForm({
     setSubmitting(true);
     setError('');
 
-    // Step 1: Create trip
+    // Step 1: Create or find existing trip
     const trip = await createTrip(coupleId, {
       location_name: scenicSpot ? `${province}·${city}·${scenicSpot}` : `${province}·${city}`,
       province,
@@ -88,7 +88,12 @@ export function AddTripForm({
     }
 
     setSubmitting(false);
-    onSuccess();
+    if (trip.existed) {
+      setUploadProgress('✓ 已添加照片到同日期记录');
+      setTimeout(() => onSuccess(), 800);
+    } else {
+      onSuccess();
+    }
   };
 
   return (
