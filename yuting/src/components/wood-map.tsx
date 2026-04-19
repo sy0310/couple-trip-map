@@ -6,11 +6,13 @@ import * as echarts from 'echarts';
 
 interface WoodMapProps {
   visitedProvinces: string[];
+  visitedCities?: { name: string; province: string; lat: number; lng: number; photoCount: number; coverUrl?: string }[];
   onProvinceClick?: (name: string) => void;
+  onCityClick?: (cityName: string) => void;
   onMapReady?: () => void;
 }
 
-export function WoodMap({ visitedProvinces, onProvinceClick, onMapReady }: WoodMapProps) {
+export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick, onCityClick, onMapReady }: WoodMapProps) {
   const chartRef = useRef<ReactECharts>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -98,6 +100,63 @@ export function WoodMap({ visitedProvinces, onProvinceClick, onMapReady }: WoodM
           },
         })),
       },
+      // City markers as scatter points
+      {
+        name: '已访问城市',
+        type: 'scatter' as const,
+        coordinateSystem: 'geo' as const,
+        geoIndex: 0,
+        symbolSize: (val: number[], params: { data: { photoCount: number } }) => {
+          const base = 8;
+          const scale = params.data.photoCount > 10 ? 1.5 : 1;
+          return base * scale;
+        },
+        label: {
+          show: false,
+        },
+        itemStyle: {
+          color: {
+            type: 'radial' as const,
+            x: 0.5, y: 0.5, r: 0.5,
+            colorStops: [
+              { offset: 0, color: '#ffdea5' },
+              { offset: 1, color: '#c99a6c' },
+            ],
+          },
+          borderColor: '#352118',
+          borderWidth: 1.5,
+          shadowColor: 'rgba(255,222,165,0.5)',
+          shadowBlur: 8,
+        },
+        emphasis: {
+          itemStyle: {
+            borderWidth: 2,
+            shadowBlur: 15,
+          },
+          label: {
+            show: true,
+            color: '#ffdea5',
+            fontSize: 12,
+            fontWeight: 700,
+            backgroundColor: 'rgba(53,33,24,0.85)',
+            padding: [4, 8],
+            borderRadius: 4,
+          },
+        },
+        data: visitedCities.map((city) => ({
+          name: city.name,
+          value: [city.lng, city.lat, city.photoCount],
+          photoCount: city.photoCount,
+          coverUrl: city.coverUrl,
+        })),
+        tooltip: {
+          formatter: (params: { data: { name: string; photoCount: number } }) => {
+            const d = params.data;
+            return `<b>${d.name}</b><br/>${d.photoCount} 张照片`;
+          },
+        },
+        zlevel: 2,
+      },
     ],
   };
 
@@ -115,8 +174,12 @@ export function WoodMap({ visitedProvinces, onProvinceClick, onMapReady }: WoodM
       option={option}
       style={{ width: '100%', height: '100%' }}
       onEvents={{
-        click: (params: { name: string }) => {
-          onProvinceClick?.(params.name);
+        click: (params: { name: string; componentType: string; seriesType: string }) => {
+          if (params.seriesType === 'scatter') {
+            onCityClick?.(params.name);
+          } else {
+            onProvinceClick?.(params.name);
+          }
         },
       }}
     />

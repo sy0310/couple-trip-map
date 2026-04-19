@@ -7,10 +7,12 @@ import { WoodMap } from '@/components/wood-map';
 interface Room3DProps {
   children?: React.ReactNode;
   onMapClick?: () => void;
+  onCityClick?: (cityName: string) => void;
   onDiaryClick?: () => void;
   onAlbumClick?: () => void;
   onProfileClick?: () => void;
   visitedProvinces?: string[];
+  visitedCities?: { name: string; province: string; lat: number; lng: number; photoCount: number; coverUrl?: string }[];
   visitedCount?: number;
   completionRate?: string;
   totalProvinces?: number;
@@ -19,10 +21,12 @@ interface Room3DProps {
 export function Room3D({
   children,
   onMapClick,
+  onCityClick,
   onDiaryClick,
   onAlbumClick,
   onProfileClick,
   visitedProvinces = [],
+  visitedCities = [],
   visitedCount = 0,
   completionRate = '0.0',
   totalProvinces = TOTAL_PROVINCES,
@@ -71,7 +75,9 @@ export function Room3D({
           <div className="relative w-full" style={{ aspectRatio: '4/3', minHeight: 200 }}>
             <WoodMap
               visitedProvinces={visitedProvinces}
+              visitedCities={visitedCities}
               onProvinceClick={onMapClick}
+              onCityClick={onCityClick}
             />
           </div>
 

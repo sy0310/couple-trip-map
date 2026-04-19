@@ -4,17 +4,10 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/bottom-nav';
 import { RoomPanel } from '@/components/furniture';
-import { getCoupleId, getVisitedCities } from '@/lib/trips';
+import { ProvinceMap } from '@/components/province-map';
+import { getCoupleId, getVisitedCities, getVisitedProvinces } from '@/lib/trips';
 import { AddTripForm } from '@/components/add-trip-form';
-
-const PROVINCE_CITIES: Record<string, string[]> = {
-  '广东': ['广州市', '深圳市', '珠海市', '汕头市', '佛山市', '东莞市', '中山市'],
-  '江苏': ['南京市', '无锡市', '苏州市', '常州市', '南通市'],
-  '浙江': ['杭州市', '宁波市', '温州市', '嘉兴市', '绍兴市'],
-  '四川': ['成都市', '绵阳市', '乐山市', '宜宾市'],
-  '北京': ['北京市'],
-  '上海': ['上海市'],
-};
+import { getProvinceByName } from '@/lib/provinces';
 
 function ProvinceContent() {
   const searchParams = useSearchParams();
@@ -22,11 +15,13 @@ function ProvinceContent() {
 
   const [cities, setCities] = useState<string[]>([]);
   const [visitedCities, setVisitedCities] = useState<string[]>([]);
+  const [cityCoords, setCityCoords] = useState<{ name: string; lat: number; lng: number; photoCount: number }[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [coupleId, setCoupleId] = useState<string | null>(null);
 
   useEffect(() => {
-    const provinceCities = PROVINCE_CITIES[provinceName] || [`${provinceName}市`];
+    const provinceData = getProvinceByName(provinceName);
+    const provinceCities = provinceData?.cities.map((c) => c.name) || [`${provinceName}市`];
     setCities(provinceCities);
 
     getCoupleId().then((id) => {
@@ -34,6 +29,16 @@ function ProvinceContent() {
       if (id) {
         getVisitedCities(id, provinceName).then((visited) => {
           setVisitedCities(visited);
+
+          // Build city coords for the map
+          const coords: typeof cityCoords = [];
+          for (const cityName of visited) {
+            const cityData = provinceData?.cities.find((c) => c.name === cityName);
+            if (cityData) {
+              coords.push({ name: cityName, lat: cityData.lat, lng: cityData.lng, photoCount: 0 });
+            }
+          }
+          setCityCoords(coords);
         });
       }
     });
@@ -53,6 +58,16 @@ function ProvinceContent() {
       if (!id) return;
       getVisitedCities(id, provinceName).then((visited) => {
         setVisitedCities(visited);
+        // Refresh city coords
+        const provinceData = getProvinceByName(provinceName);
+        const coords: typeof cityCoords = [];
+        for (const cityName of visited) {
+          const cityData = provinceData?.cities.find((c) => c.name === cityName);
+          if (cityData) {
+            coords.push({ name: cityName, lat: cityData.lat, lng: cityData.lng, photoCount: 0 });
+          }
+        }
+        setCityCoords(coords);
       });
     });
   };
@@ -75,6 +90,21 @@ function ProvinceContent() {
           </div>
         </div>
       </div>
+
+      {/* Province Map */}
+      {visitedCities.length > 0 && (
+        <div className="mb-6 rounded-xl overflow-hidden border" style={{ borderColor: 'rgba(141,107,42,0.3)' }}>
+          <div style={{ height: 300 }}>
+            <ProvinceMap
+              provinceName={provinceName}
+              visitedCities={visitedCities}
+              cityCoords={cityCoords}
+              onCityClick={handleCityClick}
+              onBack={() => {}}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Add trip button */}
       <div className="flex justify-end mb-4">

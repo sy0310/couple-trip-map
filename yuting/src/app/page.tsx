@@ -4,22 +4,30 @@ import { useState, useEffect } from 'react';
 import { BottomNav } from '@/components/bottom-nav';
 import { Room3D } from '@/components/room-3d';
 import { TOTAL_PROVINCES } from '@/lib/provinces';
-import { getCoupleId, getVisitedProvinces } from '@/lib/trips';
+import { getCoupleId, getVisitedProvinces, getVisitedCitiesWithCoords } from '@/lib/trips';
 
 export default function HomePage() {
   const [visitedProvinces, setVisitedProvinces] = useState<string[]>([]);
+  const [visitedCities, setVisitedCities] = useState<Awaited<ReturnType<typeof getVisitedCitiesWithCoords>>>([]);
   const [loading, setLoading] = useState(true);
 
   const [coupleId, setCoupleId] = useState<string | null>(null);
+
+  const loadData = async (cid: string) => {
+    const [provinces, cities] = await Promise.all([
+      getVisitedProvinces(cid),
+      getVisitedCitiesWithCoords(cid),
+    ]);
+    setVisitedProvinces(provinces);
+    setVisitedCities(cities);
+    setLoading(false);
+  };
 
   useEffect(() => {
     getCoupleId().then((id) => {
       if (id) {
         setCoupleId(id);
-        getVisitedProvinces(id).then((provinces) => {
-          setVisitedProvinces(provinces);
-          setLoading(false);
-        });
+        loadData(id);
       } else {
         setLoading(false);
       }
@@ -35,7 +43,7 @@ export default function HomePage() {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'trips', filter: `couple_id=eq.${coupleId}` },
-          () => getVisitedProvinces(coupleId).then(setVisitedProvinces)
+          () => loadData(coupleId)
         )
         .subscribe();
     });
@@ -47,11 +55,15 @@ export default function HomePage() {
   return (
     <Room3D
       visitedProvinces={visitedProvinces}
+      visitedCities={visitedCities}
       visitedCount={loading ? 0 : visitedCount}
       completionRate={loading ? '0.0' : completionRate}
       totalProvinces={TOTAL_PROVINCES}
       onMapClick={() => {
         window.location.href = '/province';
+      }}
+      onCityClick={(city) => {
+        window.location.href = `/city?name=${encodeURIComponent(city)}&province=${encodeURIComponent(city)}`;
       }}
       onDiaryClick={() => {
         window.location.href = '/album';

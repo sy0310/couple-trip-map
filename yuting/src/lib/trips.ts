@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase-browser';
 import type { Database } from './database.types';
+import { PROVINCES, getProvinceByName } from '@/lib/provinces';
 
 type TripRow = Database['public']['Tables']['trips']['Row'];
 type TripInsert = Database['public']['Tables']['trips']['Insert'];
@@ -212,6 +213,63 @@ export async function getVisitedCities(
   }
 
   return [...new Set((data ?? []).map((t) => t.city))];
+}
+
+/**
+ * Fetch visited cities with coordinates for a couple.
+ * Groups trips by province+city and matches coordinates from province data.
+ */
+export async function getVisitedCitiesWithCoords(
+  coupleId: string
+): Promise<{ name: string; province: string; lat: number; lng: number; photoCount: number; coverUrl?: string }[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('trips')
+    .select('id, province, city, cover_url')
+    .eq('couple_id', coupleId) as { data: { id: string; province: string; city: string; cover_url: string | null }[] | null; error: { message: string } | null };
+
+  if (error) {
+    console.error('Failed to fetch visited cities:', error.message);
+    return [];
+  }
+
+  // Deduplicate by province+city
+  const cityMap = new Map<string, { name: string; province: string; coverUrl?: string; tripIds: string[] }>();
+  for (const trip of data ?? []) {
+    const key = `${trip.province}::${trip.city}`;
+    const existing = cityMap.get(key);
+    if (existing) {
+      existing.tripIds.push(trip.id);
+      if (trip.cover_url) existing.coverUrl = trip.cover_url;
+    } else {
+      cityMap.set(key, { name: trip.city, province: trip.province, coverUrl: trip.cover_url || undefined, tripIds: [trip.id] });
+    }
+  }
+
+  // Match coordinates from province data
+  const cities: Awaited<ReturnType<typeof getVisitedCitiesWithCoords>> = [];
+  for (const entry of cityMap.values()) {
+    const provinceData = getProvinceByName(entry.province);
+    const cityData = provinceData?.cities.find((c) => c.name === entry.name);
+    if (cityData) {
+      // Count photos for this city
+      let photoCount = 0;
+      for (const tripId of entry.tripIds) {
+        const photos = await getPhotosByTrip(tripId);
+        photoCount += photos.length;
+      }
+      cities.push({
+        name: entry.name,
+        province: entry.province,
+        lat: cityData.lat,
+        lng: cityData.lng,
+        photoCount,
+        coverUrl: entry.coverUrl,
+      });
+    }
+  }
+
+  return cities;
 }
 
 /**
