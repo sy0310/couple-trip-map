@@ -7,6 +7,7 @@ import { signInWithPassword, signUp, useAuth } from '@/lib/auth';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [nickname, setNickname] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,12 +29,16 @@ export default function LoginPage() {
       setError('密码至少需要6个字符');
       return;
     }
+    if (isSignUp && nickname.trim().length < 1) {
+      setError('请输入昵称');
+      return;
+    }
 
     setLoading(true);
     setError('');
 
     const { error: err } = isSignUp
-      ? await signUp(email, password)
+      ? await signUp(email, password, nickname)
       : await signInWithPassword(email, password);
 
     if (err) {
@@ -101,6 +106,27 @@ export default function LoginPage() {
               autoFocus
             />
 
+            {isSignUp && (
+              <>
+                <label className="block text-xs mb-1.5 uppercase tracking-wider" style={{ color: '#dac2b6', letterSpacing: '0.1em' }}>
+                  昵称
+                </label>
+                <input
+                  type="text"
+                  value={nickname}
+                  onChange={(e) => { setNickname(e.target.value); setError(''); }}
+                  placeholder="你的昵称"
+                  className="w-full px-4 py-3 rounded-lg text-sm mb-3"
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,222,165,0.2)',
+                    color: '#ffdea5',
+                    fontFamily: 'var(--font-manrope)',
+                  }}
+                />
+              </>
+            )}
+
             <label className="block text-xs mb-1.5 uppercase tracking-wider" style={{ color: '#dac2b6', letterSpacing: '0.1em' }}>
               密码
             </label>
@@ -139,7 +165,7 @@ export default function LoginPage() {
 
           <div className="mt-4 text-center">
             <button
-              onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
+              onClick={() => { setIsSignUp(!isSignUp); setError(''); setNickname(''); }}
               className="text-xs"
               style={{ color: '#c99a6c' }}
             >

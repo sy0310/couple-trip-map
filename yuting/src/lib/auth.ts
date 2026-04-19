@@ -24,12 +24,16 @@ export async function signInWithPassword(
  */
 export async function signUp(
   email: string,
-  password: string
+  password: string,
+  nickname: string
 ): Promise<{ error: string | null }> {
   const supabase = createClient();
   const { error } = await supabase.auth.signUp({
     email: email.trim().toLowerCase(),
     password,
+    options: {
+      data: { nickname: nickname.trim() },
+    },
   });
   return { error: error?.message ?? null };
 }

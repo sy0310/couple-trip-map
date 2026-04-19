@@ -13,6 +13,10 @@ export default function ProfilePage() {
   const [tripCount, setTripCount] = useState(0);
   const [showCoupleModal, setShowCoupleModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [newNickname, setNewNickname] = useState('');
+  const [nicknameSaving, setNicknameSaving] = useState(false);
+  const [nicknameSaved, setNicknameSaved] = useState(false);
+  const [nicknameError, setNicknameError] = useState('');
   const [bindingCode, setBindingCode] = useState('');
   const [inputCode, setInputCode] = useState('');
   const [codeLoading, setCodeLoading] = useState(false);
@@ -104,6 +108,25 @@ export default function ProfilePage() {
       setPartnerNickname(null);
       setBindingCode('');
       setShowCoupleModal(false);
+    }
+  };
+
+  const handleUpdateNickname = async () => {
+    const trimmed = newNickname.trim();
+    if (!trimmed) return;
+    setNicknameSaving(true);
+    setNicknameError('');
+    const sup = await import('@/lib/supabase-browser');
+    const client = sup.createClient();
+    const { error } = await client.from('users').update({ nickname: trimmed, updated_at: new Date().toISOString() } as never).eq('id', user.id);
+    setNicknameSaving(false);
+    if (error) {
+      setNicknameError(error.message);
+    } else {
+      setNicknameSaved(true);
+      setTimeout(() => setNicknameSaved(false), 2000);
+      setNewNickname('');
+      await client.auth.updateUser({ data: { nickname: trimmed } });
     }
   };
 
@@ -245,6 +268,39 @@ export default function ProfilePage() {
       <div className="rounded-xl p-5 border" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,222,165,0.1)' }}>
         <h4 className="text-sm font-semibold mb-3" style={{ color: '#ffdea5' }}>账号信息</h4>
         <div className="space-y-3">
+          <div className="flex justify-between text-sm">
+            <span style={{ color: '#9A8B7A' }}>昵称</span>
+            <span style={{ color: '#dac2b6' }}>{nickname}</span>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newNickname}
+              onChange={(e) => { setNewNickname(e.target.value); setNicknameError(''); }}
+              placeholder="输入新昵称"
+              className="flex-1 px-4 py-2.5 rounded-lg text-sm"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,222,165,0.2)',
+                color: '#ffdea5',
+                fontFamily: 'var(--font-manrope)',
+              }}
+            />
+            <button
+              onClick={handleUpdateNickname}
+              disabled={!newNickname.trim() || nicknameSaving}
+              className="px-5 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50"
+              style={{
+                background: nicknameSaved ? 'rgba(201,154,108,0.3)' : 'linear-gradient(135deg, #c99a6c, #b8895e)',
+                color: '#221a0f',
+              }}
+            >
+              {nicknameSaving ? '保存中' : nicknameSaved ? '已保存' : '修改'}
+            </button>
+          </div>
+          {nicknameError && (
+            <p className="text-xs" style={{ color: '#ff6b6b' }}>{nicknameError}</p>
+          )}
           <div className="flex justify-between text-sm">
             <span style={{ color: '#9A8B7A' }}>邮箱</span>
             <span style={{ color: '#dac2b6' }}>{user?.email}</span>
@@ -494,7 +550,7 @@ export default function ProfilePage() {
         {/* Settings modal */}
         {showSettingsModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/70" onClick={() => setShowSettingsModal(false)} />
+            <div className="absolute inset-0 bg-black/70" onClick={() => { setShowSettingsModal(false); setNewNickname(''); setNicknameError(''); }} />
             <div
               className="relative w-full max-w-md rounded-2xl overflow-hidden max-h-[85vh] overflow-y-auto"
               style={{ background: 'linear-gradient(180deg, #4a2e1d 0%, #352118 100%)', boxShadow: '0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,222,165,0.1)' }}
