@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { BottomNav } from '@/components/bottom-nav';
-import { getCoupleId } from '@/lib/trips';
+import { getCoupleId, generateBindingCode, acceptBindingCode } from '@/lib/trips';
 import { useAuth, signOut } from '@/lib/auth';
 
 export default function ProfilePage() {
@@ -16,6 +16,7 @@ export default function ProfilePage() {
   const [inputCode, setInputCode] = useState('');
   const [codeLoading, setCodeLoading] = useState(false);
   const [acceptLoading, setAcceptLoading] = useState(false);
+  const [bindError, setBindError] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -65,23 +66,27 @@ export default function ProfilePage() {
 
   const generateCode = async () => {
     setCodeLoading(true);
-    // TODO: call API to generate binding code
-    setTimeout(() => {
-      setBindingCode(Math.random().toString(36).substring(2, 8).toUpperCase());
-      setCodeLoading(false);
-    }, 500);
+    const code = await generateBindingCode();
+    setCodeLoading(false);
+    if (code) {
+      setBindingCode(code);
+    }
   };
 
-  const acceptCode = () => {
+  const acceptCode = async () => {
     if (!inputCode.trim()) return;
+    setBindError('');
     setAcceptLoading(true);
-    setTimeout(async () => {
-      setAcceptLoading(false);
+    const success = await acceptBindingCode(inputCode);
+    setAcceptLoading(false);
+    if (success) {
       setInputCode('');
       const id = await getCoupleId();
       setCoupleId(id);
       setShowCoupleModal(false);
-    }, 1000);
+    } else {
+      setBindError('绑定码无效或已被使用');
+    }
   };
 
   const handleSignOut = async () => {
@@ -159,11 +164,14 @@ export default function ProfilePage() {
           {/* Accept code */}
           <div className="rounded-xl p-5 border" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,222,165,0.1)' }}>
             <h4 className="text-sm font-semibold mb-2" style={{ color: '#ffdea5' }}>输入对方的绑定码</h4>
+            {bindError && (
+              <p className="text-xs mb-2" style={{ color: '#ff6b6b' }}>{bindError}</p>
+            )}
             <div className="flex gap-3">
               <input
                 type="text"
                 value={inputCode}
-                onChange={(e) => setInputCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+                onChange={(e) => { setInputCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)); setBindError(''); }}
                 placeholder="输入6位码"
                 className="flex-1 px-4 py-2.5 rounded-lg text-sm text-center tracking-widest font-mono"
                 maxLength={6}

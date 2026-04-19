@@ -11,6 +11,79 @@ type TripInsert = Database['public']['Tables']['trips']['Insert'];
  */
 type CoupleRow = Database['public']['Tables']['couples']['Row'];
 
+/**
+ * Generate a binding code.
+ * Creates a new couples row with the current user as user_a.
+ * Returns the generated 6-character code, or null on failure.
+ */
+export async function generateBindingCode(): Promise<string | null> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  // Generate a unique 6-char alphanumeric code
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+
+  // Check uniqueness, regenerate if taken
+  const { data: existing } = await supabase
+    .from('couples')
+    .select('id')
+    .eq('binding_code', code)
+    .maybeSingle();
+
+  if (existing) return generateBindingCode(); // retry
+
+  const id = crypto.randomUUID();
+  const { error } = await supabase
+    .from('couples')
+    .insert({ id, user_a_id: user.id, binding_code: code } as never);
+
+  if (error) {
+    console.error('Failed to generate binding code:', error.message);
+    return null;
+  }
+
+  return code;
+}
+
+/**
+ * Accept a binding code from the other user.
+ * Finds the couple by code and sets the current user as user_b.
+ * Returns true on success.
+ */
+export async function acceptBindingCode(code: string): Promise<boolean> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const trimmed = code.trim().toUpperCase();
+
+  const { data: couple } = await supabase
+    .from('couples')
+    .select('id')
+    .eq('binding_code', trimmed)
+    .is('user_b_id', null)
+    .maybeSingle() as { data: Pick<CoupleRow, 'id'> | null; error: { message: string } | null };
+
+  if (!couple) return false;
+
+  const { error } = await supabase
+    .from('couples')
+    .update({ user_b_id: user.id, binding_code: null, updated_at: new Date().toISOString() } as never)
+    .eq('id', couple.id);
+
+  if (error) {
+    console.error('Failed to accept binding code:', error.message);
+    return false;
+  }
+
+  return true;
+}
+
 export async function getCoupleId(userId?: string): Promise<string | null> {
   const supabase = createClient();
 
