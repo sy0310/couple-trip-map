@@ -250,128 +250,99 @@ export default function AlbumPage() {
               </div>
             )}
 
-            {/* Horizontal scroll — rotated photo cards */}
-            <section className="mb-16">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="h-px flex-1" style={{ background: 'rgba(218,194,182,0.3)' }} />
-                <h3 className="text-xl italic font-medium whitespace-nowrap" style={{ color: '#c99a6c', fontFamily: "'Newsreader', serif" }}>
-                  其他回忆
-                </h3>
-                <div className="h-px flex-1" style={{ background: 'rgba(218,194,182,0.3)' }} />
-              </div>
-              <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
-                {allPhotos.slice(0, 12).map((photo, i) => {
-                  const rotations = ['rotate-2', '-rotate-1', 'rotate-3', '-rotate-2', 'rotate-1'];
-                  const rotation = rotations[i % rotations.length];
-                  return (
-                    <div
-                      key={photo.key}
-                      className={`flex-none w-52 snap-center cursor-pointer transition-all duration-300 hover:scale-105 ${rotation}`}
-                      onClick={() => setExpandedUrl(photo.url)}
-                    >
-                      <div className="p-2 rounded-sm shadow-xl border" style={{ background: 'rgba(141,67,31,0.4)', borderColor: 'rgba(111,45,10,0.3)' }}>
-                        <img src={photo.url} alt="" className="w-full h-36 object-cover rounded-sm" style={{ filter: 'grayscale(0.2)', transition: 'filter 0.5s' }} onMouseEnter={(e) => (e.currentTarget.style.filter = 'grayscale(0)')} onMouseLeave={(e) => (e.currentTarget.style.filter = 'grayscale(0.2)')} />
-                      </div>
-                      <div className="mt-2 px-1">
-                        <p className="text-xs truncate" style={{ color: '#dac2b6', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
-                          {photo.trip.locationName}
-                        </p>
-                        <p className="text-[10px]" style={{ color: '#9A8B7A' }}>
-                          {new Date(photo.trip.visitDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })}
-                        </p>
-                      </div>
+            {/* Photo gallery grouped by trip */}
+            {filteredTrips.map((trip) => {
+              if (trip.urls.length === 0) return null;
+              const cover = trip.coverUrl || trip.urls[0];
+              const nonCoverPhotos = trip.urls.filter((url) => url !== cover);
+              return (
+                <div key={trip.tripId} className="mb-12">
+                  {/* Trip header */}
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="h-px flex-1" style={{ background: 'rgba(218,194,182,0.3)' }} />
+                    <div className="text-center whitespace-nowrap">
+                      <h3 className="text-xl font-bold" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}>
+                        {trip.locationName}
+                      </h3>
+                      <p className="text-xs mt-0.5" style={{ color: '#9A8B7A' }}>
+                        {trip.visitDate} · {trip.urls.length} 张照片
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
-            </section>
+                    <div className="h-px flex-1" style={{ background: 'rgba(218,194,182,0.3)' }} />
+                  </div>
 
-            {/* Trip memory cards */}
-            {filteredTrips.filter((t) => t.notes || t.urls.length > 3).length > 0 && (
-              <div className="relative mb-12">
-                <div className="p-6 md:p-8 rounded-xl relative overflow-hidden border" style={{ background: 'rgba(255,242,226,0.05)', borderColor: 'rgba(218,194,182,0.1)' }}>
-                  <h2 className="text-2xl mb-6 relative z-10" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
-                    旅行记忆
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
-                    {filteredTrips.filter((t) => t.notes || t.urls.length > 3).map((trip) => {
-                      const cover = trip.coverUrl || trip.urls[0];
-                      return (
-                        <div
-                          key={trip.tripId}
-                          className="rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 hover:shadow-lg relative"
-                          style={{
-                            background: 'linear-gradient(180deg, rgba(74,46,29,0.8) 0%, rgba(53,33,24,0.9) 100%)',
-                            borderColor: 'rgba(255,222,165,0.08)',
-                            boxShadow: '2px 4px 0 rgba(34,26,15,0.3)',
-                          }}
-                          onClick={() => (trip.urls.length > 0 && cover) && setExpandedUrl(cover)}
+                  {/* Photo grid */}
+                  <div className="columns-2 md:columns-3 lg:columns-4 gap-3 space-y-3">
+                    {/* Cover photo (larger) */}
+                    <div className="break-inside-avoid rounded-lg overflow-hidden border cursor-pointer group" style={{ borderColor: 'rgba(255,222,165,0.15)' }}>
+                      <div className="relative" onClick={() => setExpandedUrl(cover)}>
+                        <img src={cover} alt={trip.locationName} className="w-full object-cover" />
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.3)' }}>
+                          <span className="text-white text-2xl"></span>
+                        </div>
+                      </div>
+                      {nonCoverPhotos.length > 0 && (
+                        <button
+                          onClick={() => setSelectingCover(selectingCover === trip.tripId ? null : trip.tripId)}
+                          className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-[10px] transition-all"
+                          style={{ background: 'rgba(0,0,0,0.5)', color: '#ffdea5', border: '1px solid rgba(255,222,165,0.3)' }}
+                          aria-label="选择封面"
                         >
-                          {cover && (
-                            <div className="relative">
-                              <img src={cover} alt="" className="w-full h-48 object-cover" />
-                              {trip.urls.length > 1 && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setSelectingCover(selectingCover === trip.tripId ? null : trip.tripId); }}
-                                  className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-xs"
-                                  style={{ background: 'rgba(0,0,0,0.6)', color: '#ffdea5', border: '1px solid rgba(255,222,165,0.3)' }}
-                                  aria-label="选择封面"
-                                >
-                                  ★
-                                </button>
-                              )}
-                            </div>
-                          )}
-                          {/* Cover selection overlay */}
-                          {selectingCover === trip.tripId && trip.urls.length > 1 && (
-                            <div className="absolute inset-0 z-20 bg-black/80 p-4 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                              <p className="text-xs text-center mb-3" style={{ color: '#dac2b6' }}>选择封面照片</p>
-                              <div className="grid grid-cols-3 gap-2">
-                                {trip.urls.map((url) => (
-                                  <button
-                                    key={url}
-                                    onClick={() => handleSetCover(trip.tripId, url)}
-                                    className="relative rounded overflow-hidden"
-                                    style={{ border: url === trip.coverUrl ? '2px solid #ffdea5' : '1px solid rgba(255,222,165,0.2)' }}
-                                  >
-                                    <img src={url} alt="" className="w-full h-16 object-cover" />
-                                  </button>
-                                ))}
-                              </div>
-                              <button
-                                onClick={() => setSelectingCover(null)}
-                                className="w-full mt-3 py-2 rounded-lg text-xs"
-                                style={{ background: 'rgba(255,255,255,0.1)', color: '#dac2b6' }}
-                              >
-                                关闭
-                              </button>
-                            </div>
-                          )}
-                          <div className="p-5">
-                            <div className="flex items-center gap-2 mb-2 text-xs" style={{ color: '#9A8B7A' }}>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2" />
-                                <path d="M16 2v4M8 2v4M3 10h18" />
-                              </svg>
-                              {new Date(trip.visitDate).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
-                            </div>
-                            <h3 className="text-lg font-bold mb-1" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}>
-                              {trip.locationName}
-                            </h3>
-                            <div className="text-xs mb-3" style={{ color: '#dac2b6' }}>{trip.province} · {trip.city}</div>
-                            {trip.notes && (
-                              <p className="text-sm leading-relaxed" style={{ color: '#dac2b6' }}>
-                                {trip.notes}
-                              </p>
-                            )}
+                          ★
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Other photos */}
+                    {nonCoverPhotos.map((url) => (
+                      <div key={url} className="break-inside-avoid rounded-lg overflow-hidden border cursor-pointer group" style={{ borderColor: 'rgba(255,222,165,0.1)' }}>
+                        <div className="relative" onClick={() => setExpandedUrl(url)}>
+                          <img src={url} alt="" className="w-full object-cover" />
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.3)' }}>
+                            <span className="text-white text-2xl">⤢</span>
                           </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
+
+                  {/* Cover selection overlay */}
+                  {selectingCover === trip.tripId && nonCoverPhotos.length > 0 && (
+                    <div className="mt-3 rounded-xl p-4 border" style={{ background: 'rgba(0,0,0,0.6)', borderColor: 'rgba(255,222,165,0.15)' }}>
+                      <p className="text-xs text-center mb-3" style={{ color: '#dac2b6' }}>选择封面照片</p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {trip.urls.map((url) => (
+                          <button
+                            key={url}
+                            onClick={() => handleSetCover(trip.tripId, url)}
+                            className="relative rounded overflow-hidden transition-all"
+                            style={{ border: url === trip.coverUrl ? '2px solid #ffdea5' : '1px solid rgba(255,222,165,0.2)', opacity: url === cover ? 0.5 : 1 }}
+                          >
+                            <img src={url} alt="" className="w-full h-16 object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => setSelectingCover(null)}
+                        className="w-full mt-3 py-2 rounded-lg text-xs"
+                        style={{ background: 'rgba(255,255,255,0.1)', color: '#dac2b6' }}
+                      >
+                        关闭
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Trip notes */}
+                  {trip.notes && (
+                    <div className="mt-4 rounded-xl p-5 border" style={{ background: 'rgba(255,242,226,0.04)', borderColor: 'rgba(218,194,182,0.1)' }}>
+                      <p className="text-sm leading-relaxed" style={{ color: '#dac2b6', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
+                        {trip.notes}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })}
           </>
         )}
       </div>
