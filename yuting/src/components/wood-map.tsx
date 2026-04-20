@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
+import { normalizeProvinceName, provinceToGeoJsonName } from '@/lib/provinces';
 
 interface WoodMapProps {
   visitedProvinces: string[];
@@ -57,7 +58,7 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
         },
       },
       regions: visitedProvinces.map((name) => ({
-        name,
+        name: provinceToGeoJsonName(name),
         itemStyle: {
           areaColor: {
             type: 'linear' as const,
@@ -89,7 +90,8 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
         if (params.seriesType === 'scatter') {
           return `<b>${params.name}</b>`;
         }
-        const isVisited = visitedProvinces.includes(params.name);
+        const normalizedName = normalizeProvinceName(params.name);
+        const isVisited = visitedProvinces.includes(normalizedName);
         return `${params.name}<br/>${isVisited ? '✓ 已走过' : '未探索'}`;
       },
     },
@@ -167,7 +169,8 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
           if (params.seriesType === 'scatter') {
             onCityClick?.(params.name);
           } else {
-            onProvinceClick?.(params.name);
+            const normalizedName = normalizeProvinceName(params.name);
+            onProvinceClick?.(normalizedName);
           }
         },
       }}

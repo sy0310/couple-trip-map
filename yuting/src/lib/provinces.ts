@@ -437,18 +437,70 @@ export const PROVINCES: Province[] = [
 
 export const TOTAL_PROVINCES = PROVINCES.length;
 
-/** Get province by display name (strips trailing "市" for matching) */
-export function getProvinceByName(name: string): Province | undefined {
-  const normalized = name.endsWith('市') ? name.slice(0, -1) : name;
-  return PROVINCES.find((p) => p.name === normalized);
+/** Map from china.json GeoJSON names to short PROVINCES names */
+const GEOJSON_TO_PROVINCE: Record<string, string> = {
+  '北京市': '北京',
+  '天津市': '天津',
+  '上海市': '上海',
+  '重庆市': '重庆',
+  '河北省': '河北',
+  '山西省': '山西',
+  '辽宁省': '辽宁',
+  '吉林省': '吉林',
+  '黑龙江省': '黑龙江',
+  '江苏省': '江苏',
+  '浙江省': '浙江',
+  '安徽省': '安徽',
+  '福建省': '福建',
+  '江西省': '江西',
+  '山东省': '山东',
+  '河南省': '河南',
+  '湖北省': '湖北',
+  '湖南省': '湖南',
+  '广东省': '广东',
+  '海南省': '海南',
+  '四川省': '四川',
+  '贵州省': '贵州',
+  '云南省': '云南',
+  '陕西省': '陕西',
+  '甘肃省': '甘肃',
+  '青海省': '青海',
+  '台湾省': '台湾',
+  '内蒙古自治区': '内蒙古',
+  '广西壮族自治区': '广西',
+  '西藏自治区': '西藏',
+  '宁夏回族自治区': '宁夏',
+  '新疆维吾尔自治区': '新疆',
+  '香港特别行政区': '香港',
+  '澳门特别行政区': '澳门',
+};
+
+/** Map from PROVINCES short names to china.json GeoJSON full names */
+export function provinceToGeoJsonName(shortName: string): string {
+  for (const [full, short] of Object.entries(GEOJSON_TO_PROVINCE)) {
+    if (short === shortName) return full;
+  }
+  return shortName; // fallback: already a GeoJSON name or unknown
 }
 
-/** Normalize province name by stripping trailing "省" or "市" */
+/** Normalize province name from any source (GeoJSON, database, URL) to short form */
 export function normalizeProvinceName(name: string): string {
+  // Direct mapping from GeoJSON full names (covers all 35 china.json provinces)
+  if (GEOJSON_TO_PROVINCE[name]) return GEOJSON_TO_PROVINCE[name];
+  // Fallback: already normalized short name
+  const match = PROVINCES.find((p) => p.name === name);
+  if (match) return match.name;
+  // Last resort: strip common suffixes
   let result = name;
   if (result.endsWith('省')) result = result.slice(0, -1);
   if (result.endsWith('市')) result = result.slice(0, -1);
   return result;
+}
+
+/** Get province by name, normalizing first */
+export function getProvinceByName(name: string): Province | undefined {
+  const normalized = normalizeProvinceName(name);
+  return PROVINCES.find((p) => p.name === normalized);
 }
 
 /** Get city by name, searching across all provinces */
