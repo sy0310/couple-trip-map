@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/bottom-nav';
 import { RoomPanel } from '@/components/furniture';
 import { CityMap } from '@/components/city-map';
@@ -10,7 +10,6 @@ import { AddTripForm } from '@/components/add-trip-form';
 import { normalizeProvinceName, getProvinceByName } from '@/lib/provinces';
 
 function CityContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const cityName = normalizeProvinceName(searchParams.get('name') || '');
   const provinceName = normalizeProvinceName(searchParams.get('province') || '');
@@ -122,8 +121,8 @@ function CityContent() {
         {/* Back button */}
         <button
           onClick={() => { window.location.href = `/province?name=${encodeURIComponent(provinceName)}` }}
-          className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full z-10"
-          style={{ background: 'rgba(250,245,239,0.9)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+          className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full"
+          style={{ background: 'rgba(250,245,239,0.95)', boxShadow: '0 2px 12px rgba(0,0,0,0.25)', zIndex: 50, cursor: 'pointer' }}
           aria-label="返回上一级"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D2E1F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

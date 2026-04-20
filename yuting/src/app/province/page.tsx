@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/bottom-nav';
 import { RoomPanel } from '@/components/furniture';
 import { ProvinceMap } from '@/components/province-map';
@@ -13,7 +13,6 @@ import { getProvinceByName, normalizeProvinceName } from '@/lib/provinces';
 const MUNICIPALITIES = new Set(['北京', '上海', '天津', '重庆']);
 
 function ProvinceContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const provinceName = normalizeProvinceName(searchParams.get('name') || '');
 
@@ -45,11 +44,11 @@ function ProvinceContent() {
           }
           setCityCoords(coords);
 
-          // For municipalities, build city map scenic spots
+          // For municipalities, build city map scenic spots — only visited ones
           if (MUNICIPALITIES.has(provinceName)) {
             const cityData = provinceData?.cities[0];
-            const spots = cityData?.scenicSpots;
-            if (spots) {
+            const spots = cityData?.scenicSpots || [];
+            if (spots.length > 0 && cityData) {
               getTripsByCity(id, cityData.name).then((trips) => {
                 const visitedSpotNames = new Set(
                   trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
@@ -96,11 +95,11 @@ function ProvinceContent() {
         }
         setCityCoords(coords);
 
-        // For municipalities, refresh scenic spots
+        // For municipalities, refresh scenic spots — only visited
         if (MUNICIPALITIES.has(provinceName)) {
           const cityData = provinceData?.cities[0];
-          const spots = cityData?.scenicSpots;
-          if (spots) {
+          const spots = cityData?.scenicSpots || [];
+          if (spots.length > 0 && cityData) {
             getTripsByCity(id, cityData.name).then((trips) => {
               const visitedSpotNames = new Set(
                 trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
@@ -128,8 +127,8 @@ function ProvinceContent() {
         {/* Back button */}
         <button
           onClick={() => { window.location.href = '/' }}
-          className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full z-10"
-          style={{ background: 'rgba(250,245,239,0.9)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
+          className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full"
+          style={{ background: 'rgba(250,245,239,0.95)', boxShadow: '0 2px 12px rgba(0,0,0,0.25)', zIndex: 50, cursor: 'pointer' }}
           aria-label="返回上一级"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D2E1F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
