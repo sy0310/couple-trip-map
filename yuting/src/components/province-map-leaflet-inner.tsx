@@ -1,13 +1,26 @@
 'use client';
 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 interface LeafletProvinceMapProps {
   center: [number, number];
   citiesWithCoords: { name: string; lat: number; lng: number; visited: boolean }[];
+  geoJson: Record<string, unknown> | null;
   onCityClick?: (name: string) => void;
+}
+
+function FitBounds({ geoJson }: { geoJson: Record<string, unknown> | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (geoJson) {
+      const layer = L.geoJSON(geoJson as never);
+      map.fitBounds(layer.getBounds(), { padding: [20, 20] });
+    }
+  }, [geoJson, map]);
+  return null;
 }
 
 function createCityIcon(visited: boolean, name: string) {
@@ -46,7 +59,23 @@ function createCityIcon(visited: boolean, name: string) {
   });
 }
 
-export function LeafletProvinceMap({ center, citiesWithCoords, onCityClick }: LeafletProvinceMapProps) {
+function ProvinceGeoJson({ geoJson }: { geoJson: Record<string, unknown> | null }) {
+  if (!geoJson) return null;
+  return (
+    <GeoJSON
+      data={geoJson as never}
+      style={() => ({
+        fillColor: 'rgba(201,154,108,0.15)',
+        fillOpacity: 0.8,
+        color: '#c99a6c',
+        weight: 2,
+        opacity: 0.6,
+      })}
+    />
+  );
+}
+
+export function LeafletProvinceMap({ center, citiesWithCoords, geoJson, onCityClick }: LeafletProvinceMapProps) {
   return (
     <>
       <style>{`
@@ -91,6 +120,8 @@ export function LeafletProvinceMap({ center, citiesWithCoords, onCityClick }: Le
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution=""
         />
+        <FitBounds geoJson={geoJson} />
+        <ProvinceGeoJson geoJson={geoJson} />
         {citiesWithCoords.map((city) => (
           <Marker
             key={city.name}

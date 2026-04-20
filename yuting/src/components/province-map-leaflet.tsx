@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, Suspense } from 'react';
+import { useMemo, Suspense, useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { PROVINCES } from '@/lib/provinces';
+import { PROVINCES, getGeoJsonFileName } from '@/lib/provinces';
 
 interface ProvinceMapProps {
   provinceName: string;
@@ -26,6 +26,18 @@ const LeafletProvinceMap = dynamic(
 );
 
 export function ProvinceMap({ provinceName, visitedCities, cityCoords, onCityClick }: ProvinceMapProps) {
+  const [geoJson, setGeoJson] = useState<Record<string, unknown> | null>(null);
+
+  useEffect(() => {
+    const fileName = getGeoJsonFileName(provinceName);
+    if (fileName) {
+      fetch(`/geojson/${fileName}`)
+        .then((r) => r.json())
+        .then((data) => setGeoJson(data))
+        .catch(() => setGeoJson(null));
+    }
+  }, [provinceName]);
+
   const center = useMemo((): [number, number] => {
     if (cityCoords.length > 0) {
       const avgLat = cityCoords.reduce((s, c) => s + c.lat, 0) / cityCoords.length;
@@ -56,6 +68,7 @@ export function ProvinceMap({ provinceName, visitedCities, cityCoords, onCityCli
       <LeafletProvinceMap
         center={center}
         citiesWithCoords={citiesWithCoords}
+        geoJson={geoJson}
         onCityClick={onCityClick}
       />
     </Suspense>
