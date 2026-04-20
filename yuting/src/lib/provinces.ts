@@ -9,6 +9,7 @@ export interface City {
   name: string;
   lat: number;
   lng: number;
+  adcode?: string;
   scenicSpots?: ScenicSpot[];
 }
 
@@ -24,7 +25,7 @@ export const PROVINCES: Province[] = [
   {
     name: '北京', lat: 39.9042, lng: 116.4074, adcode: '110000',
     cities: [
-      { name: '北京', lat: 39.9042, lng: 116.4074, scenicSpots: [
+      { name: '北京', lat: 39.9042, lng: 116.4074, adcode: '110000', scenicSpots: [
         { name: '故宫', lat: 39.9163, lng: 116.3972 },
         { name: '颐和园', lat: 39.9980, lng: 116.2750 },
         { name: '天安门广场', lat: 39.9040, lng: 116.3976 },
@@ -36,7 +37,7 @@ export const PROVINCES: Province[] = [
   {
     name: '上海', lat: 31.2304, lng: 121.4737, adcode: '310000',
     cities: [
-      { name: '上海', lat: 31.2304, lng: 121.4737, scenicSpots: [
+      { name: '上海', lat: 31.2304, lng: 121.4737, adcode: '310000', scenicSpots: [
         { name: '外滩', lat: 31.2397, lng: 121.4905 },
         { name: '东方明珠', lat: 31.2450, lng: 121.4997 },
         { name: '豫园', lat: 31.2274, lng: 121.4910 },
@@ -47,13 +48,13 @@ export const PROVINCES: Province[] = [
   {
     name: '广东', lat: 23.1291, lng: 113.2644, adcode: '440000',
     cities: [
-      { name: '广州', lat: 23.1291, lng: 113.2644, scenicSpots: [
+      { name: '广州', lat: 23.1291, lng: 113.2644, adcode: '440100', scenicSpots: [
         { name: '广州塔', lat: 23.1065, lng: 113.3225 },
         { name: '陈家祠', lat: 23.1297, lng: 113.2456 },
         { name: '沙面', lat: 23.1080, lng: 113.2432 },
         { name: '珠江夜游', lat: 23.1150, lng: 113.2680 },
       ]},
-      { name: '深圳', lat: 22.5431, lng: 114.0579, scenicSpots: [
+      { name: '深圳', lat: 22.5431, lng: 114.0579, adcode: '440300', scenicSpots: [
         { name: '世界之窗', lat: 22.5400, lng: 113.9730 },
         { name: '东部华侨城', lat: 22.5930, lng: 114.3130 },
         { name: '梧桐山', lat: 22.6000, lng: 114.1920 },
@@ -66,7 +67,7 @@ export const PROVINCES: Province[] = [
   {
     name: '江苏', lat: 32.0603, lng: 118.7969, adcode: '320000',
     cities: [
-      { name: '南京', lat: 32.0603, lng: 118.7969, scenicSpots: [
+      { name: '南京', lat: 32.0603, lng: 118.7969, adcode: '320100', scenicSpots: [
         { name: '中山陵', lat: 32.0580, lng: 118.8570 },
         { name: '夫子庙', lat: 32.0520, lng: 118.7910 },
         { name: '秦淮河', lat: 32.0490, lng: 118.7840 },
@@ -79,7 +80,7 @@ export const PROVINCES: Province[] = [
   {
     name: '浙江', lat: 30.2741, lng: 120.1551, adcode: '330000',
     cities: [
-      { name: '杭州', lat: 30.2741, lng: 120.1551, scenicSpots: [
+      { name: '杭州', lat: 30.2741, lng: 120.1551, adcode: '330100', scenicSpots: [
         { name: '西湖', lat: 30.2420, lng: 120.1490 },
         { name: '灵隐寺', lat: 30.2683, lng: 120.1060 },
         { name: '宋城', lat: 30.2260, lng: 120.1030 },
@@ -91,7 +92,7 @@ export const PROVINCES: Province[] = [
   {
     name: '四川', lat: 30.5728, lng: 104.0668, adcode: '510000',
     cities: [
-      { name: '成都', lat: 30.5728, lng: 104.0668, scenicSpots: [
+      { name: '成都', lat: 30.5728, lng: 104.0668, adcode: '510100', scenicSpots: [
         { name: '大熊猫基地', lat: 30.7310, lng: 104.1530 },
         { name: '武侯祠', lat: 30.6430, lng: 104.0450 },
         { name: '锦里', lat: 30.6410, lng: 104.0440 },
@@ -146,7 +147,7 @@ export const PROVINCES: Province[] = [
   {
     name: '陕西', lat: 34.3416, lng: 108.9398, adcode: '610000',
     cities: [
-      { name: '西安', lat: 34.3416, lng: 108.9398, scenicSpots: [
+      { name: '西安', lat: 34.3416, lng: 108.9398, adcode: '610100', scenicSpots: [
         { name: '兵马俑', lat: 34.3760, lng: 109.2650 },
         { name: '大雁塔', lat: 34.2210, lng: 108.9600 },
         { name: '钟鼓楼', lat: 34.2600, lng: 108.9470 },
@@ -163,7 +164,7 @@ export const PROVINCES: Province[] = [
   {
     name: '重庆', lat: 29.5630, lng: 106.5516, adcode: '500000',
     cities: [
-      { name: '重庆', lat: 29.5630, lng: 106.5516, scenicSpots: [
+      { name: '重庆', lat: 29.5630, lng: 106.5516, adcode: '500000', scenicSpots: [
         { name: '洪崖洞', lat: 29.5640, lng: 106.5780 },
         { name: '解放碑', lat: 29.5560, lng: 106.5780 },
         { name: '磁器口', lat: 29.5830, lng: 106.4490 },
@@ -202,7 +203,7 @@ export const PROVINCES: Province[] = [
   {
     name: '天津', lat: 39.3434, lng: 117.3616, adcode: '120000',
     cities: [
-      { name: '天津', lat: 39.3434, lng: 117.3616, scenicSpots: [
+      { name: '天津', lat: 39.3434, lng: 117.3616, adcode: '120000', scenicSpots: [
         { name: '海河', lat: 39.1380, lng: 117.2330 },
         { name: '古文化街', lat: 39.1430, lng: 117.1980 },
         { name: '天津之眼', lat: 39.1510, lng: 117.1850 },
@@ -301,4 +302,13 @@ export function getProvinceByName(name: string): Province | undefined {
 /** Normalize province name by stripping trailing "市" */
 export function normalizeProvinceName(name: string): string {
   return name.endsWith('市') ? name.slice(0, -1) : name;
+}
+
+/** Get city by name, searching across all provinces */
+export function getCityByName(name: string): City | undefined {
+  for (const p of PROVINCES) {
+    const city = p.cities.find((c) => c.name === name);
+    if (city) return city;
+  }
+  return undefined;
 }

@@ -186,8 +186,6 @@ function CityContent() {
               <div style={{ height: 300 }}>
                 <CityMap
                   cityName={cityName}
-                  centerLat={cityMapSpots[0]?.lat || 0}
-                  centerLng={cityMapSpots[0]?.lng || 0}
                   spots={cityMapSpots}
                 />
               </div>

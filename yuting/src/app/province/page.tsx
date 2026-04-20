@@ -168,8 +168,6 @@ function ProvinceContent() {
           <div style={{ height: 300 }}>
             <CityMap
               cityName={provinceName}
-              centerLat={cityMapSpots[0]?.lat || 0}
-              centerLng={cityMapSpots[0]?.lng || 0}
               spots={cityMapSpots}
             />
           </div>
