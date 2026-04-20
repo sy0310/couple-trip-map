@@ -68,26 +68,39 @@ function createPinIcon(visited: boolean, name: string) {
 // Create an inverted mask: dark overlay covering everything except the province area
 function createInvertedGeoJson(geoJson: Record<string, unknown>): Record<string, unknown>[] | null {
   try {
-    const features = (geoJson as { features?: Array<{ geometry?: { type: string; coordinates?: number[][][][] } }> }).features;
+    const features = (geoJson as { features?: Array<{ geometry?: { type: string; coordinates?: unknown } }> }).features;
     if (!features?.length) return null;
 
-    // World bounding box
+    // World bounding box (GeoJSON uses [lng, lat] order)
     const worldBox: number[][] = [[-180, 90], [180, 90], [180, -90], [-180, -90], [-180, 90]];
 
     const maskFeatures: Record<string, unknown>[] = [];
 
     for (const feature of features) {
       const geom = feature.geometry;
-      if (!geom?.coordinates) continue;
+      if (!geom?.coordinates || !geom?.type) continue;
 
-      // GeoJSON province files use MultiPolygon: coordinates is number[][][][]
-      const multiCoords = geom.coordinates as number[][][][];
+      const coords = geom.coordinates;
+      const holes: number[][][] = [];
 
-      for (const polygonCoords of multiCoords) {
-        // First ring is the outer boundary of the province
-        const hole = polygonCoords[0];
-        if (!hole?.length) continue;
+      if (geom.type === 'Polygon') {
+        // Polygon: coordinates is number[][][] — array of rings
+        const rings = coords as number[][][];
+        for (const ring of rings) {
+          if (ring?.length) { holes.push(ring); break; } // Use outer ring only
+        }
+      } else if (geom.type === 'MultiPolygon') {
+        // MultiPolygon: coordinates is number[][][][] — array of polygons
+        const polygons = coords as number[][][][];
+        for (const polygon of polygons) {
+          const outerRing = polygon[0];
+          if (outerRing?.length) holes.push(outerRing);
+        }
+      } else {
+        continue;
+      }
 
+      for (const hole of holes) {
         maskFeatures.push({
           type: 'Feature',
           geometry: {
