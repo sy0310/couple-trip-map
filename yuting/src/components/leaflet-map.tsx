@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { useEffect, useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -9,6 +9,18 @@ interface LeafletMapProps {
   center: [number, number];
   spots: { name: string; lat: number; lng: number; visited: boolean }[];
   onSpotClick?: (name: string) => void;
+  geoJson?: Record<string, unknown> | null;
+}
+
+function FitBounds({ geoJson }: { geoJson?: Record<string, unknown> | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (geoJson) {
+      const layer = L.geoJSON(geoJson as never);
+      map.fitBounds(layer.getBounds(), { padding: [20, 20] });
+    }
+  }, [geoJson, map]);
+  return null;
 }
 
 // Golden pin marker with pill label
@@ -53,7 +65,7 @@ function createPinIcon(visited: boolean, name: string) {
   });
 }
 
-export default function LeafletMap({ center, spots, onSpotClick }: LeafletMapProps) {
+export default function LeafletMap({ center, spots, onSpotClick, geoJson }: LeafletMapProps) {
   const markers = useMemo(() => {
     const sorted = [...spots].sort((a, b) => (b.visited ? 1 : 0) - (a.visited ? 1 : 0));
     return sorted.map((spot, idx) => (
@@ -77,6 +89,16 @@ export default function LeafletMap({ center, spots, onSpotClick }: LeafletMapPro
     ));
   }, [spots, onSpotClick]);
 
+  const initialCenter: [number, number] = useMemo(() => {
+    if (geoJson) {
+      const layer = L.geoJSON(geoJson as never);
+      const bounds = layer.getBounds();
+      const c = bounds.getCenter();
+      return [c.lat, c.lng];
+    }
+    return center;
+  }, [geoJson, center]);
+
   return (
     <>
       <style>{`
@@ -86,14 +108,6 @@ export default function LeafletMap({ center, spots, onSpotClick }: LeafletMapPro
         /* Dark OSM tiles */
         .leaflet-tile-pane {
           filter: invert(1) hue-rotate(180deg) brightness(0.75) saturate(0.6) contrast(1.1);
-        }
-        /* Keep tile outlines/roads readable */
-        .leaflet-tile-pane::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: rgba(53,33,24,0.15);
-          pointer-events: none;
         }
 
         .leaflet-popup-content-wrapper {
@@ -120,8 +134,8 @@ export default function LeafletMap({ center, spots, onSpotClick }: LeafletMapPro
         }
       `}</style>
       <MapContainer
-        center={center}
-        zoom={13}
+        center={initialCenter}
+        zoom={geoJson ? 8 : 13}
         style={{ width: '100%', height: '100%' }}
         scrollWheelZoom={true}
         zoomControl={false}
@@ -130,6 +144,21 @@ export default function LeafletMap({ center, spots, onSpotClick }: LeafletMapPro
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution=""
         />
+        {geoJson && (
+          <>
+            <FitBounds geoJson={geoJson} />
+            <GeoJSON
+              data={geoJson as never}
+              style={() => ({
+                fillColor: 'rgba(201,154,108,0.15)',
+                fillOpacity: 0.8,
+                color: '#c99a6c',
+                weight: 2,
+                opacity: 0.6,
+              })}
+            />
+          </>
+        )}
         {markers}
       </MapContainer>
     </>

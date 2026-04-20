@@ -48,7 +48,7 @@ function ProvinceContent() {
           if (MUNICIPALITIES.has(provinceName)) {
             const cityData = provinceData?.cities[0];
             const spots = cityData?.scenicSpots || [];
-            if (spots.length > 0 && cityData) {
+            if (cityData && spots.length > 0) {
               getTripsByCity(id, cityData.name).then((trips) => {
                 const visitedSpotNames = new Set(
                   trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
@@ -151,7 +151,7 @@ function ProvinceContent() {
         </div>
       </div>
 
-      {/* Province Map — skip for municipalities (no sub-province boundaries) */}
+      {/* Non-municipality: province map showing cities */}
       {!MUNICIPALITIES.has(provinceName) && (
         <div className="mb-6 rounded-xl overflow-hidden border" style={{ borderColor: 'rgba(141,107,42,0.3)' }}>
           <div style={{ height: 380 }}>
@@ -166,16 +166,76 @@ function ProvinceContent() {
         </div>
       )}
 
-      {/* Municipality City Map */}
-      {MUNICIPALITIES.has(provinceName) && cityMapSpots.length > 0 && (
-        <div className="mb-6 rounded-xl overflow-hidden border" style={{ borderColor: 'rgba(141,107,42,0.3)' }}>
-          <div style={{ height: 380 }}>
-            <CityMap
-              cityName={provinceName}
-              spots={cityMapSpots}
-            />
+      {/* Municipality: city map showing scenic spots with boundary — skip city list */}
+      {MUNICIPALITIES.has(provinceName) && (
+        <>
+          <div className="mb-6 rounded-xl overflow-hidden border" style={{ borderColor: 'rgba(141,107,42,0.3)' }}>
+            <div style={{ height: 380 }}>
+              <CityMap
+                cityName={provinceName}
+                spots={cityMapSpots}
+              />
+            </div>
           </div>
-        </div>
+
+          {/* Scenic spots list */}
+          <RoomPanel title="景点列表">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {cityMapSpots.map((spot) => (
+                <div
+                  key={spot.name}
+                  className="p-5 rounded-xl text-center font-medium border shadow-sm"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(201,154,108,0.15), rgba(184,137,94,0.1))',
+                    borderColor: '#c99a6c',
+                    color: '#8d6b2a',
+                    boxShadow: 'inset 0 0 0 1px rgba(141,107,42,0.15)',
+                  }}
+                >
+                  <div className="text-lg mb-1" style={{ color: '#c99a6c' }}>●</div>
+                  {spot.name}
+                </div>
+              ))}
+            </div>
+          </RoomPanel>
+        </>
+      )}
+
+      {/* Cities — wooden city nameplates on the wall (non-municipalities only) */}
+      {!MUNICIPALITIES.has(provinceName) && (
+        <RoomPanel title="城市列表">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+            {cities.map((city) => {
+              const isVisited = visitedCities.includes(city);
+              return (
+                <button
+                  key={city}
+                  onClick={() => handleCityClick(city)}
+                  className={`p-5 rounded-xl text-sm text-center font-medium transition-all duration-200 ${
+                    isVisited
+                      ? 'border shadow-sm'
+                      : 'bg-[#FAF5EF] text-[#6B5438] border border-[#E4D5C0]/40 hover:bg-[#F3EBE0]'
+                  }`}
+                  style={
+                    isVisited
+                      ? {
+                          background: 'linear-gradient(135deg, rgba(201,154,108,0.15), rgba(184,137,94,0.1))',
+                          borderColor: '#c99a6c',
+                          color: '#8d6b2a',
+                          boxShadow: 'inset 0 0 0 1px rgba(141,107,42,0.15)',
+                        }
+                      : {}
+                  }
+                >
+                  <div className="text-lg mb-1" style={{ color: isVisited ? '#c99a6c' : '#C9A882' }}>
+                    {isVisited ? '●' : '○'}
+                  </div>
+                  {city.replace('市', '')}
+                </button>
+              );
+            })}
+          </div>
+        </RoomPanel>
       )}
 
       {/* Add trip button */}
@@ -194,41 +254,6 @@ function ProvinceContent() {
           <span>添加旅行</span>
         </button>
       </div>
-
-      {/* Cities — wooden city nameplates on the wall */}
-      <RoomPanel title="城市列表">
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-          {cities.map((city) => {
-            const isVisited = visitedCities.includes(city);
-            return (
-              <button
-                key={city}
-                onClick={() => handleCityClick(city)}
-                className={`p-5 rounded-xl text-sm text-center font-medium transition-all duration-200 ${
-                  isVisited
-                    ? 'border shadow-sm'
-                    : 'bg-[#FAF5EF] text-[#6B5438] border border-[#E4D5C0]/40 hover:bg-[#F3EBE0]'
-                }`}
-                style={
-                  isVisited
-                    ? {
-                        background: 'linear-gradient(135deg, rgba(201,154,108,0.15), rgba(184,137,94,0.1))',
-                        borderColor: '#c99a6c',
-                        color: '#8d6b2a',
-                        boxShadow: 'inset 0 0 0 1px rgba(141,107,42,0.15)',
-                      }
-                    : {}
-                }
-              >
-                <div className="text-lg mb-1" style={{ color: isVisited ? '#c99a6c' : '#C9A882' }}>
-                  {isVisited ? '●' : '○'}
-                </div>
-                {city.replace('市', '')}
-              </button>
-            );
-          })}
-        </div>
-      </RoomPanel>
 
       {/* Add Trip Form */}
       {showAddForm && coupleId && (

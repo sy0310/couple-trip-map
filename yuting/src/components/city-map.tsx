@@ -1,7 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useMemo, Suspense } from 'react';
+import { useMemo, Suspense, useEffect, useState } from 'react';
+import { getGeoJsonFileName } from '@/lib/provinces';
 
 interface CityMapProps {
   cityName: string;
@@ -24,6 +25,21 @@ function MapSkeleton() {
 }
 
 export function CityMap({ cityName, spots, onSpotClick }: CityMapProps) {
+  const [geoJson, setGeoJson] = useState<Record<string, unknown> | null>(null);
+
+  useEffect(() => {
+    const fileName = getGeoJsonFileName(cityName);
+    if (fileName) {
+      fetch(`/geojson/${fileName}`)
+        .then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then((data) => setGeoJson(data))
+        .catch((e) => console.warn('City GeoJSON fetch failed:', e.message));
+    }
+  }, [cityName]);
+
   const center = useMemo(() => {
     if (spots.length === 0) return [39.9042, 116.4074];
     const avgLat = spots.reduce((s, sp) => s + sp.lat, 0) / spots.length;
@@ -31,18 +47,10 @@ export function CityMap({ cityName, spots, onSpotClick }: CityMapProps) {
     return [avgLat, avgLng];
   }, [spots]);
 
-  if (spots.length === 0) {
-    return (
-      <div className="w-full py-4 text-center text-sm" style={{ color: '#9A8B7A' }}>
-        暂无景点数据
-      </div>
-    );
-  }
-
   return (
     <div className="w-full h-full" style={{ zIndex: 1 }}>
       <Suspense fallback={<MapSkeleton />}>
-        <LeafletMap center={center as [number, number]} spots={spots} onSpotClick={onSpotClick} />
+        <LeafletMap center={center as [number, number]} spots={spots} onSpotClick={onSpotClick} geoJson={geoJson} />
       </Suspense>
     </div>
   );
