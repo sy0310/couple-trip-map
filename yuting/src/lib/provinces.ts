@@ -443,9 +443,12 @@ export function getProvinceByName(name: string): Province | undefined {
   return PROVINCES.find((p) => p.name === normalized);
 }
 
-/** Normalize province name by stripping trailing "市" */
+/** Normalize province name by stripping trailing "省" or "市" */
 export function normalizeProvinceName(name: string): string {
-  return name.endsWith('市') ? name.slice(0, -1) : name;
+  let result = name;
+  if (result.endsWith('省')) result = result.slice(0, -1);
+  if (result.endsWith('市')) result = result.slice(0, -1);
+  return result;
 }
 
 /** Get city by name, searching across all provinces */

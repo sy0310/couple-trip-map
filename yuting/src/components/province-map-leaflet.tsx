@@ -32,20 +32,25 @@ export function ProvinceMap({ provinceName, visitedCities, cityCoords, onCityCli
     const fileName = getGeoJsonFileName(provinceName);
     if (fileName) {
       fetch(`/geojson/${fileName}`)
-        .then((r) => r.json())
+        .then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
         .then((data) => setGeoJson(data))
-        .catch(() => setGeoJson(null));
+        .catch((e) => console.warn('GeoJSON fetch failed:', e.message));
     }
   }, [provinceName]);
 
   const center = useMemo((): [number, number] => {
+    const prov = PROVINCES.find((p) => p.name === provinceName);
+    if (prov) return [prov.lat, prov.lng];
     if (cityCoords.length > 0) {
       const avgLat = cityCoords.reduce((s, c) => s + c.lat, 0) / cityCoords.length;
       const avgLng = cityCoords.reduce((s, c) => s + c.lng, 0) / cityCoords.length;
       return [avgLat, avgLng];
     }
     return [35, 110];
-  }, [cityCoords]);
+  }, [provinceName, cityCoords]);
 
   const citiesWithCoords = useMemo(() => {
     const result: { name: string; lat: number; lng: number; visited: boolean }[] = [];
