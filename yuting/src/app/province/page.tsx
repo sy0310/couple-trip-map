@@ -45,22 +45,24 @@ function ProvinceContent() {
           }
           setCityCoords(coords);
 
-          // For municipalities, build city map scenic spots — all spots with visited flag
+          // For municipalities, build city map scenic spots — only visited for display, track total for count
           if (MUNICIPALITIES.has(provinceName)) {
             const cityData = provinceData?.cities[0];
-            const spots = cityData?.scenicSpots || [];
-            setTotalSpots(spots.length);
-            if (cityData && spots.length > 0) {
+            const allSpots = cityData?.scenicSpots || [];
+            setTotalSpots(allSpots.length);
+            if (cityData && allSpots.length > 0) {
               getTripsByCity(id, cityData.name).then((trips) => {
                 const visitedSpotNames = new Set(
                   trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
                 );
-                const mapped = spots.map((s) => ({
-                  name: s.name,
-                  lat: s.lat,
-                  lng: s.lng,
-                  visited: visitedSpotNames.has(s.name),
-                }));
+                const mapped = allSpots
+                  .filter((s) => visitedSpotNames.has(s.name))
+                  .map((s) => ({
+                    name: s.name,
+                    lat: s.lat,
+                    lng: s.lng,
+                    visited: true,
+                  }));
                 setCityMapSpots(mapped);
               });
             }
@@ -95,21 +97,24 @@ function ProvinceContent() {
         }
         setCityCoords(coords);
 
-        // For municipalities, refresh scenic spots — all spots with visited flag
+        // For municipalities, refresh scenic spots — only visited for display
         if (MUNICIPALITIES.has(provinceName)) {
           const cityData = provinceData?.cities[0];
-          const spots = cityData?.scenicSpots || [];
-          if (spots.length > 0 && cityData) {
+          const allSpots = cityData?.scenicSpots || [];
+          setTotalSpots(allSpots.length);
+          if (allSpots.length > 0 && cityData) {
             getTripsByCity(id, cityData.name).then((trips) => {
               const visitedSpotNames = new Set(
                 trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
               );
-              const mapped = spots.map((s) => ({
-                name: s.name,
-                lat: s.lat,
-                lng: s.lng,
-                visited: visitedSpotNames.has(s.name),
-              }));
+              const mapped = allSpots
+                .filter((s) => visitedSpotNames.has(s.name))
+                .map((s) => ({
+                  name: s.name,
+                  lat: s.lat,
+                  lng: s.lng,
+                  visited: true,
+                }));
               setCityMapSpots(mapped);
             });
           }
@@ -180,7 +185,7 @@ function ProvinceContent() {
             <div style={{ height: 380 }}>
               <CityMap
                 cityName={provinceName}
-                spots={cityMapSpots.length > 0 ? cityMapSpots : (getProvinceByName(provinceName)?.cities[0]?.scenicSpots || []).map((s) => ({ name: s.name, lat: s.lat, lng: s.lng, visited: false }))}
+                spots={cityMapSpots}
               />
             </div>
           </div>
@@ -191,25 +196,15 @@ function ProvinceContent() {
               {cityMapSpots.map((spot) => (
                 <div
                   key={spot.name}
-                  className="p-5 rounded-xl text-center font-medium border shadow-sm transition-all duration-200"
-                  style={
-                    spot.visited
-                      ? {
-                          background: 'linear-gradient(135deg, rgba(201,154,108,0.15), rgba(184,137,94,0.1))',
-                          borderColor: '#c99a6c',
-                          color: '#8d6b2a',
-                          boxShadow: 'inset 0 0 0 1px rgba(141,107,42,0.15)',
-                        }
-                      : {
-                          background: '#FAF5EF',
-                          borderColor: '#E4D5C0/40',
-                          color: '#6B5438',
-                        }
-                  }
+                  className="p-5 rounded-xl text-center font-medium border shadow-sm"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(201,154,108,0.15), rgba(184,137,94,0.1))',
+                    borderColor: '#c99a6c',
+                    color: '#8d6b2a',
+                    boxShadow: 'inset 0 0 0 1px rgba(141,107,42,0.15)',
+                  }}
                 >
-                  <div className="text-lg mb-1" style={{ color: spot.visited ? '#c99a6c' : '#C9A882' }}>
-                    {spot.visited ? '●' : '○'}
-                  </div>
+                  <div className="text-lg mb-1" style={{ color: '#c99a6c' }}>●</div>
                   {spot.name}
                 </div>
               ))}
