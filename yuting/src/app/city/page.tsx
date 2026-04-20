@@ -28,10 +28,17 @@ function CityContent() {
   const [coupleId, setCoupleId] = useState<string | null>(null);
   const [expandedPhoto, setExpandedPhoto] = useState<string | null>(null);
   const [cityMapSpots, setCityMapSpots] = useState<{ name: string; lat: number; lng: number; visited: boolean }[]>([]);
+  const [hasCityData, setHasCityData] = useState(false);
 
   useEffect(() => {
     getCoupleId().then((id) => {
       setCoupleId(id);
+
+      // Check if this city has scenic spots data
+      const provinceData = getProvinceByName(provinceName);
+      const cityData = provinceData?.cities.find((c) => c.name === cityName);
+      setHasCityData(!!cityData?.scenicSpots && cityData.scenicSpots.length > 0);
+
       if (id) {
         getTripsByCity(id, cityName).then((trips) => {
           setTripRecords(trips);
@@ -158,8 +165,8 @@ function CityContent() {
         </button>
       </div>
 
-      {/* City map */}
-      {cityMapSpots.length > 0 && (
+      {/* City map — show whenever the city has scenic spot data, even if none visited yet */}
+      {hasCityData && (
         <div className="mb-6 rounded-xl overflow-hidden border" style={{ borderColor: 'rgba(141,107,42,0.3)' }}>
           <div style={{ height: 380 }}>
             <CityMap
