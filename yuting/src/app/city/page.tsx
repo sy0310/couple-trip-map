@@ -117,9 +117,9 @@ function CityContent() {
       <div className="card text-center relative overflow-hidden mb-6">
         {/* Back button */}
         <button
-          onClick={() => router.push(`/province?name=${encodeURIComponent(provinceName)}`)}
-          className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full transition-colors hover:bg-[#F3EBE0]"
-          style={{ background: 'rgba(250,245,239,0.8)', zIndex: 10 }}
+          onClick={() => { window.location.href = `/province?name=${encodeURIComponent(provinceName)}` }}
+          className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full z-10"
+          style={{ background: 'rgba(250,245,239,0.9)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
           aria-label="返回上一级"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D2E1F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -155,22 +155,14 @@ function CityContent() {
         </button>
       </div>
 
-      {/* City map — full width */}
+      {/* City map */}
       {cityMapSpots.length > 0 && (
-        <div className="mb-6">
-          <div
-            className="rounded-lg pt-16"
-            style={{
-              boxShadow: 'inset 2px 2px 8px rgba(0,0,0,0.3), inset -1px -1px 2px rgba(255,255,255,0.05)',
-              border: '1px solid rgba(135,115,105,0.15)',
-            }}
-          >
-            <div style={{ height: 600 }}>
-              <CityMap
-                cityName={cityName}
-                spots={cityMapSpots}
-              />
-            </div>
+        <div className="mb-6 rounded-xl overflow-hidden border" style={{ borderColor: 'rgba(141,107,42,0.3)' }}>
+          <div style={{ height: 380 }}>
+            <CityMap
+              cityName={cityName}
+              spots={cityMapSpots}
+            />
           </div>
         </div>
       )}
