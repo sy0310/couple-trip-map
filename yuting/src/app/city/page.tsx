@@ -4,10 +4,11 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/bottom-nav';
 import { RoomPanel } from '@/components/furniture';
+import { CityMap } from '@/components/city-map';
 import { getCoupleId, getTripsByCity, getPhotosByTrip } from '@/lib/trips';
 import { AddTripForm } from '@/components/add-trip-form';
 
-import { normalizeProvinceName } from '@/lib/provinces';
+import { normalizeProvinceName, getProvinceByName } from '@/lib/provinces';
 
 const CITY_ATTRACTIONS: Record<string, { name: string; type: string }[]> = {
   '北京': [
@@ -50,6 +51,7 @@ function CityContent() {
   const [loading, setLoading] = useState(true);
   const [coupleId, setCoupleId] = useState<string | null>(null);
   const [expandedPhoto, setExpandedPhoto] = useState<string | null>(null);
+  const [cityMapSpots, setCityMapSpots] = useState<{ name: string; lat: number; lng: number; visited: boolean }[]>([]);
 
   useEffect(() => {
     getCoupleId().then((id) => {
@@ -57,6 +59,23 @@ function CityContent() {
       if (id) {
         getTripsByCity(id, cityName).then((trips) => {
           setTripRecords(trips);
+
+          // Build scenic spot map data
+          const visitedSpotNames = new Set(
+            trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
+          );
+          const provinceData = getProvinceByName(provinceName);
+          const cityData = provinceData?.cities.find((c) => c.name === cityName);
+          if (cityData?.scenicSpots) {
+            const mapped = cityData.scenicSpots.map((s) => ({
+              name: s.name,
+              lat: s.lat,
+              lng: s.lng,
+              visited: visitedSpotNames.has(s.name),
+            }));
+            setCityMapSpots(mapped);
+          }
+
           setLoading(false);
 
           const photoPromises = trips.map(async (trip) => {
@@ -83,6 +102,23 @@ function CityContent() {
       if (!id) return;
       getTripsByCity(id, cityName).then((trips) => {
         setTripRecords(trips);
+
+        // Refresh city map spots
+        const visitedSpotNames = new Set(
+          trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
+        );
+        const provinceData = getProvinceByName(provinceName);
+        const cityData = provinceData?.cities.find((c) => c.name === cityName);
+        if (cityData?.scenicSpots) {
+          const mapped = cityData.scenicSpots.map((s) => ({
+            name: s.name,
+            lat: s.lat,
+            lng: s.lng,
+            visited: visitedSpotNames.has(s.name),
+          }));
+          setCityMapSpots(mapped);
+        }
+
         const photoPromises = trips.map(async (trip) => {
           const photos = await getPhotosByTrip(trip.id);
           return { tripId: trip.id, urls: photos.map((p) => p.file_url) };
@@ -102,6 +138,18 @@ function CityContent() {
     <div className="container">
       {/* Header */}
       <div className="card text-center relative overflow-hidden mb-6">
+        {/* Back button */}
+        <button
+          onClick={() => window.history.back()}
+          className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full transition-colors hover:bg-[#F3EBE0]"
+          style={{ background: 'rgba(250,245,239,0.8)', zIndex: 10 }}
+          aria-label="返回上一级"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D2E1F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+
         <div className="relative z-10">
           <h1 className="text-4xl font-bold mb-1" style={{ color: '#3D2E1F', fontFamily: "var(--font-newsreader)" }}>{cityName}</h1>
           {provinceName && <p className="text-base" style={{ color: '#9A8B7A' }}>{provinceName}</p>}
@@ -131,6 +179,22 @@ function CityContent() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* City map with scenic spots */}
+        {cityMapSpots.length > 0 && (
+          <RoomPanel title="景点地图">
+            <div className="rounded-lg overflow-hidden border" style={{ borderColor: 'rgba(141,107,42,0.3)' }}>
+              <div style={{ height: 300 }}>
+                <CityMap
+                  cityName={cityName}
+                  centerLat={cityMapSpots[0]?.lat || 0}
+                  centerLng={cityMapSpots[0]?.lng || 0}
+                  spots={cityMapSpots}
+                />
+              </div>
+            </div>
+          </RoomPanel>
+        )}
+
         {/* Attractions */}
         {attractions.length > 0 && (
           <RoomPanel title="热门景点">

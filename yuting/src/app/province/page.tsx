@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/bottom-nav';
 import { RoomPanel } from '@/components/furniture';
 import { ProvinceMap } from '@/components/province-map';
-import { getCoupleId, getVisitedCities, getVisitedProvinces } from '@/lib/trips';
+import { CityMap } from '@/components/city-map';
+import { getCoupleId, getVisitedCities, getVisitedProvinces, getTripsByCity } from '@/lib/trips';
 import { AddTripForm } from '@/components/add-trip-form';
 import { getProvinceByName, normalizeProvinceName } from '@/lib/provinces';
 
@@ -20,6 +21,7 @@ function ProvinceContent() {
   const [cityCoords, setCityCoords] = useState<{ name: string; lat: number; lng: number; photoCount: number }[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [coupleId, setCoupleId] = useState<string | null>(null);
+  const [cityMapSpots, setCityMapSpots] = useState<{ name: string; lat: number; lng: number; visited: boolean }[]>([]);
 
   useEffect(() => {
     const provinceData = getProvinceByName(provinceName);
@@ -41,6 +43,26 @@ function ProvinceContent() {
             }
           }
           setCityCoords(coords);
+
+          // For municipalities, build city map scenic spots
+          if (MUNICIPALITIES.has(provinceName)) {
+            const cityData = provinceData?.cities[0];
+            const spots = cityData?.scenicSpots;
+            if (spots) {
+              getTripsByCity(id, cityData.name).then((trips) => {
+                const visitedSpotNames = new Set(
+                  trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
+                );
+                const mapped = spots.map((s) => ({
+                  name: s.name,
+                  lat: s.lat,
+                  lng: s.lng,
+                  visited: visitedSpotNames.has(s.name),
+                }));
+                setCityMapSpots(mapped);
+              });
+            }
+          }
         });
       }
     });
@@ -70,6 +92,26 @@ function ProvinceContent() {
           }
         }
         setCityCoords(coords);
+
+        // For municipalities, refresh scenic spots
+        if (MUNICIPALITIES.has(provinceName)) {
+          const cityData = provinceData?.cities[0];
+          const spots = cityData?.scenicSpots;
+          if (spots) {
+            getTripsByCity(id, cityData.name).then((trips) => {
+              const visitedSpotNames = new Set(
+                trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
+              );
+              const mapped = spots.map((s) => ({
+                name: s.name,
+                lat: s.lat,
+                lng: s.lng,
+                visited: visitedSpotNames.has(s.name),
+              }));
+              setCityMapSpots(mapped);
+            });
+          }
+        }
       });
     });
   };
@@ -78,6 +120,18 @@ function ProvinceContent() {
     <div className="container">
       {/* Header plaque — province name on a wooden sign */}
       <div className="card text-center relative overflow-hidden mb-6">
+        {/* Back button */}
+        <button
+          onClick={() => window.history.back()}
+          className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full transition-colors hover:bg-[#F3EBE0] z-20"
+          style={{ background: 'rgba(250,245,239,0.8)' }}
+          aria-label="返回上一级"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D2E1F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+
         <div className="relative z-10">
           <h1 className="text-4xl font-bold mb-4" style={{ color: '#3D2E1F', fontFamily: "var(--font-newsreader)" }}>{provinceName}</h1>
           <div className="flex justify-center gap-8 text-base mb-6" style={{ color: '#9A8B7A' }}>
@@ -103,6 +157,20 @@ function ProvinceContent() {
               cityCoords={cityCoords}
               onCityClick={handleCityClick}
               onBack={() => {}}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Municipality City Map — show scenic spots for 北京/上海/天津/重庆 */}
+      {MUNICIPALITIES.has(provinceName) && cityMapSpots.length > 0 && (
+        <div className="mb-6 rounded-xl overflow-hidden border" style={{ borderColor: 'rgba(141,107,42,0.3)' }}>
+          <div style={{ height: 300 }}>
+            <CityMap
+              cityName={provinceName}
+              centerLat={cityMapSpots[0]?.lat || 0}
+              centerLng={cityMapSpots[0]?.lng || 0}
+              spots={cityMapSpots}
             />
           </div>
         </div>

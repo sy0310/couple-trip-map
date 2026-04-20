@@ -3,8 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BottomNav } from '@/components/bottom-nav';
 import { getCoupleId, getTripsByCity, getPhotosByTrip } from '@/lib/trips';
+import { updateTrip, deletePhoto as deletePhotoApi, uploadPhotosToTrip } from '@/lib/trips';
 import { useAuth } from '@/lib/auth';
 import { AddTripForm } from '@/components/add-trip-form';
+import { EditTripForm } from '@/components/edit-trip-form';
 
 interface TripPhoto {
   tripId: string;
@@ -26,6 +28,18 @@ export default function AlbumPage() {
   const [coupleId, setCoupleId] = useState<string | null>(null);
   const [selectingCover, setSelectingCover] = useState<string | null>(null);
   const [expandedTrip, setExpandedTrip] = useState<string | null>(null);
+  const [editingTrip, setEditingTrip] = useState<string | null>(null);
+  const [editingTripData, setEditingTripData] = useState<{
+    id: string;
+    locationName: string;
+    province: string;
+    city: string;
+    scenicSpot: string | null;
+    visitDate: string;
+    notes: string | null;
+  } | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState('');
   const { user } = useAuth();
 
   const loadTrips = useCallback(async () => {
@@ -100,6 +114,73 @@ export default function AlbumPage() {
       setTrips((prev) => prev.map((t) => t.tripId === tripId ? { ...t, coverUrl: url } : t));
     }
     setSelectingCover(null);
+  };
+
+  const handleEditTrip = async (tripId: string) => {
+    if (!coupleId) return;
+    const sup = await import('@/lib/supabase-browser');
+    const client = sup.createClient();
+    const { data }: { data: { location_name: string; province: string; city: string; scenic_spot: string | null; visit_date: string; notes: string | null } | null } = await client
+      .from('trips')
+      .select('location_name, province, city, scenic_spot, visit_date, notes')
+      .eq('id', tripId)
+      .single();
+    if (data) {
+      setEditingTripData({
+        id: tripId,
+        locationName: data.location_name,
+        province: data.province,
+        city: data.city,
+        scenicSpot: data.scenic_spot,
+        visitDate: data.visit_date,
+        notes: data.notes,
+      });
+      setEditingTrip(tripId);
+    }
+  };
+
+  const handleDeletePhoto = async (tripId: string, photoUrl: string) => {
+    const photos = await getPhotosByTrip(tripId);
+    const photo = photos.find((p) => p.file_url === photoUrl);
+    if (!photo) return;
+    const ok = await deletePhotoApi(photo.id, photoUrl);
+    if (ok) {
+      setTrips((prev) =>
+        prev.map((t) =>
+          t.tripId === tripId ? { ...t, urls: t.urls.filter((u) => u !== photoUrl) } : t
+        )
+      );
+    }
+  };
+
+  const handleUploadPhotos = async (tripId: string, files: FileList) => {
+    if (!coupleId || files.length === 0) return;
+    const fileArray = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    if (fileArray.length === 0) return;
+
+    setUploadingPhoto(tripId);
+    setUploadProgress('');
+    const uploaded = await uploadPhotosToTrip(tripId, coupleId, fileArray, (done, total) => {
+      setUploadProgress(`正在上传 ${done}/${total}...`);
+    });
+
+    if (uploaded > 0) {
+      const photos = await getPhotosByTrip(tripId);
+      setTrips((prev) =>
+        prev.map((t) =>
+          t.tripId === tripId ? { ...t, urls: photos.map((p) => p.file_url) } : t
+        )
+      );
+    }
+    setUploadingPhoto(null);
+    setUploadProgress('');
+  };
+
+  const handleEditSuccess = () => {
+    setEditingTrip(null);
+    setTrips([]);
+    setLoading(true);
+    loadTrips();
   };
 
   const years = [...new Set(trips.map((t) => new Date(t.visitDate).getFullYear().toString()))].sort((a, b) => parseInt(b) - parseInt(a));
@@ -269,6 +350,13 @@ export default function AlbumPage() {
                       <p className="text-xs mt-0.5" style={{ color: '#9A8B7A' }}>
                         {trip.visitDate} · {trip.urls.length} 张照片
                       </p>
+                      <button
+                        onClick={() => handleEditTrip(trip.tripId)}
+                        className="mt-1 text-[10px] underline transition-colors"
+                        style={{ color: '#c99a6c' }}
+                      >
+                        编辑
+                      </button>
                     </div>
                     <div className="h-px flex-1" style={{ background: 'rgba(218,194,182,0.3)' }} />
                   </div>
@@ -329,13 +417,29 @@ export default function AlbumPage() {
                     <div className="mt-3 p-4 rounded-xl border" style={{ background: 'rgba(0,0,0,0.3)', borderColor: 'rgba(255,222,165,0.1)' }}>
                       <div className="flex items-center justify-between mb-3">
                         <p className="text-sm font-medium" style={{ color: '#dac2b6' }}>全部照片 · {trip.urls.length} 张</p>
-                        <button
-                          onClick={() => setExpandedTrip(null)}
-                          className="px-3 py-1 rounded-lg text-xs"
-                          style={{ background: 'rgba(255,255,255,0.1)', color: '#9A8B7A' }}
-                        >
-                          收起
-                        </button>
+                        <div className="flex gap-2">
+                          {uploadingPhoto === trip.tripId && (
+                            <span className="text-xs px-2 py-1 rounded" style={{ background: 'rgba(201,154,108,0.2)', color: '#c99a6c' }}>{uploadProgress}</span>
+                          )}
+                          <label className="px-3 py-1 rounded-lg text-xs cursor-pointer transition-colors hover:bg-[rgba(255,255,255,0.15)]" style={{ background: 'rgba(255,255,255,0.1)', color: '#c99a6c' }}>
+                            + 添加照片
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/jpg,image/webp"
+                              multiple
+                              className="hidden"
+                              onChange={(e) => e.target.files && handleUploadPhotos(trip.tripId, e.target.files)}
+                              disabled={uploadingPhoto === trip.tripId}
+                            />
+                          </label>
+                          <button
+                            onClick={() => setExpandedTrip(null)}
+                            className="px-3 py-1 rounded-lg text-xs"
+                            style={{ background: 'rgba(255,255,255,0.1)', color: '#9A8B7A' }}
+                          >
+                            收起
+                          </button>
+                        </div>
                       </div>
                       <div className="columns-3 md:columns-4 gap-2 space-y-2">
                         {trip.urls.map((url) => (
@@ -346,6 +450,15 @@ export default function AlbumPage() {
                                 封面
                               </div>
                             )}
+                            {/* Delete photo button */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); if (confirm('删除这张照片？')) handleDeletePhoto(trip.tripId, url); }}
+                              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                              style={{ background: 'rgba(0,0,0,0.6)', color: '#ff6b6b', border: '1px solid rgba(255,99,99,0.3)' }}
+                              aria-label="删除照片"
+                            >
+                              ✕
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -435,6 +548,14 @@ export default function AlbumPage() {
             </div>
           </div>
         )
+      )}
+
+      {editingTrip && editingTripData && (
+        <EditTripForm
+          trip={{ ...editingTripData, coupleId: coupleId! }}
+          onSuccess={handleEditSuccess}
+          onCancel={() => { setEditingTrip(null); setEditingTripData(null); }}
+        />
       )}
 
       <BottomNav />

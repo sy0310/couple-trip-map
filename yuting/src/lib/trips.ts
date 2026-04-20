@@ -432,3 +432,125 @@ export async function createPhotoRecord(
 
   return true;
 }
+
+/**
+ * Update trip fields (province, city, scenic_spot, visit_date, notes, location_name).
+ */
+export async function updateTrip(
+  tripId: string,
+  fields: {
+    location_name?: string;
+    province?: string;
+    city?: string;
+    scenic_spot?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+    visit_date?: string;
+    notes?: string | null;
+  }
+): Promise<boolean> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('trips')
+    .update(fields as never)
+    .eq('id', tripId);
+
+  if (error) {
+    console.error('Failed to update trip:', error.message);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Delete a single photo record and its storage file.
+ */
+export async function deletePhoto(photoId: string, fileUrl: string): Promise<boolean> {
+  const supabase = createClient();
+
+  // Extract storage path from URL
+  const urlParts = fileUrl.split('/');
+  const fileName = urlParts[urlParts.length - 1];
+  const coupleId = urlParts[urlParts.length - 2];
+  const storagePath = `${coupleId}/${fileName}`;
+
+  // Delete from storage
+  await supabase.storage
+    .from('photos')
+    .remove([storagePath]);
+
+  // Delete from DB
+  const { error } = await supabase
+    .from('photos')
+    .delete()
+    .eq('id', photoId);
+
+  if (error) {
+    console.error('Failed to delete photo:', error.message);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Delete an entire trip and all its photos.
+ */
+export async function deleteTrip(tripId: string): Promise<boolean> {
+  const supabase = createClient();
+
+  // Fetch photos to delete from storage
+  const photos = await getPhotosByTrip(tripId);
+
+  // Delete from storage
+  for (const photo of photos) {
+    const urlParts = photo.file_url.split('/');
+    const fileName = urlParts[urlParts.length - 1];
+    const coupleId = urlParts[urlParts.length - 2];
+    const storagePath = `${coupleId}/${fileName}`;
+    await supabase.storage
+      .from('photos')
+      .remove([storagePath]);
+  }
+
+  // Delete photo records from DB
+  await supabase
+    .from('photos')
+    .delete()
+    .eq('trip_id', tripId);
+
+  // Delete trip
+  const { error } = await supabase
+    .from('trips')
+    .delete()
+    .eq('id', tripId);
+
+  if (error) {
+    console.error('Failed to delete trip:', error.message);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Upload multiple photos to a trip and create photo records.
+ */
+export async function uploadPhotosToTrip(
+  tripId: string,
+  coupleId: string,
+  files: File[],
+  onProgress?: (uploaded: number, total: number) => void
+): Promise<number> {
+  let uploaded = 0;
+  for (const file of files) {
+    const url = await uploadPhoto(coupleId, file);
+    if (url) {
+      await createPhotoRecord(tripId, url);
+    }
+    uploaded++;
+    onProgress?.(uploaded, files.length);
+  }
+  return uploaded;
+}
