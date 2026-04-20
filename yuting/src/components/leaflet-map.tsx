@@ -65,7 +65,56 @@ function createPinIcon(visited: boolean, name: string) {
   });
 }
 
+// Create an inverted polygon: world bounds with the province cut out
+function createInvertedGeoJson(geoJson: Record<string, unknown>): Record<string, unknown> | null {
+  try {
+    const features = (geoJson as { features?: Array<{ geometry?: { coordinates?: number[][][] } }> }).features;
+    if (!features?.length) return null;
+
+    // Build the outer ring (entire world)
+    const worldOuter = [[[-180, 90], [180, 90], [180, -90], [-180, -90], [-180, 90]]];
+
+    // Collect all inner rings from GeoJSON (the province shapes)
+    const innerRings: number[][][] = [];
+    for (const feature of features) {
+      const coords = feature.geometry?.coordinates;
+      if (coords?.length) {
+        // First ring is outer, rest are holes
+        const rings = coords as number[][][];
+        for (let i = 1; i < rings.length; i++) {
+          innerRings.push(rings[i]);
+        }
+      }
+    }
+
+    // If no inner rings, just use the first feature's outer ring as the cutout
+    if (innerRings.length === 0) {
+      const coords = features[0]?.geometry?.coordinates as number[][][] | undefined;
+      if (coords?.length) {
+        innerRings.push(coords[0]);
+      }
+    }
+
+    if (innerRings.length === 0) return null;
+
+    // Combine: world outer + all province rings as holes
+    const allRings = [worldOuter[0], ...innerRings];
+
+    return {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry: { type: 'Polygon', coordinates: allRings },
+        properties: {},
+      }],
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function LeafletMap({ center, spots, onSpotClick, geoJson }: LeafletMapProps) {
+  const invertedMask = geoJson ? createInvertedGeoJson(geoJson) : null;
   const markers = useMemo(() => {
     const sorted = [...spots].sort((a, b) => (b.visited ? 1 : 0) - (a.visited ? 1 : 0));
     return sorted.map((spot, idx) => (
@@ -157,6 +206,19 @@ export default function LeafletMap({ center, spots, onSpotClick, geoJson }: Leaf
                 opacity: 0.6,
               })}
             />
+            {/* Dark mask covering everything outside the province */}
+            {invertedMask && (
+              <GeoJSON
+                data={invertedMask as never}
+                style={() => ({
+                  fillColor: '#1a130c',
+                  fillOpacity: 0.92,
+                  color: '#1a130c',
+                  weight: 0,
+                })}
+                interactive={false}
+              />
+            )}
           </>
         )}
         {markers}
