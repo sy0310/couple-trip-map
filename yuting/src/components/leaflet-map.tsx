@@ -47,7 +47,7 @@ function createPinIcon(visited: boolean, name: string) {
         ">${name}</div>
       </div>
     `,
-    iconSize: [pinSize, pinSize * 1.25 + 28],
+    iconSize: [pinSize, pinSize * 1.25 + 32],
     iconAnchor: [pinSize / 2, 0],
     popupAnchor: [0, -8],
   });

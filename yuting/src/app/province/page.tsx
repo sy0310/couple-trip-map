@@ -118,7 +118,7 @@ function ProvinceContent() {
   };
 
   return (
-    <div className="container pb-32">
+    <div className="container mx-auto px-4" style={{ paddingBottom: '120px' }}>
       {/* Header plaque — province name on a wooden sign */}
       <div className="card text-center relative overflow-hidden mb-6">
         {/* Back button */}
@@ -172,7 +172,7 @@ function ProvinceContent() {
             border: '1px solid rgba(135,115,105,0.15)',
           }}
         >
-          <div style={{ height: 520 }}>
+          <div style={{ height: 600 }}>
             <CityMap
               cityName={provinceName}
               spots={cityMapSpots}
