@@ -8,7 +8,7 @@ import { ProvinceMap } from '@/components/province-map-leaflet';
 import { CityMap } from '@/components/city-map';
 import { getCoupleId, getVisitedCities, getVisitedProvinces, getTripsByCity } from '@/lib/trips';
 import { AddTripForm } from '@/components/add-trip-form';
-import { getProvinceByName, normalizeProvinceName } from '@/lib/provinces';
+import { getProvinceByName, normalizeProvinceName, getGeoJsonFileName } from '@/lib/provinces';
 
 const MUNICIPALITIES = new Set(['北京', '上海', '天津', '重庆']);
 
@@ -23,11 +23,26 @@ function ProvinceContent() {
   const [coupleId, setCoupleId] = useState<string | null>(null);
   const [cityMapSpots, setCityMapSpots] = useState<{ name: string; lat: number; lng: number; visited: boolean }[]>([]);
   const [totalSpots, setTotalSpots] = useState(0);
+  const [geoJsonCityCount, setGeoJsonCityCount] = useState(0);
 
   useEffect(() => {
     const provinceData = getProvinceByName(provinceName);
     const provinceCities = provinceData?.cities.map((c) => c.name) || [`${provinceName}市`];
     setCities(provinceCities);
+
+    // Fetch GeoJSON to count administrative divisions (for the denominator)
+    const geoJsonFile = getGeoJsonFileName(provinceName);
+    if (geoJsonFile) {
+      fetch(`/geojson/${geoJsonFile}`)
+        .then((r) => r.json())
+        .then((data) => {
+          const count = data?.features?.length || provinceCities.length;
+          setGeoJsonCityCount(count > 0 ? count : provinceCities.length);
+        })
+        .catch(() => setGeoJsonCityCount(provinceCities.length));
+    } else {
+      setGeoJsonCityCount(provinceCities.length);
+    }
 
     getCoupleId().then((id) => {
       setCoupleId(id);
@@ -72,7 +87,7 @@ function ProvinceContent() {
     });
   }, [provinceName]);
 
-  const totalCities = cities.length;
+  const totalCities = geoJsonCityCount || cities.length;
   const visitedCount = visitedCities.length;
   const completionRate = totalCities > 0 ? Math.round((visitedCount / totalCities) * 100) : 0;
 
@@ -139,9 +154,9 @@ function ProvinceContent() {
           </svg>
         </button>
 
-        <div className="relative z-10">
-          <h1 className="text-4xl font-bold mb-4" style={{ color: '#3D2E1F', fontFamily: "var(--font-newsreader)" }}>{provinceName}</h1>
-          <div className="flex justify-center gap-8 text-base mb-6" style={{ color: '#9A8B7A' }}>
+        <div className="relative z-10 pt-6 pb-6">
+          <h1 className="text-4xl font-bold mb-5" style={{ color: '#3D2E1F', fontFamily: "var(--font-newsreader)" }}>{provinceName}</h1>
+          <div className="flex justify-center gap-8 text-base mb-5" style={{ color: '#9A8B7A' }}>
             {MUNICIPALITIES.has(provinceName) ? (
               <>
                 <span>已访问 <span className="font-semibold text-lg" style={{ color: '#3D2E1F' }}>{cityMapSpots.length}</span>/{totalSpots} 个景点</span>

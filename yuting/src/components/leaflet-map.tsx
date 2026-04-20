@@ -65,61 +65,94 @@ function createPinIcon(visited: boolean, name: string) {
   });
 }
 
-// Create an inverted mask: dark overlay covering everything except the province area
-function createInvertedGeoJson(geoJson: Record<string, unknown>): Record<string, unknown>[] | null {
+// Compute province bounding box and create a dark mask outside it,
+// with all county polygons as holes (province area stays visible).
+//
+// Leaflet flips the Y axis, so winding is opposite to GeoJSON RFC 7946:
+// CW in GeoJSON coords = exterior (filled), CCW = hole.
+// Chinese GeoJSON county rings are CW (exterior in GeoJSON).
+//
+// For inverted mask: outer bbox = CW (exterior/filled dark),
+// county rings reversed to CCW (holes = visible province).
+function createProvinceMask(geoJson: Record<string, unknown>): Record<string, unknown> | null {
   try {
     const features = (geoJson as { features?: Array<{ geometry?: { type: string; coordinates?: unknown } }> }).features;
     if (!features?.length) return null;
 
-    // World bounding box (GeoJSON uses [lng, lat] order)
-    const worldBox: number[][] = [[-180, 90], [180, 90], [180, -90], [-180, -90], [-180, 90]];
-
-    const maskFeatures: Record<string, unknown>[] = [];
-
+    // Step 1: find bounding box of the province
+    let minLng = 180, minLat = 90, maxLng = -180, maxLat = -90;
     for (const feature of features) {
       const geom = feature.geometry;
       if (!geom?.coordinates || !geom?.type) continue;
-
       const coords = geom.coordinates;
-      const holes: number[][][] = [];
-
       if (geom.type === 'Polygon') {
-        // Polygon: coordinates is number[][][] — array of rings
-        const rings = coords as number[][][];
-        for (const ring of rings) {
-          if (ring?.length) { holes.push(ring); break; } // Use outer ring only
+        for (const point of (coords as number[][][])[0] || []) {
+          minLng = Math.min(minLng, point[0]);
+          minLat = Math.min(minLat, point[1]);
+          maxLng = Math.max(maxLng, point[0]);
+          maxLat = Math.max(maxLat, point[1]);
         }
       } else if (geom.type === 'MultiPolygon') {
-        // MultiPolygon: coordinates is number[][][][] — array of polygons
+        for (const polygon of (coords as number[][][][])) {
+          for (const point of polygon[0] || []) {
+            minLng = Math.min(minLng, point[0]);
+            minLat = Math.min(minLat, point[1]);
+            maxLng = Math.max(maxLng, point[0]);
+            maxLat = Math.max(maxLat, point[1]);
+          }
+        }
+      }
+    }
+    if (minLng === 180) return null;
+
+    // Expand bbox slightly for margin
+    const pad = 0.5;
+    minLng -= pad; minLat -= pad; maxLng += pad; maxLat += pad;
+
+    // Outer box: CW order in GeoJSON coords (exterior = filled dark in Leaflet)
+    const outerBox: number[][] = [
+      [minLng, maxLat], [maxLng, maxLat], [maxLng, minLat], [minLng, minLat], [minLng, maxLat],
+    ];
+
+    // Step 2: collect all county outer rings as holes (reverse CW → CCW)
+    const holes: number[][][] = [];
+    for (const feature of features) {
+      const geom = feature.geometry;
+      if (!geom?.coordinates || !geom?.type) continue;
+      const coords = geom.coordinates;
+      if (geom.type === 'Polygon') {
+        const rings = coords as number[][][];
+        if (rings[0]?.length) {
+          // GeoJSON CW (exterior) → reverse to CCW (hole in Leaflet)
+          holes.push([...rings[0]].reverse());
+        }
+      } else if (geom.type === 'MultiPolygon') {
         const polygons = coords as number[][][][];
         for (const polygon of polygons) {
-          const outerRing = polygon[0];
-          if (outerRing?.length) holes.push(outerRing);
+          if (polygon[0]?.length) {
+            holes.push([...polygon[0]].reverse());
+          }
         }
-      } else {
-        continue;
-      }
-
-      for (const hole of holes) {
-        maskFeatures.push({
-          type: 'Feature',
-          geometry: {
-            type: 'Polygon',
-            coordinates: [worldBox, hole],
-          },
-          properties: {},
-        });
       }
     }
 
-    return maskFeatures.length > 0 ? maskFeatures : null;
+    if (holes.length === 0) return null;
+
+    return {
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [outerBox, ...holes],
+      },
+      properties: {},
+    };
   } catch {
     return null;
   }
 }
 
 export default function LeafletMap({ center, spots, onSpotClick, geoJson }: LeafletMapProps) {
-  const maskFeatures = geoJson ? createInvertedGeoJson(geoJson) : null;
+  const maskFeature = geoJson ? createProvinceMask(geoJson) : null;
   const markers = useMemo(() => {
     const sorted = [...spots].sort((a, b) => (b.visited ? 1 : 0) - (a.visited ? 1 : 0));
     return sorted.map((spot, idx) => (
@@ -211,11 +244,10 @@ export default function LeafletMap({ center, spots, onSpotClick, geoJson }: Leaf
                 opacity: 0.6,
               })}
             />
-            {/* Dark mask covering everything outside the province */}
-            {maskFeatures?.map((f, i) => (
+            {/* Dark mask outside province bounding box, with province polygons as holes */}
+            {maskFeature && (
               <GeoJSON
-                key={i}
-                data={f as never}
+                data={maskFeature as never}
                 style={() => ({
                   fillColor: '#1a130c',
                   fillOpacity: 0.92,
@@ -224,7 +256,7 @@ export default function LeafletMap({ center, spots, onSpotClick, geoJson }: Leaf
                 })}
                 interactive={false}
               />
-            ))}
+            )}
           </>
         )}
         {markers}
