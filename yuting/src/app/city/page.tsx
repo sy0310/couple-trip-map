@@ -36,19 +36,21 @@ function CityContent() {
         getTripsByCity(id, cityName).then((trips) => {
           setTripRecords(trips);
 
-          // Build scenic spot map data — show all spots, mark visited ones
+          // Build scenic spot map data — only visited spots
           const visitedSpotNames = new Set(
             trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
           );
           const provinceData = getProvinceByName(provinceName);
           const cityData = provinceData?.cities.find((c) => c.name === cityName);
           if (cityData?.scenicSpots && cityData.scenicSpots.length > 0) {
-            const mapped = cityData.scenicSpots.map((s) => ({
-              name: s.name,
-              lat: s.lat,
-              lng: s.lng,
-              visited: visitedSpotNames.has(s.name),
-            }));
+            const mapped = cityData.scenicSpots
+              .filter((s) => visitedSpotNames.has(s.name))
+              .map((s) => ({
+                name: s.name,
+                lat: s.lat,
+                lng: s.lng,
+                visited: true,
+              }));
             setCityMapSpots(mapped);
           }
 
@@ -79,19 +81,21 @@ function CityContent() {
       getTripsByCity(id, cityName).then((trips) => {
         setTripRecords(trips);
 
-        // Refresh city map spots — show all, mark visited
+        // Refresh city map spots — only visited
         const visitedSpotNames = new Set(
           trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
         );
         const provinceData = getProvinceByName(provinceName);
         const cityData = provinceData?.cities.find((c) => c.name === cityName);
         if (cityData?.scenicSpots && cityData.scenicSpots.length > 0) {
-          const mapped = cityData.scenicSpots.map((s) => ({
-            name: s.name,
-            lat: s.lat,
-            lng: s.lng,
-            visited: visitedSpotNames.has(s.name),
-          }));
+          const mapped = cityData.scenicSpots
+            .filter((s) => visitedSpotNames.has(s.name))
+            .map((s) => ({
+              name: s.name,
+              lat: s.lat,
+              lng: s.lng,
+              visited: true,
+            }));
           setCityMapSpots(mapped);
         }
 

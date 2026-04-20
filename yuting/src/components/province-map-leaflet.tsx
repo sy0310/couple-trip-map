@@ -57,12 +57,14 @@ export function ProvinceMap({ provinceName, visitedCities, cityCoords, onCityCli
     const prov = PROVINCES.find((p) => p.name === provinceName);
     if (prov) {
       prov.cities.forEach((c) => {
-        result.push({
-          name: c.name,
-          lat: c.lat,
-          lng: c.lng,
-          visited: visitedCities.includes(c.name),
-        });
+        if (visitedCities.includes(c.name)) {
+          result.push({
+            name: c.name,
+            lat: c.lat,
+            lng: c.lng,
+            visited: true,
+          });
+        }
       });
     }
     return result;
