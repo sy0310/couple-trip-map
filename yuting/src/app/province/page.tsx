@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/bottom-nav';
 import { RoomPanel } from '@/components/furniture';
 import { ProvinceMap } from '@/components/province-map';
@@ -13,6 +13,7 @@ import { getProvinceByName, normalizeProvinceName } from '@/lib/provinces';
 const MUNICIPALITIES = new Set(['北京', '上海', '天津', '重庆']);
 
 function ProvinceContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const provinceName = normalizeProvinceName(searchParams.get('name') || '');
 
@@ -122,7 +123,7 @@ function ProvinceContent() {
       <div className="card text-center relative overflow-hidden mb-6">
         {/* Back button */}
         <button
-          onClick={() => window.history.back()}
+          onClick={() => router.push('/')}
           className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full transition-colors hover:bg-[#F3EBE0] z-20"
           style={{ background: 'rgba(250,245,239,0.8)' }}
           aria-label="返回上一级"
