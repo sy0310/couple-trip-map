@@ -1,9 +1,9 @@
 'use client';
 
-import { useRef, useEffect, useState, useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
-import * as echarts from 'echarts';
-import { getCityByName } from '@/lib/provinces';
+import { useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 interface CityMapProps {
   cityName: string;
@@ -11,166 +11,152 @@ interface CityMapProps {
   onSpotClick?: (name: string) => void;
 }
 
-export function CityMap({ cityName, spots, onSpotClick }: CityMapProps) {
-  const chartRef = useRef<ReactECharts>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
+// Custom marker icons
+function createMarkerIcon(visited: boolean) {
+  const color = visited ? '#c99a6c' : '#6B5438';
+  const borderColor = visited ? '#ffdea5' : '#C9A882';
+  const size = visited ? 20 : 14;
 
-  // Fetch city GeoJSON
-  useEffect(() => {
-    const city = getCityByName(cityName);
-    const adcode = city?.adcode;
-    if (!adcode) { setError(true); return; }
+  return L.divIcon({
+    className: '',
+    html: `
+      <div style="
+        width: ${size}px;
+        height: ${size}px;
+        background: ${color};
+        border: 2px solid ${borderColor};
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        position: relative;
+        ${visited ? 'animation: pulse 2s infinite;' : ''}
+      "></div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
+  });
+}
 
-    const url = `https://geo.datav.aliyun.com/areas_v3/bound/${adcode}_full.json`;
-    fetch(url)
-      .then((res) => {
-        if (!res.ok) throw new Error('GeoJSON not found');
-        return res.json();
-      })
-      .then((geoJson) => {
-        const mapName = `city-${cityName}`;
-        echarts.registerMap(mapName, geoJson);
-        setLoaded(true);
-      })
-      .catch(() => {
-        setError(true);
-      });
-  }, [cityName]);
+// Label marker — shows the scenic spot name
+function createLabelIcon(visited: boolean, name: string) {
+  const color = visited ? '#ffdea5' : '#9A8B7A';
+  const bg = visited ? 'rgba(53,33,24,0.9)' : 'rgba(53,33,24,0.7)';
+  const borderColor = visited ? '#c99a6c' : 'rgba(141,107,42,0.4)';
+  const fontSize = visited ? 12 : 10;
+  const fontWeight = visited ? 700 : 400;
 
-  const mapName = useMemo(() => `city-${cityName}`, [cityName]);
-
-  const option = useMemo(() => {
-    if (spots.length === 0) return {};
-
-    const visitedSpots = spots.filter((s) => s.visited);
-    const unvisitedSpots = spots.filter((s) => !s.visited);
-
-    return {
-      tooltip: {
-        trigger: 'item' as const,
-        backgroundColor: 'rgba(53,33,24,0.9)',
-        borderColor: '#c99a6c',
-        textStyle: { color: '#ffdea5', fontFamily: 'Manrope' },
-      },
-      geo: {
-        map: mapName,
-        roam: true,
-        zoom: 1.1,
-        label: { show: false },
-        itemStyle: {
-          areaColor: {
-            type: 'linear' as const,
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: '#4a2e1d' },
-              { offset: 1, color: '#352118' },
-            ],
-          },
-          borderColor: '#8d6b2a',
-          borderWidth: 1,
-        },
-        emphasis: {
-          itemStyle: {
-            areaColor: '#6b4a2a',
-            borderWidth: 2,
-          },
-        },
-      },
-      series: [
-        {
-          name: '未访问景点',
-          type: 'scatter' as const,
-          coordinateSystem: 'geo' as const,
-          geoIndex: 0,
-          symbolSize: 12,
-          label: {
-            show: true,
-            color: '#9A8B7A',
-            fontSize: 10,
-            formatter: (p: { name: string }) => p.name,
-          },
-          itemStyle: {
-            color: '#6B5438',
-            borderColor: '#C9A882',
-            borderWidth: 1,
-          },
-          data: unvisitedSpots.map((s) => ({
-            name: s.name,
-            value: [s.lng, s.lat],
-          })),
-          zlevel: 1,
-        },
-        {
-          name: '已访问景点',
-          type: 'effectScatter' as const,
-          coordinateSystem: 'geo' as const,
-          geoIndex: 0,
-          symbolSize: 14,
-          showEffectOn: 'render' as const,
-          rippleEffect: {
-            brushType: 'stroke' as const,
-            period: 4,
-            scale: 3,
-          },
-          label: {
-            show: true,
-            color: '#ffdea5',
-            fontSize: 12,
-            fontWeight: 700,
-            formatter: (p: { name: string }) => p.name,
-          },
-          itemStyle: {
-            color: '#c99a6c',
-            borderColor: '#ffdea5',
-            borderWidth: 2,
-            shadowColor: 'rgba(255,222,165,0.4)',
-            shadowBlur: 8,
-          },
-          emphasis: {
-            itemStyle: {
-              borderWidth: 3,
-              shadowBlur: 15,
-            },
-          },
-          data: visitedSpots.map((s) => ({
-            name: s.name,
-            value: [s.lng, s.lat],
-          })),
-          zlevel: 2,
-        },
-      ],
-    };
-  }, [mapName, spots]);
-
-  if (error) {
-    return (
-      <div className="w-full py-4 text-center text-sm" style={{ color: '#9A8B7A' }}>
-        <p>城市地图暂不可用</p>
+  return L.divIcon({
+    className: '',
+    html: `
+      <div style="
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      ">
+        <div style="
+          background: ${bg};
+          color: ${color};
+          font-size: ${fontSize}px;
+          font-weight: ${fontWeight};
+          padding: 2px 8px;
+          border-radius: 4px;
+          border: 1px solid ${borderColor};
+          white-space: nowrap;
+          font-family: var(--font-manrope, sans-serif);
+          line-height: 1.3;
+        ">${name}</div>
+        <div style="
+          width: ${visited ? 14 : 10}px;
+          height: ${visited ? 14 : 10}px;
+          background: ${visited ? '#c99a6c' : '#6B5438'};
+          border: ${visited ? '2px solid #ffdea5' : '1px solid #C9A882'};
+          border-radius: 50%;
+          margin-top: -2px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        "></div>
       </div>
-    );
-  }
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, -16],
+    popupAnchor: [0, -16],
+  });
+}
 
-  if (!loaded) {
+export function CityMap({ cityName, spots, onSpotClick }: CityMapProps) {
+  const center = useMemo(() => {
+    if (spots.length === 0) return [39.9042, 116.4074];
+    const avgLat = spots.reduce((s, sp) => s + sp.lat, 0) / spots.length;
+    const avgLng = spots.reduce((s, sp) => s + sp.lng, 0) / spots.length;
+    return [avgLat, avgLng];
+  }, [spots]);
+
+  const markers = useMemo(() => {
+    return spots.map((spot, idx) => {
+      const icon = createLabelIcon(spot.visited, spot.name);
+      return (
+        <Marker
+          key={`${spot.name}-${idx}`}
+          position={[spot.lat, spot.lng]}
+          icon={icon}
+          eventHandlers={{
+            click: () => onSpotClick?.(spot.name),
+          }}
+        >
+          <Popup>
+            <div style={{ textAlign: 'center', fontFamily: 'var(--font-manrope, sans-serif)' }}>
+              <strong style={{ color: spot.visited ? '#c99a6c' : '#6B5438' }}>
+                {spot.visited ? '★ ' : ''}{spot.name}
+              </strong>
+              <br />
+              <span style={{ fontSize: 11, color: '#9A8B7A' }}>
+                {spot.visited ? '已访问' : '未访问'}
+              </span>
+            </div>
+          </Popup>
+        </Marker>
+      );
+    });
+  }, [spots, onSpotClick]);
+
+  if (spots.length === 0) {
     return (
       <div className="w-full py-4 text-center text-sm" style={{ color: '#9A8B7A' }}>
-        加载地图中...
+        暂无景点数据
       </div>
     );
   }
 
   return (
-    <ReactECharts
-      ref={chartRef}
-      option={option}
-      style={{ width: '100%', height: '100%' }}
-      onEvents={{
-        click: (params: { name: string; seriesType: string }) => {
-          if (params.seriesType === 'scatter' && params.name) {
-            onSpotClick?.(params.name);
-          }
-        },
-      }}
-    />
+    <div className="w-full h-full" style={{ zIndex: 1 }}>
+      <style>{`
+        .leaflet-control-attribution { display: none !important; }
+        .leaflet-popup-content-wrapper {
+          background: rgba(53,33,24,0.95) !important;
+          border: 1px solid rgba(201,154,108,0.5) !important;
+          border-radius: 8px !important;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
+        }
+        .leaflet-popup-tip { background: rgba(53,33,24,0.95) !important; }
+        .leaflet-popup-content { margin: 10px 12px !important; }
+        @keyframes pulse {
+          0% { box-shadow: 0 0 0 0 rgba(201,154,108,0.5); }
+          70% { box-shadow: 0 0 0 8px rgba(201,154,108,0); }
+          100% { box-shadow: 0 0 0 0 rgba(201,154,108,0); }
+        }
+      `}</style>
+      <MapContainer
+        center={center as [number, number]}
+        zoom={12}
+        style={{ width: '100%', height: '100%' }}
+        scrollWheelZoom={false}
+      >
+        <TileLayer
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution=""
+        />
+        {markers}
+      </MapContainer>
+    </div>
   );
 }
