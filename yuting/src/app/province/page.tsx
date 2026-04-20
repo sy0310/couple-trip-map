@@ -54,12 +54,14 @@ function ProvinceContent() {
                 const visitedSpotNames = new Set(
                   trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
                 );
-                const mapped = spots.map((s) => ({
-                  name: s.name,
-                  lat: s.lat,
-                  lng: s.lng,
-                  visited: visitedSpotNames.has(s.name),
-                }));
+                const mapped = spots
+                  .filter((s) => visitedSpotNames.has(s.name))
+                  .map((s) => ({
+                    name: s.name,
+                    lat: s.lat,
+                    lng: s.lng,
+                    visited: true,
+                  }));
                 setCityMapSpots(mapped);
               });
             }
@@ -103,12 +105,14 @@ function ProvinceContent() {
               const visitedSpotNames = new Set(
                 trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
               );
-              const mapped = spots.map((s) => ({
-                name: s.name,
-                lat: s.lat,
-                lng: s.lng,
-                visited: visitedSpotNames.has(s.name),
-              }));
+              const mapped = spots
+                .filter((s) => visitedSpotNames.has(s.name))
+                .map((s) => ({
+                  name: s.name,
+                  lat: s.lat,
+                  lng: s.lng,
+                  visited: true,
+                }));
               setCityMapSpots(mapped);
             });
           }
