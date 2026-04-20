@@ -67,6 +67,7 @@ export function ProvinceMap({ provinceName, visitedCities, cityCoords, onCityCli
         }
       });
     }
+    console.log('[ProvinceMap]', { provinceName, visitedCities, rendered: result.map(r => r.name) });
     return result;
   }, [provinceName, visitedCities]);
 

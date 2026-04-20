@@ -33,6 +33,7 @@ function ProvinceContent() {
       if (id) {
         getVisitedCities(id, provinceName).then((visited) => {
           setVisitedCities(visited);
+          console.log('[ProvincePage] visitedCities:', provinceName, visited);
 
           // Build city coords for the map
           const coords: typeof cityCoords = [];
