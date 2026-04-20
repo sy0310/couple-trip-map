@@ -22,6 +22,7 @@ function ProvinceContent() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [coupleId, setCoupleId] = useState<string | null>(null);
   const [cityMapSpots, setCityMapSpots] = useState<{ name: string; lat: number; lng: number; visited: boolean }[]>([]);
+  const [totalSpots, setTotalSpots] = useState(0);
 
   useEffect(() => {
     const provinceData = getProvinceByName(provinceName);
@@ -44,23 +45,22 @@ function ProvinceContent() {
           }
           setCityCoords(coords);
 
-          // For municipalities, build city map scenic spots — only visited ones
+          // For municipalities, build city map scenic spots — all spots with visited flag
           if (MUNICIPALITIES.has(provinceName)) {
             const cityData = provinceData?.cities[0];
             const spots = cityData?.scenicSpots || [];
+            setTotalSpots(spots.length);
             if (cityData && spots.length > 0) {
               getTripsByCity(id, cityData.name).then((trips) => {
                 const visitedSpotNames = new Set(
                   trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
                 );
-                const mapped = spots
-                  .filter((s) => visitedSpotNames.has(s.name))
-                  .map((s) => ({
-                    name: s.name,
-                    lat: s.lat,
-                    lng: s.lng,
-                    visited: true,
-                  }));
+                const mapped = spots.map((s) => ({
+                  name: s.name,
+                  lat: s.lat,
+                  lng: s.lng,
+                  visited: visitedSpotNames.has(s.name),
+                }));
                 setCityMapSpots(mapped);
               });
             }
@@ -95,7 +95,7 @@ function ProvinceContent() {
         }
         setCityCoords(coords);
 
-        // For municipalities, refresh scenic spots — only visited
+        // For municipalities, refresh scenic spots — all spots with visited flag
         if (MUNICIPALITIES.has(provinceName)) {
           const cityData = provinceData?.cities[0];
           const spots = cityData?.scenicSpots || [];
@@ -104,14 +104,12 @@ function ProvinceContent() {
               const visitedSpotNames = new Set(
                 trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
               );
-              const mapped = spots
-                .filter((s) => visitedSpotNames.has(s.name))
-                .map((s) => ({
-                  name: s.name,
-                  lat: s.lat,
-                  lng: s.lng,
-                  visited: true,
-                }));
+              const mapped = spots.map((s) => ({
+                name: s.name,
+                lat: s.lat,
+                lng: s.lng,
+                visited: visitedSpotNames.has(s.name),
+              }));
               setCityMapSpots(mapped);
             });
           }
@@ -139,13 +137,22 @@ function ProvinceContent() {
         <div className="relative z-10">
           <h1 className="text-4xl font-bold mb-4" style={{ color: '#3D2E1F', fontFamily: "var(--font-newsreader)" }}>{provinceName}</h1>
           <div className="flex justify-center gap-8 text-base mb-6" style={{ color: '#9A8B7A' }}>
-            <span>已访问 <span className="font-semibold text-lg" style={{ color: '#3D2E1F' }}>{visitedCount}</span>/{totalCities} 个城市</span>
-            <span>完成度 <span className="font-semibold text-lg" style={{ color: '#c99a6c' }}>{completionRate}%</span></span>
+            {MUNICIPALITIES.has(provinceName) ? (
+              <>
+                <span>已访问 <span className="font-semibold text-lg" style={{ color: '#3D2E1F' }}>{cityMapSpots.length}</span>/{totalSpots} 个景点</span>
+                <span>完成度 <span className="font-semibold text-lg" style={{ color: '#c99a6c' }}>{totalSpots > 0 ? Math.round((cityMapSpots.length / totalSpots) * 100) : 0}%</span></span>
+              </>
+            ) : (
+              <>
+                <span>已访问 <span className="font-semibold text-lg" style={{ color: '#3D2E1F' }}>{visitedCount}</span>/{totalCities} 个城市</span>
+                <span>完成度 <span className="font-semibold text-lg" style={{ color: '#c99a6c' }}>{completionRate}%</span></span>
+              </>
+            )}
           </div>
           <div className="h-3 bg-[#F3EBE0] rounded-full overflow-hidden max-w-md mx-auto border border-[#E4D5C0]/30">
             <div
               className="h-full transition-all duration-500 ease-out rounded-full"
-              style={{ width: `${completionRate}%`, background: 'linear-gradient(90deg, #c99a6c, #b8895e)' }}
+              style={{ width: `${MUNICIPALITIES.has(provinceName) ? (totalSpots > 0 ? Math.round((cityMapSpots.length / totalSpots) * 100) : 0) : completionRate}%`, background: 'linear-gradient(90deg, #c99a6c, #b8895e)' }}
             />
           </div>
         </div>
@@ -173,7 +180,7 @@ function ProvinceContent() {
             <div style={{ height: 380 }}>
               <CityMap
                 cityName={provinceName}
-                spots={cityMapSpots}
+                spots={cityMapSpots.length > 0 ? cityMapSpots : (getProvinceByName(provinceName)?.cities[0]?.scenicSpots || []).map((s) => ({ name: s.name, lat: s.lat, lng: s.lng, visited: false }))}
               />
             </div>
           </div>
@@ -184,15 +191,25 @@ function ProvinceContent() {
               {cityMapSpots.map((spot) => (
                 <div
                   key={spot.name}
-                  className="p-5 rounded-xl text-center font-medium border shadow-sm"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(201,154,108,0.15), rgba(184,137,94,0.1))',
-                    borderColor: '#c99a6c',
-                    color: '#8d6b2a',
-                    boxShadow: 'inset 0 0 0 1px rgba(141,107,42,0.15)',
-                  }}
+                  className="p-5 rounded-xl text-center font-medium border shadow-sm transition-all duration-200"
+                  style={
+                    spot.visited
+                      ? {
+                          background: 'linear-gradient(135deg, rgba(201,154,108,0.15), rgba(184,137,94,0.1))',
+                          borderColor: '#c99a6c',
+                          color: '#8d6b2a',
+                          boxShadow: 'inset 0 0 0 1px rgba(141,107,42,0.15)',
+                        }
+                      : {
+                          background: '#FAF5EF',
+                          borderColor: '#E4D5C0/40',
+                          color: '#6B5438',
+                        }
+                  }
                 >
-                  <div className="text-lg mb-1" style={{ color: '#c99a6c' }}>●</div>
+                  <div className="text-lg mb-1" style={{ color: spot.visited ? '#c99a6c' : '#C9A882' }}>
+                    {spot.visited ? '●' : '○'}
+                  </div>
                   {spot.name}
                 </div>
               ))}
