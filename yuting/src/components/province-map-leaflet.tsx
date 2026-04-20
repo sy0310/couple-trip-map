@@ -1,0 +1,63 @@
+'use client';
+
+import { useMemo, Suspense } from 'react';
+import dynamic from 'next/dynamic';
+import { PROVINCES } from '@/lib/provinces';
+
+interface ProvinceMapProps {
+  provinceName: string;
+  visitedCities: string[];
+  cityCoords: { name: string; lat: number; lng: number; photoCount: number }[];
+  onCityClick?: (name: string) => void;
+  onBack?: () => void;
+}
+
+function Skeleton() {
+  return (
+    <div className="w-full h-full flex items-center justify-center" style={{ background: '#352118' }}>
+      <span className="text-sm" style={{ color: '#9A8B7A' }}>加载地图中...</span>
+    </div>
+  );
+}
+
+const LeafletProvinceMap = dynamic(
+  () => import('./province-map-leaflet-inner').then((m) => m.LeafletProvinceMap),
+  { ssr: false, loading: () => <Skeleton /> }
+);
+
+export function ProvinceMap({ provinceName, visitedCities, cityCoords, onCityClick }: ProvinceMapProps) {
+  const center = useMemo((): [number, number] => {
+    if (cityCoords.length > 0) {
+      const avgLat = cityCoords.reduce((s, c) => s + c.lat, 0) / cityCoords.length;
+      const avgLng = cityCoords.reduce((s, c) => s + c.lng, 0) / cityCoords.length;
+      return [avgLat, avgLng];
+    }
+    return [35, 110];
+  }, [cityCoords]);
+
+  const citiesWithCoords = useMemo(() => {
+    const result: { name: string; lat: number; lng: number; visited: boolean }[] = [];
+    const prov = PROVINCES.find((p) => p.name === provinceName);
+    if (prov) {
+      prov.cities.forEach((c) => {
+        result.push({
+          name: c.name,
+          lat: c.lat,
+          lng: c.lng,
+          visited: visitedCities.includes(c.name),
+        });
+      });
+    }
+    return result;
+  }, [provinceName, visitedCities]);
+
+  return (
+    <Suspense fallback={<Skeleton />}>
+      <LeafletProvinceMap
+        center={center}
+        citiesWithCoords={citiesWithCoords}
+        onCityClick={onCityClick}
+      />
+    </Suspense>
+  );
+}

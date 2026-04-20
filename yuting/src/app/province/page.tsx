@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/bottom-nav';
 import { RoomPanel } from '@/components/furniture';
-import { ProvinceMap } from '@/components/province-map';
+import { ProvinceMap } from '@/components/province-map-leaflet';
 import { CityMap } from '@/components/city-map';
 import { getCoupleId, getVisitedCities, getVisitedProvinces, getTripsByCity } from '@/lib/trips';
 import { AddTripForm } from '@/components/add-trip-form';
@@ -93,7 +93,7 @@ function ProvinceContent() {
         }
         setCityCoords(coords);
 
-        // For municipalities, refresh scenic spots — only visited
+        // For municipalities, refresh scenic spots
         if (MUNICIPALITIES.has(provinceName)) {
           const cityData = provinceData?.cities[0];
           const spots = cityData?.scenicSpots || [];
@@ -102,14 +102,12 @@ function ProvinceContent() {
               const visitedSpotNames = new Set(
                 trips.map((t) => t.scenic_spot).filter(Boolean) as string[]
               );
-              const mapped = spots
-                .filter((s) => visitedSpotNames.has(s.name))
-                .map((s) => ({
-                  name: s.name,
-                  lat: s.lat,
-                  lng: s.lng,
-                  visited: true,
-                }));
+              const mapped = spots.map((s) => ({
+                name: s.name,
+                lat: s.lat,
+                lng: s.lng,
+                visited: visitedSpotNames.has(s.name),
+              }));
               setCityMapSpots(mapped);
             });
           }
@@ -150,9 +148,9 @@ function ProvinceContent() {
       </div>
 
       {/* Province Map — skip for municipalities (no sub-province boundaries) */}
-      {visitedCities.length > 0 && !MUNICIPALITIES.has(provinceName) && (
+      {!MUNICIPALITIES.has(provinceName) && (
         <div className="mb-6 rounded-xl overflow-hidden border" style={{ borderColor: 'rgba(141,107,42,0.3)' }}>
-          <div style={{ height: 300 }}>
+          <div style={{ height: 380 }}>
             <ProvinceMap
               provinceName={provinceName}
               visitedCities={visitedCities}
