@@ -183,8 +183,14 @@ function CityContent() {
         {/* City map with scenic spots */}
         {cityMapSpots.length > 0 && (
           <RoomPanel title="景点地图">
-            <div className="rounded-lg overflow-hidden border" style={{ borderColor: 'rgba(141,107,42,0.3)' }}>
-              <div style={{ height: 420 }}>
+            <div
+              className="rounded-lg overflow-hidden"
+              style={{
+                boxShadow: 'inset 2px 2px 8px rgba(0,0,0,0.3), inset -1px -1px 2px rgba(255,255,255,0.05)',
+                border: '1px solid rgba(135,115,105,0.15)',
+              }}
+            >
+              <div style={{ height: 460 }}>
                 <CityMap
                   cityName={cityName}
                   spots={cityMapSpots}
