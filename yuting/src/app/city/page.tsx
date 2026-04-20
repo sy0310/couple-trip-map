@@ -224,7 +224,6 @@ function CityContent() {
             </div>
           )}
         </RoomPanel>
-      </div>
 
       {/* Add Trip Form */}
       {showAddForm && coupleId && (
