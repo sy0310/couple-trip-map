@@ -179,27 +179,28 @@ function CityContent() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* City map with scenic spots */}
-        {cityMapSpots.length > 0 && (
-          <RoomPanel title="景点地图">
-            <div
-              className="rounded-lg overflow-hidden"
-              style={{
-                boxShadow: 'inset 2px 2px 8px rgba(0,0,0,0.3), inset -1px -1px 2px rgba(255,255,255,0.05)',
-                border: '1px solid rgba(135,115,105,0.15)',
-              }}
-            >
-              <div style={{ height: 460 }}>
-                <CityMap
-                  cityName={cityName}
-                  spots={cityMapSpots}
-                />
-              </div>
+      {/* City map — full width */}
+      {cityMapSpots.length > 0 && (
+        <div className="mb-6">
+          <div
+            className="rounded-lg overflow-hidden"
+            style={{
+              boxShadow: 'inset 2px 2px 8px rgba(0,0,0,0.3), inset -1px -1px 2px rgba(255,255,255,0.05)',
+              border: '1px solid rgba(135,115,105,0.15)',
+            }}
+          >
+            <div style={{ height: 520 }}>
+              <CityMap
+                cityName={cityName}
+                spots={cityMapSpots}
+              />
             </div>
-          </RoomPanel>
-        )}
+          </div>
+        </div>
+      )}
 
+      {/* Attractions + Trip records in 2-col grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Attractions */}
         {attractions.length > 0 && (
           <RoomPanel title="热门景点">

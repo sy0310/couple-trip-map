@@ -172,7 +172,7 @@ function ProvinceContent() {
             border: '1px solid rgba(135,115,105,0.15)',
           }}
         >
-          <div style={{ height: 460 }}>
+          <div style={{ height: 520 }}>
             <CityMap
               cityName={provinceName}
               spots={cityMapSpots}
