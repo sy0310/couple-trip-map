@@ -136,7 +136,7 @@ function CityContent() {
   };
 
   return (
-    <div className="container">
+    <div className="container pb-32">
       {/* Header */}
       <div className="card text-center relative overflow-hidden mb-6">
         {/* Back button */}
@@ -183,7 +183,7 @@ function CityContent() {
       {cityMapSpots.length > 0 && (
         <div className="mb-6">
           <div
-            className="rounded-lg overflow-hidden"
+            className="rounded-lg pt-16"
             style={{
               boxShadow: 'inset 2px 2px 8px rgba(0,0,0,0.3), inset -1px -1px 2px rgba(255,255,255,0.05)',
               border: '1px solid rgba(135,115,105,0.15)',
@@ -199,33 +199,8 @@ function CityContent() {
         </div>
       )}
 
-      {/* Attractions + Trip records in 2-col grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Attractions */}
-        {attractions.length > 0 && (
-          <RoomPanel title="热门景点">
-            <div className="flex gap-3 overflow-x-auto pb-1 snap-x">
-              {attractions.map((a) => (
-                <div
-                  key={a.name}
-                  className="flex-shrink-0 text-center bg-[#FAF5EF] rounded-xl p-4 min-w-[100px] snap-start transition-transform hover:scale-105 duration-200 border border-[#E4D5C0]/40"
-                >
-                  <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gradient-to-br from-[#FF6B81]/10 to-[#FF8E53]/10 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF6B81" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-                      <circle cx="12" cy="9" r="2.5" />
-                    </svg>
-                  </div>
-                  <div className="text-sm font-medium text-[#3D2E1F]">{a.name}</div>
-                  <div className="text-[11px] text-[#9A8B7A] mt-0.5">{a.type}</div>
-                </div>
-              ))}
-            </div>
-          </RoomPanel>
-        )}
-
-        {/* Trip records */}
-        <RoomPanel title="旅行记录">
+      {/* Trip records */}
+      <RoomPanel title="旅行记录">
           {loading ? (
             <div className="text-center py-10" style={{ color: '#9A8B7A' }}>加载中...</div>
           ) : tripRecords.length === 0 ? (

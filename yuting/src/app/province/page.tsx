@@ -118,7 +118,7 @@ function ProvinceContent() {
   };
 
   return (
-    <div className="container">
+    <div className="container pb-32">
       {/* Header plaque — province name on a wooden sign */}
       <div className="card text-center relative overflow-hidden mb-6">
         {/* Back button */}
@@ -166,7 +166,7 @@ function ProvinceContent() {
       {/* Municipality City Map — show scenic spots for 北京/上海/天津/重庆 */}
       {MUNICIPALITIES.has(provinceName) && cityMapSpots.length > 0 && (
         <div
-          className="mb-6 max-w-4xl mx-auto rounded-lg overflow-hidden"
+          className="mb-6 max-w-4xl mx-auto rounded-lg pt-16"
           style={{
             boxShadow: 'inset 2px 2px 8px rgba(0,0,0,0.3), inset -1px -1px 2px rgba(255,255,255,0.05)',
             border: '1px solid rgba(135,115,105,0.15)',
