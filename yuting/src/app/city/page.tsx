@@ -183,7 +183,7 @@ function CityContent() {
         {cityMapSpots.length > 0 && (
           <RoomPanel title="景点地图">
             <div className="rounded-lg overflow-hidden border" style={{ borderColor: 'rgba(141,107,42,0.3)' }}>
-              <div style={{ height: 300 }}>
+              <div style={{ height: 420 }}>
                 <CityMap
                   cityName={cityName}
                   spots={cityMapSpots}

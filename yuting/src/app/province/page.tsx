@@ -164,8 +164,8 @@ function ProvinceContent() {
 
       {/* Municipality City Map — show scenic spots for 北京/上海/天津/重庆 */}
       {MUNICIPALITIES.has(provinceName) && cityMapSpots.length > 0 && (
-        <div className="mb-6 rounded-xl overflow-hidden border" style={{ borderColor: 'rgba(141,107,42,0.3)' }}>
-          <div style={{ height: 300 }}>
+        <div className="mb-6 max-w-4xl mx-auto rounded-xl overflow-hidden border" style={{ borderColor: 'rgba(141,107,42,0.3)' }}>
+          <div style={{ height: 420 }}>
             <CityMap
               cityName={provinceName}
               spots={cityMapSpots}
