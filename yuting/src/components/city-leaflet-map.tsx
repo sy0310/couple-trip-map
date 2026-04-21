@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -11,58 +11,6 @@ interface CityLeafletMapProps {
   allSpots: { name: string; lat: number; lng: number; visited: boolean }[];
   passedSpots: { name: string; lat: number; lng: number; visited: boolean }[];
   onSpotClick?: (name: string) => void;
-}
-
-function createInvertedMask(geoJson: Record<string, unknown>): Record<string, unknown> | null {
-  const layer = L.geoJSON(geoJson as never);
-  const bounds = layer.getBounds();
-  const pad = 5;
-  const outer = [
-    [-180 + bounds.getWest() - pad, -180 + bounds.getSouth() - pad],
-    [180 + bounds.getEast() + pad, -180 + bounds.getSouth() - pad],
-    [180 + bounds.getEast() + pad, 180 + bounds.getNorth() + pad],
-    [-180 + bounds.getWest() - pad, 180 + bounds.getNorth() + pad],
-    [-180 + bounds.getWest() - pad, -180 + bounds.getSouth() - pad],
-  ];
-
-  const innerRings: number[][][] = [];
-  const features = (geoJson as { features?: { geometry?: { coordinates?: number[][][][] | number[][][] } }[] }).features || [];
-  for (const feature of features) {
-    const coords = feature.geometry?.coordinates;
-    if (!coords) continue;
-    if (Array.isArray(coords[0]?.[0]?.[0]) && Array.isArray(coords[0][0][0][0])) {
-      for (const polygon of coords as number[][][][]) {
-        for (let i = 1; i < polygon.length; i++) {
-          innerRings.push(polygon[i]);
-        }
-      }
-    } else if (Array.isArray(coords[0]?.[0]) && Array.isArray(coords[0][0][0])) {
-      for (let i = 1; i < (coords as number[][][]).length; i++) {
-        innerRings.push((coords as number[][][])[i] as number[][]);
-      }
-    }
-  }
-
-  if (innerRings.length === 0) {
-    const features2 = (geoJson as { features?: { geometry?: { coordinates?: number[][][] } }[] }).features || [];
-    for (const feature of features2) {
-      const coords = feature.geometry?.coordinates;
-      if (coords && Array.isArray(coords[0])) {
-        innerRings.push(coords[0]);
-      }
-    }
-  }
-
-  const coordinates = [outer, ...innerRings];
-
-  return {
-    type: 'Feature',
-    geometry: {
-      type: 'Polygon',
-      coordinates,
-    },
-    properties: {},
-  };
 }
 
 function calcMinZoom(bounds: L.LatLngBounds): number {
@@ -128,11 +76,6 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: 
     return { bounds, center: bounds.getCenter(), minZoom: calcMinZoom(bounds) };
   }, [geoJson]);
 
-  const maskGeoJson = useMemo(() => {
-    if (!geoJson) return null;
-    return createInvertedMask(geoJson);
-  }, [geoJson]);
-
   const markers = useMemo(() => {
     const spotsToRender = allSpots.length > 0 ? allSpots : passedSpots;
     const sorted = [...spotsToRender].sort((a, b) => (b.visited ? 1 : 0) - (a.visited ? 1 : 0));
@@ -192,11 +135,13 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: 
           border-radius: 8px;
           background: #1a130c;
         }
+        .leaflet-pane { z-index: 1; }
+        .leaflet-overlay-pane svg { z-index: 1; }
       `}</style>
       <MapContainer
         center={[mapInfo.center.lat, mapInfo.center.lng]}
         zoom={mapInfo.minZoom}
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: '100%', height: '100%', background: '#1a130c' }}
         scrollWheelZoom={true}
         zoomControl={false}
         maxBounds={mapInfo.bounds}
@@ -211,33 +156,16 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: 
           subdomains={["a", "b", "c"]}
         />
         {geoJson && (
-          <>
-            {/* Dark mask over tiles outside city */}
-            {maskGeoJson && (
-              <GeoJSON
-                data={maskGeoJson as never}
-                style={() => ({
-                  fillColor: '#1a130c',
-                  fillOpacity: 0.95,
-                  color: 'transparent',
-                  weight: 0,
-                  opacity: 0,
-                })}
-                interactive={false}
-              />
-            )}
-            {/* Gold city boundary */}
-            <GeoJSON
-              data={geoJson as never}
-              style={() => ({
-                fillColor: '#c99a6c',
-                fillOpacity: 0.15,
-                color: '#c99a6c',
-                weight: 3,
-                opacity: 0.9,
-              })}
-            />
-          </>
+          <GeoJSON
+            data={geoJson as never}
+            style={() => ({
+              fillColor: '#c99a6c',
+              fillOpacity: 0.15,
+              color: '#c99a6c',
+              weight: 3,
+              opacity: 0.9,
+            })}
+          />
         )}
         {markers}
       </MapContainer>
