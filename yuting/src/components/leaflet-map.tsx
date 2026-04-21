@@ -65,94 +65,7 @@ function createPinIcon(visited: boolean, name: string) {
   });
 }
 
-// Compute province bounding box and create a dark mask outside it,
-// with all county polygons as holes (province area stays visible).
-//
-// Leaflet flips the Y axis, so winding is opposite to GeoJSON RFC 7946:
-// CW in GeoJSON coords = exterior (filled), CCW = hole.
-// Chinese GeoJSON county rings are CW (exterior in GeoJSON).
-//
-// For inverted mask: outer bbox = CW (exterior/filled dark),
-// county rings reversed to CCW (holes = visible province).
-function createProvinceMask(geoJson: Record<string, unknown>): Record<string, unknown> | null {
-  try {
-    const features = (geoJson as { features?: Array<{ geometry?: { type: string; coordinates?: unknown } }> }).features;
-    if (!features?.length) return null;
-
-    // Step 1: find bounding box of the province
-    let minLng = 180, minLat = 90, maxLng = -180, maxLat = -90;
-    for (const feature of features) {
-      const geom = feature.geometry;
-      if (!geom?.coordinates || !geom?.type) continue;
-      const coords = geom.coordinates;
-      if (geom.type === 'Polygon') {
-        for (const point of (coords as number[][][])[0] || []) {
-          minLng = Math.min(minLng, point[0]);
-          minLat = Math.min(minLat, point[1]);
-          maxLng = Math.max(maxLng, point[0]);
-          maxLat = Math.max(maxLat, point[1]);
-        }
-      } else if (geom.type === 'MultiPolygon') {
-        for (const polygon of (coords as number[][][][])) {
-          for (const point of polygon[0] || []) {
-            minLng = Math.min(minLng, point[0]);
-            minLat = Math.min(minLat, point[1]);
-            maxLng = Math.max(maxLng, point[0]);
-            maxLat = Math.max(maxLat, point[1]);
-          }
-        }
-      }
-    }
-    if (minLng === 180) return null;
-
-    // Expand bbox slightly for margin
-    const pad = 0.5;
-    minLng -= pad; minLat -= pad; maxLng += pad; maxLat += pad;
-
-    // Outer box: CW order in GeoJSON coords (exterior = filled dark in Leaflet)
-    const outerBox: number[][] = [
-      [minLng, maxLat], [maxLng, maxLat], [maxLng, minLat], [minLng, minLat], [minLng, maxLat],
-    ];
-
-    // Step 2: collect all county outer rings as holes (reverse CW → CCW)
-    const holes: number[][][] = [];
-    for (const feature of features) {
-      const geom = feature.geometry;
-      if (!geom?.coordinates || !geom?.type) continue;
-      const coords = geom.coordinates;
-      if (geom.type === 'Polygon') {
-        const rings = coords as number[][][];
-        if (rings[0]?.length) {
-          // GeoJSON CW (exterior) → reverse to CCW (hole in Leaflet)
-          holes.push([...rings[0]].reverse());
-        }
-      } else if (geom.type === 'MultiPolygon') {
-        const polygons = coords as number[][][][];
-        for (const polygon of polygons) {
-          if (polygon[0]?.length) {
-            holes.push([...polygon[0]].reverse());
-          }
-        }
-      }
-    }
-
-    if (holes.length === 0) return null;
-
-    return {
-      type: 'Feature',
-      geometry: {
-        type: 'Polygon',
-        coordinates: [outerBox, ...holes],
-      },
-      properties: {},
-    };
-  } catch {
-    return null;
-  }
-}
-
 export default function LeafletMap({ center, spots, onSpotClick, geoJson }: LeafletMapProps) {
-  const maskFeature = geoJson ? createProvinceMask(geoJson) : null;
   const markers = useMemo(() => {
     const sorted = [...spots].sort((a, b) => (b.visited ? 1 : 0) - (a.visited ? 1 : 0));
     return sorted.map((spot, idx) => (
@@ -192,9 +105,9 @@ export default function LeafletMap({ center, spots, onSpotClick, geoJson }: Leaf
         .leaflet-control-attribution { display: none !important; }
         .leaflet-control-zoom { display: none !important; }
 
-        /* Dark OSM tiles */
+        /* Custom tile styling */
         .leaflet-tile-pane {
-          filter: invert(1) hue-rotate(180deg) brightness(0.75) saturate(0.6) contrast(1.1);
+          filter: brightness(0.95) saturate(0.85);
         }
 
         .leaflet-popup-content-wrapper {
@@ -228,8 +141,10 @@ export default function LeafletMap({ center, spots, onSpotClick, geoJson }: Leaf
         zoomControl={false}
       >
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          url="https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=2&style=8&x={x}&y={y}&z={z}"
           attribution=""
+          maxZoom={18}
+          subdomains={["0", "1", "2", "3"]}
         />
         {geoJson && (
           <>
@@ -244,19 +159,6 @@ export default function LeafletMap({ center, spots, onSpotClick, geoJson }: Leaf
                 opacity: 0.6,
               })}
             />
-            {/* Dark mask outside province bounding box, with province polygons as holes */}
-            {maskFeature && (
-              <GeoJSON
-                data={maskFeature as never}
-                style={() => ({
-                  fillColor: '#1a130c',
-                  fillOpacity: 0.92,
-                  color: '#1a130c',
-                  weight: 0,
-                })}
-                interactive={false}
-              />
-            )}
           </>
         )}
         {markers}
