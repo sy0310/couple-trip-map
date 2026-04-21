@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -13,13 +13,15 @@ interface CityLeafletMapProps {
   onSpotClick?: (name: string) => void;
 }
 
-function FitBounds({ geoJson }: { geoJson: Record<string, unknown> }) {
+function FitBounds({ geoJson, onMinZoomReady }: { geoJson: Record<string, unknown>; onMinZoomReady?: (zoom: number) => void }) {
   const map = useMap();
   useEffect(() => {
     const layer = L.geoJSON(geoJson as never);
     const bounds = layer.getBounds();
     map.fitBounds(bounds, { padding: [20, 20], maxZoom: 8 });
-  }, [geoJson, map]);
+    const zoom = map.getZoom();
+    onMinZoomReady?.(zoom);
+  }, [geoJson, map, onMinZoomReady]);
   return null;
 }
 
@@ -65,6 +67,8 @@ function createPinIcon(visited: boolean, name: string) {
 }
 
 export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: CityLeafletMapProps) {
+  const [minZoom, setMinZoom] = useState<number>(8);
+
   const mapBounds = useMemo(() => {
     if (geoJson) {
       const layer = L.geoJSON(geoJson as never);
@@ -148,6 +152,8 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: 
         scrollWheelZoom={true}
         zoomControl={false}
         maxBounds={mapBounds}
+        maxBoundsViscosity={1.0}
+        minZoom={minZoom}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -158,15 +164,15 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: 
         />
         {geoJson && (
           <>
-            <FitBounds geoJson={geoJson} />
+            <FitBounds geoJson={geoJson} onMinZoomReady={setMinZoom} />
             <GeoJSON
               data={geoJson as never}
               style={() => ({
-                fillColor: 'transparent',
-                fillOpacity: 0,
+                fillColor: '#c99a6c',
+                fillOpacity: 0.15,
                 color: '#c99a6c',
-                weight: 2,
-                opacity: 0.6,
+                weight: 3,
+                opacity: 0.9,
               })}
             />
           </>

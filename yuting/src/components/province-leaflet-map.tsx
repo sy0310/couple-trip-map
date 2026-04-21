@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -13,13 +13,16 @@ interface ProvinceLeafletMapProps {
   onCityClick?: (name: string) => void;
 }
 
-function FitBounds({ geoJson }: { geoJson: Record<string, unknown> }) {
+function FitBounds({ geoJson, onMinZoomReady }: { geoJson: Record<string, unknown>; onMinZoomReady?: (zoom: number) => void }) {
   const map = useMap();
   useEffect(() => {
     const layer = L.geoJSON(geoJson as never);
     const bounds = layer.getBounds();
     map.fitBounds(bounds, { padding: [20, 20], maxZoom: 8 });
-  }, [geoJson, map]);
+    // After fitBounds, capture the zoom level as the minimum allowed
+    const zoom = map.getZoom();
+    onMinZoomReady?.(zoom);
+  }, [geoJson, map, onMinZoomReady]);
   return null;
 }
 
@@ -66,6 +69,7 @@ function createPinIcon(visited: boolean, name: string) {
 
 export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, onCityClick }: ProvinceLeafletMapProps) {
   const visitedSet = new Set(visitedCities);
+  const [minZoom, setMinZoom] = useState<number>(8);
 
   const mapBounds = useMemo(() => {
     if (geoJson) {
@@ -75,32 +79,33 @@ export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, onCit
     return null;
   }, [geoJson]);
 
+  // Only show visited cities as markers
   const markers = useMemo(() => {
     const prov = getProvinceByName(provinceName);
     if (!prov) return null;
 
-    const allCities = prov.cities.map((c) => ({
-      name: c.name,
-      lat: c.lat,
-      lng: c.lng,
-      visited: visitedSet.has(c.name),
-    }));
+    const visitedCities = prov.cities
+      .filter((c) => visitedSet.has(c.name))
+      .map((c) => ({
+        name: c.name,
+        lat: c.lat,
+        lng: c.lng,
+      }));
 
-    const sorted = [...allCities].sort((a, b) => (b.visited ? 1 : 0) - (a.visited ? 1 : 0));
-    return sorted.map((city) => (
+    return visitedCities.map((city) => (
       <Marker
         key={city.name}
         position={[city.lat, city.lng] as [number, number]}
-        icon={createPinIcon(city.visited, city.name)}
+        icon={createPinIcon(true, city.name)}
         eventHandlers={{ click: () => onCityClick?.(city.name) }}
       >
         <Popup>
           <div style={{ textAlign: 'center', fontFamily: 'var(--font-manrope, sans-serif)' }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: city.visited ? '#c99a6c' : '#8d6b2a', marginBottom: 2 }}>
-              {city.visited ? '★ ' : ''}{city.name}
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#c99a6c', marginBottom: 2 }}>
+              ★ {city.name}
             </div>
             <div style={{ fontSize: 11, color: '#9A8B7A' }}>
-              {city.visited ? '已访问' : '未访问'}
+              已访问
             </div>
           </div>
         </Popup>
@@ -159,6 +164,8 @@ export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, onCit
         scrollWheelZoom={true}
         zoomControl={false}
         maxBounds={mapBounds}
+        maxBoundsViscosity={1.0}
+        minZoom={minZoom}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -169,15 +176,15 @@ export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, onCit
         />
         {geoJson && (
           <>
-            <FitBounds geoJson={geoJson} />
+            <FitBounds geoJson={geoJson} onMinZoomReady={setMinZoom} />
             <GeoJSON
               data={geoJson as never}
               style={() => ({
-                fillColor: 'transparent',
-                fillOpacity: 0,
+                fillColor: '#c99a6c',
+                fillOpacity: 0.15,
                 color: '#c99a6c',
-                weight: 2,
-                opacity: 0.6,
+                weight: 3,
+                opacity: 0.9,
               })}
             />
           </>
