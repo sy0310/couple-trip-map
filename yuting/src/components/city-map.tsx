@@ -1,8 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useMemo, Suspense, useEffect, useState } from 'react';
-import { getGeoJsonFileName } from '@/lib/provinces';
+import { useMemo, Suspense } from 'react';
+import { getCityByName } from '@/lib/provinces';
 
 interface CityMapProps {
   cityName: string;
@@ -25,32 +25,22 @@ function MapSkeleton() {
 }
 
 export function CityMap({ cityName, spots, onSpotClick }: CityMapProps) {
-  const [geoJson, setGeoJson] = useState<Record<string, unknown> | null>(null);
-
-  useEffect(() => {
-    const fileName = getGeoJsonFileName(cityName);
-    if (fileName) {
-      fetch(`/geojson/${fileName}`)
-        .then((r) => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then((data) => setGeoJson(data))
-        .catch((e) => console.warn('City GeoJSON fetch failed:', e.message));
+  const center = useMemo((): [number, number] => {
+    // Priority: city coordinates from provinces.ts > spots average > Beijing fallback
+    const cityData = getCityByName(cityName);
+    if (cityData) return [cityData.lat, cityData.lng];
+    if (spots.length > 0) {
+      const avgLat = spots.reduce((s, sp) => s + sp.lat, 0) / spots.length;
+      const avgLng = spots.reduce((s, sp) => s + sp.lng, 0) / spots.length;
+      return [avgLat, avgLng];
     }
-  }, [cityName]);
-
-  const center = useMemo(() => {
-    if (spots.length === 0) return [39.9042, 116.4074];
-    const avgLat = spots.reduce((s, sp) => s + sp.lat, 0) / spots.length;
-    const avgLng = spots.reduce((s, sp) => s + sp.lng, 0) / spots.length;
-    return [avgLat, avgLng];
-  }, [spots]);
+    return [39.9042, 116.4074];
+  }, [cityName, spots]);
 
   return (
     <div className="w-full h-full" style={{ zIndex: 1 }}>
       <Suspense fallback={<MapSkeleton />}>
-        <LeafletMap center={center as [number, number]} spots={spots} onSpotClick={onSpotClick} geoJson={geoJson} />
+        <LeafletMap center={center} spots={spots} onSpotClick={onSpotClick} />
       </Suspense>
     </div>
   );

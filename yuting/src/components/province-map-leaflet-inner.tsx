@@ -23,112 +23,6 @@ function FitBounds({ geoJson }: { geoJson: Record<string, unknown> | null }) {
   return null;
 }
 
-// Clip map tiles to the province boundary using SVG clipPath
-function GeoJsonClip({ geoJson }: { geoJson: Record<string, unknown> | null }) {
-  const map = useMap();
-  const clipId = useMemo(() => `clip-${Math.random().toString(36).slice(2, 8)}`, []);
-
-  useEffect(() => {
-    if (!geoJson) return;
-
-    const tilePane = map.getPane('tilePane');
-    if (!tilePane) return;
-
-    const overlay = L.svg({ padding: 0 });
-    map.addLayer(overlay);
-
-    // Find the SVG element Leaflet created
-    const overlayPane = map.getPane('overlayPane');
-    const svgEl = overlayPane?.querySelector('svg') as SVGSVGElement | null;
-    if (!svgEl) return;
-
-    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-    const clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
-    clipPath.setAttribute('id', clipId);
-    clipPath.setAttribute('clipPathUnits', 'userSpaceOnUse');
-
-    const features = (geoJson as any).features || [];
-    let pathData = '';
-
-    for (const feature of features) {
-      const geom = feature.geometry;
-      if (geom.type === 'Polygon') {
-        for (const ring of geom.coordinates) {
-          for (let i = 0; i < ring.length; i++) {
-            const [lng, lat] = ring[i];
-            const point = map.latLngToContainerPoint(L.latLng(lat, lng));
-            pathData += i === 0 ? `M${point.x},${point.y}` : `L${point.x},${point.y}`;
-          }
-          pathData += 'Z';
-        }
-      } else if (geom.type === 'MultiPolygon') {
-        for (const polygon of geom.coordinates) {
-          for (const ring of polygon) {
-            for (let i = 0; i < ring.length; i++) {
-              const [lng, lat] = ring[i];
-              const point = map.latLngToContainerPoint(L.latLng(lat, lng));
-              pathData += i === 0 ? `M${point.x},${point.y}` : `L${point.x},${point.y}`;
-            }
-            pathData += 'Z';
-          }
-        }
-      }
-    }
-
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', pathData);
-    clipPath.appendChild(path);
-    defs.appendChild(clipPath);
-    svgEl.appendChild(defs);
-
-    tilePane.style.clipPath = `url(#${clipId})`;
-
-    const updateClip = () => {
-      let newPath = '';
-      for (const feature of features) {
-        const geom = feature.geometry;
-        if (geom.type === 'Polygon') {
-          for (const ring of geom.coordinates) {
-            for (let i = 0; i < ring.length; i++) {
-              const [lng, lat] = ring[i];
-              const point = map.latLngToContainerPoint(L.latLng(lat, lng));
-              newPath += i === 0 ? `M${point.x},${point.y}` : `L${point.x},${point.y}`;
-            }
-            newPath += 'Z';
-          }
-        } else if (geom.type === 'MultiPolygon') {
-          for (const polygon of geom.coordinates) {
-            for (const ring of polygon) {
-              for (let i = 0; i < ring.length; i++) {
-                const [lng, lat] = ring[i];
-                const point = map.latLngToContainerPoint(L.latLng(lat, lng));
-                newPath += i === 0 ? `M${point.x},${point.y}` : `L${point.x},${point.y}`;
-              }
-              newPath += 'Z';
-            }
-          }
-        }
-      }
-      path.setAttribute('d', newPath);
-    };
-
-    map.on('zoomend moveend', updateClip);
-
-    svgEl.style.position = 'absolute';
-    svgEl.style.width = '0';
-    svgEl.style.height = '0';
-    svgEl.style.overflow = 'hidden';
-
-    return () => {
-      map.off('zoomend moveend', updateClip);
-      map.removeLayer(overlay);
-      tilePane.style.clipPath = '';
-    };
-  }, [geoJson, map, clipId]);
-
-  return null;
-}
-
 function createCityIcon(visited: boolean, name: string) {
   const pinColor = visited ? '#c99a6c' : '#6B5438';
   const pillBg = visited ? 'rgba(255,250,240,0.95)' : 'rgba(250,245,239,0.92)';
@@ -171,8 +65,8 @@ function ProvinceGeoJson({ geoJson }: { geoJson: Record<string, unknown> | null 
     <GeoJSON
       data={geoJson as never}
       style={() => ({
-        fillColor: 'rgba(201,154,108,0.15)',
-        fillOpacity: 0.8,
+        fillColor: 'transparent',
+        fillOpacity: 0,
         color: '#c99a6c',
         weight: 2,
         opacity: 0.6,
@@ -229,7 +123,6 @@ export function LeafletProvinceMap({ center, citiesWithCoords, geoJson, onCityCl
           subdomains={["0", "1", "2", "3"]}
         />
         <FitBounds geoJson={geoJson} />
-        <GeoJsonClip geoJson={geoJson} />
         <ProvinceGeoJson geoJson={geoJson} />
         {citiesWithCoords.map((city) => (
           <Marker
