@@ -137,7 +137,7 @@ function CityContent() {
           </svg>
         </button>
 
-        <div className="relative z-10">
+        <div className="relative z-10 pt-6 pb-6">
           <h1 className="text-4xl font-bold mb-1" style={{ color: '#3D2E1F', fontFamily: "var(--font-newsreader)" }}>{cityName}</h1>
           {provinceName && <p className="text-base" style={{ color: '#9A8B7A' }}>{provinceName}</p>}
           <div className="flex justify-center gap-3 mt-5">

@@ -232,31 +232,21 @@ function ProvinceContent() {
       {!MUNICIPALITIES.has(provinceName) && (
         <RoomPanel title="城市列表">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-            {cities.map((city) => {
-              const isVisited = visitedCities.includes(city);
+            {visitedCities.map((city) => {
               return (
                 <button
                   key={city}
                   onClick={() => handleCityClick(city)}
-                  className={`p-5 rounded-xl text-sm text-center font-medium transition-all duration-200 ${
-                    isVisited
-                      ? 'border shadow-sm'
-                      : 'bg-[#FAF5EF] text-[#6B5438] border border-[#E4D5C0]/40 hover:bg-[#F3EBE0]'
-                  }`}
-                  style={
-                    isVisited
-                      ? {
-                          background: 'linear-gradient(135deg, rgba(201,154,108,0.15), rgba(184,137,94,0.1))',
-                          borderColor: '#c99a6c',
-                          color: '#8d6b2a',
-                          boxShadow: 'inset 0 0 0 1px rgba(141,107,42,0.15)',
-                        }
-                      : {}
-                  }
+                  className="p-5 rounded-xl text-sm text-center font-medium border shadow-sm"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(201,154,108,0.15), rgba(184,137,94,0.1))',
+                    borderColor: '#c99a6c',
+                    color: '#8d6b2a',
+                    boxShadow: 'inset 0 0 0 1px rgba(141,107,42,0.15)',
+                    cursor: 'pointer',
+                  }}
                 >
-                  <div className="text-lg mb-1" style={{ color: isVisited ? '#c99a6c' : '#C9A882' }}>
-                    {isVisited ? '●' : '○'}
-                  </div>
+                  <div className="text-lg mb-1" style={{ color: '#c99a6c' }}>●</div>
                   {city.replace('市', '')}
                 </button>
               );
