@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/bottom-nav';
 import { RoomPanel } from '@/components/furniture';
 import { WoodReliefMap as ProvinceMap } from '@/components/wood-relief-map';
-import { CityMap } from '@/components/city-map';
+import { WoodReliefCityMap as CityMap } from '@/components/wood-relief-city-map';
 import { getCoupleId, getVisitedCities, getVisitedProvinces, getTripsByCity } from '@/lib/trips';
 import { AddTripForm } from '@/components/add-trip-form';
 import { getProvinceByName, normalizeProvinceName, getGeoJsonFileName } from '@/lib/provinces';

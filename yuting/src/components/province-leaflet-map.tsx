@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
+import { useState, useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getProvinceByName } from '@/lib/provinces';
@@ -10,19 +10,8 @@ interface ProvinceLeafletMapProps {
   provinceName: string;
   visitedCities: string[];
   geoJson: Record<string, unknown> | null;
+  mapCenter: L.LatLng;
   onCityClick?: (name: string) => void;
-}
-
-function FitBounds({ geoJson, onMinZoomReady }: { geoJson: Record<string, unknown>; onMinZoomReady?: (zoom: number) => void }) {
-  const map = useMap();
-  useEffect(() => {
-    const layer = L.geoJSON(geoJson as never);
-    const bounds = layer.getBounds();
-    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
-    const zoom = map.getZoom();
-    onMinZoomReady?.(zoom);
-  }, [geoJson, map, onMinZoomReady]);
-  return null;
 }
 
 // Create inverted GeoJSON: large rectangle with province boundary as hole
@@ -31,20 +20,18 @@ function createInvertedMask(geoJson: Record<string, unknown>): Record<string, un
   const bounds = layer.getBounds();
   const pad = 5;
   const outer = [
-    [-180 + bounds.getWest() - pad, -180 + bounds.getSouth() - pad],
-    [180 + bounds.getEast() + pad, -180 + bounds.getSouth() - pad],
-    [180 + bounds.getEast() + pad, 180 + bounds.getNorth() + pad],
-    [-180 + bounds.getWest() - pad, 180 + bounds.getNorth() + pad],
-    [-180 + bounds.getWest() - pad, -180 + bounds.getSouth() - pad],
+    [bounds.getWest() - pad, bounds.getSouth() - pad],
+    [bounds.getEast() + pad, bounds.getSouth() - pad],
+    [bounds.getEast() + pad, bounds.getNorth() + pad],
+    [bounds.getWest() - pad, bounds.getNorth() + pad],
+    [bounds.getWest() - pad, bounds.getSouth() - pad],
   ];
 
-  // Extract inner rings from GeoJSON coordinates
   const innerRings: number[][][] = [];
   const features = (geoJson as { features?: { geometry?: { coordinates?: number[][][][] | number[][][] } }[] }).features || [];
   for (const feature of features) {
     const coords = feature.geometry?.coordinates;
     if (!coords) continue;
-    // MultiPolygon: [[[...]], [[...]]]
     if (Array.isArray(coords[0]?.[0]?.[0]) && Array.isArray(coords[0][0][0][0])) {
       for (const polygon of coords as number[][][][]) {
         for (let i = 1; i < polygon.length; i++) {
@@ -52,7 +39,6 @@ function createInvertedMask(geoJson: Record<string, unknown>): Record<string, un
         }
       }
     } else if (Array.isArray(coords[0]?.[0]) && Array.isArray(coords[0][0][0])) {
-      // Polygon: [[...], [...]]
       for (let i = 1; i < (coords as number[][][]).length; i++) {
         innerRings.push((coords as number[][][])[i] as number[][]);
       }
@@ -60,7 +46,6 @@ function createInvertedMask(geoJson: Record<string, unknown>): Record<string, un
   }
 
   if (innerRings.length === 0) {
-    // No holes, just use outer ring from GeoJSON as the inner boundary
     const features2 = (geoJson as { features?: { geometry?: { coordinates?: number[][][] } }[] }).features || [];
     for (const feature of features2) {
       const coords = feature.geometry?.coordinates;
@@ -80,6 +65,24 @@ function createInvertedMask(geoJson: Record<string, unknown>): Record<string, un
     },
     properties: {},
   };
+}
+
+// Calculate minZoom from bounds so province fits exactly in a typical viewport
+function calcMinZoom(bounds: L.LatLngBounds): number {
+  const worldWidth = 40075017; // meters at equator for zoom 0
+  const latRange = bounds.getNorth() - bounds.getSouth();
+  const lngRange = bounds.getEast() - bounds.getWest();
+  const maxRange = Math.max(lngRange, latRange * 1.5); // account for projection
+
+  // For a ~800px wide container, find the zoom where bounds fits
+  const tileAtZoom = (lng: number, z: number) => lng / 360 + 0.5;
+  for (let z = 1; z <= 18; z++) {
+    const tilesWide = 2 ** z;
+    const degreesPerTile = 360 / tilesWide;
+    const tilesNeeded = maxRange / degreesPerTile;
+    if (tilesNeeded <= 1.8) return z;
+  }
+  return 8;
 }
 
 function createPinIcon(visited: boolean, name: string) {
@@ -123,10 +126,8 @@ function createPinIcon(visited: boolean, name: string) {
   });
 }
 
-export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, onCityClick }: ProvinceLeafletMapProps) {
+export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, mapCenter, onCityClick }: ProvinceLeafletMapProps) {
   const visitedSet = new Set(visitedCities);
-  const [minZoom, setMinZoom] = useState<number>(8);
-  const [maskGeoJson, setMaskGeoJson] = useState<Record<string, unknown> | null>(null);
 
   const mapBounds = useMemo(() => {
     if (geoJson) {
@@ -136,11 +137,14 @@ export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, onCit
     return null;
   }, [geoJson]);
 
-  useEffect(() => {
-    if (geoJson) {
-      const mask = createInvertedMask(geoJson);
-      setMaskGeoJson(mask);
-    }
+  const minZoom = useMemo(() => {
+    if (!mapBounds) return 8;
+    return calcMinZoom(mapBounds);
+  }, [mapBounds]);
+
+  const maskGeoJson = useMemo(() => {
+    if (!geoJson) return null;
+    return createInvertedMask(geoJson);
   }, [geoJson]);
 
   // Only show visited cities as markers
@@ -185,8 +189,6 @@ export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, onCit
     );
   }
 
-  const center = mapBounds.getCenter();
-
   return (
     <>
       <style>{`
@@ -216,8 +218,8 @@ export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, onCit
         }
       `}</style>
       <MapContainer
-        center={[center.lat, center.lng]}
-        zoom={10}
+        center={[mapCenter.lat, mapCenter.lng]}
+        zoom={minZoom}
         style={{ width: '100%', height: '100%' }}
         scrollWheelZoom={true}
         zoomControl={false}
@@ -234,7 +236,6 @@ export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, onCit
         />
         {geoJson && (
           <>
-            <FitBounds geoJson={geoJson} onMinZoomReady={setMinZoom} />
             {/* Dark mask over tiles outside province */}
             {maskGeoJson && (
               <GeoJSON

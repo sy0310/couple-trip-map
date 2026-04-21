@@ -1,7 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import L from 'leaflet';
 import { getProvinceByName, getGeoJsonFileName } from '@/lib/provinces';
 
 const LeafletMapView = dynamic(() => import('./province-leaflet-map').then((mod) => mod.ProvinceLeafletMap), { ssr: false });
@@ -26,6 +27,14 @@ export function WoodReliefMap({ provinceName, visitedCities, cityCoords, onCityC
   const [geoJson, setGeoJson] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  // Pre-calculate bounds and minZoom from GeoJSON (synchronous, no Leaflet map needed)
+  const mapInfo = useMemo(() => {
+    if (!geoJson) return null;
+    const layer = L.geoJSON(geoJson as never);
+    const bounds = layer.getBounds();
+    return { bounds, center: bounds.getCenter() };
+  }, [geoJson]);
 
   useEffect(() => {
     const fileName = getGeoJsonFileName(provinceName);
@@ -58,11 +67,16 @@ export function WoodReliefMap({ provinceName, visitedCities, cityCoords, onCityC
     return <LoadingState />;
   }
 
+  if (!mapInfo) {
+    return <LoadingState />;
+  }
+
   return (
     <LeafletMapView
       provinceName={provinceName}
       visitedCities={visitedCities}
       geoJson={geoJson}
+      mapCenter={mapInfo.center}
       onCityClick={onCityClick}
     />
   );

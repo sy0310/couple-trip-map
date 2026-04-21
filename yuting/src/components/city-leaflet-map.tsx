@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -10,19 +10,8 @@ interface CityLeafletMapProps {
   geoJson: Record<string, unknown> | null;
   allSpots: { name: string; lat: number; lng: number; visited: boolean }[];
   passedSpots: { name: string; lat: number; lng: number; visited: boolean }[];
+  mapCenter: L.LatLng;
   onSpotClick?: (name: string) => void;
-}
-
-function FitBounds({ geoJson, onMinZoomReady }: { geoJson: Record<string, unknown>; onMinZoomReady?: (zoom: number) => void }) {
-  const map = useMap();
-  useEffect(() => {
-    const layer = L.geoJSON(geoJson as never);
-    const bounds = layer.getBounds();
-    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
-    const zoom = map.getZoom();
-    onMinZoomReady?.(zoom);
-  }, [geoJson, map, onMinZoomReady]);
-  return null;
 }
 
 function createInvertedMask(geoJson: Record<string, unknown>): Record<string, unknown> | null {
@@ -49,7 +38,6 @@ function createInvertedMask(geoJson: Record<string, unknown>): Record<string, un
         }
       }
     } else if (Array.isArray(coords[0]?.[0]) && Array.isArray(coords[0][0][0])) {
-      // Polygon: [[...], [...]]
       for (let i = 1; i < (coords as number[][][]).length; i++) {
         innerRings.push((coords as number[][][])[i] as number[][]);
       }
@@ -76,6 +64,21 @@ function createInvertedMask(geoJson: Record<string, unknown>): Record<string, un
     },
     properties: {},
   };
+}
+
+function calcMinZoom(bounds: L.LatLngBounds): number {
+  const worldWidth = 40075017;
+  const latRange = bounds.getNorth() - bounds.getSouth();
+  const lngRange = bounds.getEast() - bounds.getWest();
+  const maxRange = Math.max(lngRange, latRange * 1.5);
+
+  for (let z = 1; z <= 18; z++) {
+    const tilesWide = 2 ** z;
+    const degreesPerTile = 360 / tilesWide;
+    const tilesNeeded = maxRange / degreesPerTile;
+    if (tilesNeeded <= 1.8) return z;
+  }
+  return 8;
 }
 
 function createPinIcon(visited: boolean, name: string) {
@@ -119,10 +122,7 @@ function createPinIcon(visited: boolean, name: string) {
   });
 }
 
-export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: CityLeafletMapProps) {
-  const [minZoom, setMinZoom] = useState<number>(8);
-  const [maskGeoJson, setMaskGeoJson] = useState<Record<string, unknown> | null>(null);
-
+export function CityLeafletMap({ geoJson, allSpots, passedSpots, mapCenter, onSpotClick }: CityLeafletMapProps) {
   const mapBounds = useMemo(() => {
     if (geoJson) {
       const layer = L.geoJSON(geoJson as never);
@@ -131,11 +131,14 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: 
     return null;
   }, [geoJson]);
 
-  useEffect(() => {
-    if (geoJson) {
-      const mask = createInvertedMask(geoJson);
-      setMaskGeoJson(mask);
-    }
+  const minZoom = useMemo(() => {
+    if (!mapBounds) return 8;
+    return calcMinZoom(mapBounds);
+  }, [mapBounds]);
+
+  const maskGeoJson = useMemo(() => {
+    if (!geoJson) return null;
+    return createInvertedMask(geoJson);
   }, [geoJson]);
 
   const markers = useMemo(() => {
@@ -170,8 +173,6 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: 
     );
   }
 
-  const center = mapBounds.getCenter();
-
   return (
     <>
       <style>{`
@@ -201,8 +202,8 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: 
         }
       `}</style>
       <MapContainer
-        center={[center.lat, center.lng]}
-        zoom={12}
+        center={[mapCenter.lat, mapCenter.lng]}
+        zoom={minZoom}
         style={{ width: '100%', height: '100%' }}
         scrollWheelZoom={true}
         zoomControl={false}
@@ -219,7 +220,6 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: 
         />
         {geoJson && (
           <>
-            <FitBounds geoJson={geoJson} onMinZoomReady={setMinZoom} />
             {/* Dark mask over tiles outside city */}
             {maskGeoJson && (
               <GeoJSON

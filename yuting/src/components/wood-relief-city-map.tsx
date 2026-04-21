@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useMemo } from 'react';
+import L from 'leaflet';
 import { getProvinceByName, getGeoJsonFileName } from '@/lib/provinces';
 
 const LeafletCityMap = dynamic(() => import('./city-leaflet-map').then((mod) => mod.CityLeafletMap), { ssr: false });
@@ -27,6 +28,14 @@ export function WoodReliefCityMap({ cityName, spots, onSpotClick }: WoodReliefCi
   const [error, setError] = useState(false);
 
   const visitedSet = useMemo(() => new Set(spots.filter((s) => s.visited).map((s) => s.name)), [spots]);
+
+  // Pre-calculate bounds and center from GeoJSON (synchronous, no Leaflet map needed)
+  const mapInfo = useMemo(() => {
+    if (!geoJson) return null;
+    const layer = L.geoJSON(geoJson as never);
+    const bounds = layer.getBounds();
+    return { bounds, center: bounds.getCenter() };
+  }, [geoJson]);
 
   useEffect(() => {
     // Find the province that contains this city
@@ -100,12 +109,17 @@ export function WoodReliefCityMap({ cityName, spots, onSpotClick }: WoodReliefCi
     return <LoadingState />;
   }
 
+  if (!mapInfo) {
+    return <LoadingState />;
+  }
+
   return (
     <LeafletCityMap
       cityName={cityName}
       geoJson={geoJson}
       allSpots={allSpots}
       passedSpots={spots}
+      mapCenter={mapInfo.center}
       onSpotClick={onSpotClick}
     />
   );
