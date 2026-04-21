@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { geojsonToSvgPaths, type SvgPathResult } from '@/lib/geojson-to-svg';
+import { geojsonToSvgPaths } from '@/lib/geojson-to-svg';
 import { getProvinceByName, getGeoJsonFileName } from '@/lib/provinces';
 import { SealMarker } from '@/components/seal-marker';
 import { SvgCompass } from '@/components/svg-compass';
+import { useSvgZoom } from '@/hooks/use-svg-zoom';
 
 interface WoodReliefMapProps {
   provinceName: string;
@@ -20,8 +21,11 @@ const SVG_HEIGHT = 380;
 export function WoodReliefMap({ provinceName, visitedCities, cityCoords, onCityClick, onBack }: WoodReliefMapProps) {
   const [svgPaths, setSvgPaths] = useState<string[]>([]);
   const [projectedCoords, setProjectedCoords] = useState<Record<string, { x: number; y: number }>>({});
+  const [allCities, setAllCities] = useState<{ name: string; x: number; y: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  const zoom = useSvgZoom({ width: SVG_WIDTH, height: SVG_HEIGHT, minZoom: 1, maxZoom: 6 });
 
   useEffect(() => {
     const prov = getProvinceByName(provinceName);
@@ -39,7 +43,6 @@ export function WoodReliefMap({ provinceName, visitedCities, cityCoords, onCityC
         const result = geojsonToSvgPaths(geoJson, { width: SVG_WIDTH, height: SVG_HEIGHT, padding: 40, tolerance: 1.2 });
         setSvgPaths(result.paths);
 
-        // Project city coordinates using the same bounding box
         const { minLng, maxLng, minLat, maxLat } = result.boundingBox;
         const padding = 40;
         const lngRange = maxLng - minLng || 1;
@@ -58,6 +61,14 @@ export function WoodReliefMap({ provinceName, visitedCities, cityCoords, onCityC
           };
         }
         setProjectedCoords(coords);
+
+        // Project ALL cities from province data
+        const allProjected = prov.cities.map((c) => ({
+          name: c.name,
+          x: (c.lng - minLng) * scale + offsetX,
+          y: (maxLat - c.lat) * scale + offsetY,
+        }));
+        setAllCities(allProjected);
         setLoading(false);
       })
       .catch(() => {
@@ -88,7 +99,17 @@ export function WoodReliefMap({ provinceName, visitedCities, cityCoords, onCityC
   }
 
   return (
-    <svg viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} className="w-full h-full" style={{ background: '#352118' }}>
+    <svg
+      viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
+      className="w-full h-full"
+      style={{ background: '#352118', cursor: 'grab' }}
+      onMouseDown={zoom.onMouseDown}
+      onMouseMove={zoom.onMouseMove}
+      onWheel={zoom.onWheel}
+      onTouchStart={zoom.onTouchStart}
+      onTouchMove={zoom.onTouchMove}
+      onTouchEnd={zoom.onTouchEnd}
+    >
       <defs>
         <filter id="wood-carve">
           <feTurbulence type="fractalNoise" baseFrequency="0.03 0.15" numOctaves="4" seed="7" result="noise" />
@@ -103,38 +124,61 @@ export function WoodReliefMap({ provinceName, visitedCities, cityCoords, onCityC
         <filter id="outline-glow">
           <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#8d6b2a" flood-opacity="0.3" />
         </filter>
-        <filter id="wood-grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.01 0.08" numOctaves="3" seed="3" result="noise" />
-          <feColorMatrix type="saturate" values="0" in="noise" result="gray" />
-          <feBlend in="SourceGraphic" in2="gray" mode="multiply" />
-        </filter>
       </defs>
 
-      {/* Background — dark wood */}
-      <rect x="0" y="0" width={SVG_WIDTH} height={SVG_HEIGHT} fill="#352118" />
+      {/* Background */}
+      <rect x={-2000} y={-2000} width={SVG_WIDTH + 4000} height={SVG_HEIGHT + 4000} fill="#352118" />
 
-      {/* Province outline — carved relief */}
-      <g filter="url(#wood-carve)">
+      <g transform={zoom.transform}>
+        {/* Province outline — carved relief */}
+        <g filter="url(#wood-carve)">
+          {svgPaths.map((d, i) => (
+            <path key={i} d={d} fill="#2a1a0e" stroke="#8d6b2a" strokeWidth="0.8" opacity="0.9" />
+          ))}
+        </g>
+
         {svgPaths.map((d, i) => (
-          <path key={i} d={d} fill="#2a1a0e" stroke="#8d6b2a" strokeWidth="0.8" opacity="0.9" />
+          <path key={`outline-${i}`} d={d} fill="none" stroke="#c99a6c" strokeWidth="0.5" filter="url(#outline-glow)" opacity="0.6" />
         ))}
+
+        {/* All cities */}
+        {allCities.map((city) => {
+          const isVisited = projectedCoords[city.name] !== undefined;
+          if (isVisited) {
+            return (
+              <SealMarker
+                key={city.name}
+                x={city.x}
+                y={city.y}
+                label={city.name}
+                size={7}
+                onClick={() => onCityClick?.(city.name)}
+              />
+            );
+          }
+          return (
+            <g key={city.name} transform={`translate(${city.x}, ${city.y})`}>
+              <circle r={5} fill="none" stroke="#8d6b2a" strokeWidth="0.8" opacity="0.4" />
+              <circle r={2} fill="#8d6b2a" opacity="0.35" />
+              <text
+                y={-8}
+                textAnchor="middle"
+                fontSize={8}
+                fill="#8d6b2a"
+                opacity={0.45}
+                style={{ paintOrder: 'stroke', stroke: '#352118', strokeWidth: 2 }}
+              >
+                {city.name}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Compass — not zoomed */}
       </g>
 
-      {/* Bright outline edge */}
-      {svgPaths.map((d, i) => (
-        <path key={`outline-${i}`} d={d} fill="none" stroke="#c99a6c" strokeWidth="0.5" filter="url(#outline-glow)" opacity="0.6" />
-      ))}
-
-      {/* Red seal markers for visited cities */}
-      {Object.entries(projectedCoords).map(([name, { x, y }]) => (
-        <SealMarker key={name} x={x} y={y} label={name} size={7} onClick={() => onCityClick?.(name)} />
-      ))}
-
-      {/* Traditional Chinese compass */}
+      {/* Compass fixed on top */}
       <SvgCompass x={720} y={55} size={42} />
-
-      {/* Wood grain texture */}
-      <rect x="0" y="0" width={SVG_WIDTH} height={SVG_HEIGHT} fill="none" filter="url(#wood-grain)" opacity="0.08" pointerEvents="none" />
     </svg>
   );
 }
