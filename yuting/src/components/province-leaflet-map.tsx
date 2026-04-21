@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -10,7 +10,6 @@ interface ProvinceLeafletMapProps {
   provinceName: string;
   visitedCities: string[];
   geoJson: Record<string, unknown> | null;
-  mapCenter: L.LatLng;
   onCityClick?: (name: string) => void;
 }
 
@@ -69,13 +68,10 @@ function createInvertedMask(geoJson: Record<string, unknown>): Record<string, un
 
 // Calculate minZoom from bounds so province fits exactly in a typical viewport
 function calcMinZoom(bounds: L.LatLngBounds): number {
-  const worldWidth = 40075017; // meters at equator for zoom 0
   const latRange = bounds.getNorth() - bounds.getSouth();
   const lngRange = bounds.getEast() - bounds.getWest();
-  const maxRange = Math.max(lngRange, latRange * 1.5); // account for projection
+  const maxRange = Math.max(lngRange, latRange * 1.5);
 
-  // For a ~800px wide container, find the zoom where bounds fits
-  const tileAtZoom = (lng: number, z: number) => lng / 360 + 0.5;
   for (let z = 1; z <= 18; z++) {
     const tilesWide = 2 ** z;
     const degreesPerTile = 360 / tilesWide;
@@ -126,21 +122,15 @@ function createPinIcon(visited: boolean, name: string) {
   });
 }
 
-export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, mapCenter, onCityClick }: ProvinceLeafletMapProps) {
+export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, onCityClick }: ProvinceLeafletMapProps) {
   const visitedSet = new Set(visitedCities);
 
-  const mapBounds = useMemo(() => {
-    if (geoJson) {
-      const layer = L.geoJSON(geoJson as never);
-      return layer.getBounds();
-    }
-    return null;
+  const mapInfo = useMemo(() => {
+    if (!geoJson) return null;
+    const layer = L.geoJSON(geoJson as never);
+    const bounds = layer.getBounds();
+    return { bounds, center: bounds.getCenter(), minZoom: calcMinZoom(bounds) };
   }, [geoJson]);
-
-  const minZoom = useMemo(() => {
-    if (!mapBounds) return 8;
-    return calcMinZoom(mapBounds);
-  }, [mapBounds]);
 
   const maskGeoJson = useMemo(() => {
     if (!geoJson) return null;
@@ -181,7 +171,7 @@ export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, mapCe
     ));
   }, [provinceName, visitedCities, onCityClick]);
 
-  if (!mapBounds) {
+  if (!mapInfo) {
     return (
       <div className="w-full py-4 text-center text-sm" style={{ color: '#9A8B7A' }}>
         地图加载中...
@@ -218,14 +208,14 @@ export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, mapCe
         }
       `}</style>
       <MapContainer
-        center={[mapCenter.lat, mapCenter.lng]}
-        zoom={minZoom}
+        center={[mapInfo.center.lat, mapInfo.center.lng]}
+        zoom={mapInfo.minZoom}
         style={{ width: '100%', height: '100%' }}
         scrollWheelZoom={true}
         zoomControl={false}
-        maxBounds={mapBounds}
+        maxBounds={mapInfo.bounds}
         maxBoundsViscosity={1.0}
-        minZoom={minZoom}
+        minZoom={mapInfo.minZoom}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

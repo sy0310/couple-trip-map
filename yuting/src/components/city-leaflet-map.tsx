@@ -10,7 +10,6 @@ interface CityLeafletMapProps {
   geoJson: Record<string, unknown> | null;
   allSpots: { name: string; lat: number; lng: number; visited: boolean }[];
   passedSpots: { name: string; lat: number; lng: number; visited: boolean }[];
-  mapCenter: L.LatLng;
   onSpotClick?: (name: string) => void;
 }
 
@@ -67,7 +66,6 @@ function createInvertedMask(geoJson: Record<string, unknown>): Record<string, un
 }
 
 function calcMinZoom(bounds: L.LatLngBounds): number {
-  const worldWidth = 40075017;
   const latRange = bounds.getNorth() - bounds.getSouth();
   const lngRange = bounds.getEast() - bounds.getWest();
   const maxRange = Math.max(lngRange, latRange * 1.5);
@@ -122,19 +120,13 @@ function createPinIcon(visited: boolean, name: string) {
   });
 }
 
-export function CityLeafletMap({ geoJson, allSpots, passedSpots, mapCenter, onSpotClick }: CityLeafletMapProps) {
-  const mapBounds = useMemo(() => {
-    if (geoJson) {
-      const layer = L.geoJSON(geoJson as never);
-      return layer.getBounds();
-    }
-    return null;
+export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: CityLeafletMapProps) {
+  const mapInfo = useMemo(() => {
+    if (!geoJson) return null;
+    const layer = L.geoJSON(geoJson as never);
+    const bounds = layer.getBounds();
+    return { bounds, center: bounds.getCenter(), minZoom: calcMinZoom(bounds) };
   }, [geoJson]);
-
-  const minZoom = useMemo(() => {
-    if (!mapBounds) return 8;
-    return calcMinZoom(mapBounds);
-  }, [mapBounds]);
 
   const maskGeoJson = useMemo(() => {
     if (!geoJson) return null;
@@ -165,7 +157,7 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, mapCenter, onSp
     ));
   }, [allSpots, passedSpots, onSpotClick]);
 
-  if (!mapBounds) {
+  if (!mapInfo) {
     return (
       <div className="w-full py-4 text-center text-sm" style={{ color: '#9A8B7A' }}>
         地图加载中...
@@ -202,14 +194,14 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, mapCenter, onSp
         }
       `}</style>
       <MapContainer
-        center={[mapCenter.lat, mapCenter.lng]}
-        zoom={minZoom}
+        center={[mapInfo.center.lat, mapInfo.center.lng]}
+        zoom={mapInfo.minZoom}
         style={{ width: '100%', height: '100%' }}
         scrollWheelZoom={true}
         zoomControl={false}
-        maxBounds={mapBounds}
+        maxBounds={mapInfo.bounds}
         maxBoundsViscosity={1.0}
-        minZoom={minZoom}
+        minZoom={mapInfo.minZoom}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
