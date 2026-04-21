@@ -85,6 +85,12 @@ export function LeafletProvinceMap({ center, citiesWithCoords, geoJson, onCityCl
         .leaflet-tile-pane {
           filter: brightness(0.95) saturate(0.85);
         }
+        .leaflet-tile-pane .leaflet-tile-loaded {
+          opacity: 1;
+        }
+        .leaflet-tile {
+          background: #3a2f25;
+        }
 
         .leaflet-popup-content-wrapper {
           background: rgba(255,250,240,0.97) !important;
@@ -117,13 +123,12 @@ export function LeafletProvinceMap({ center, citiesWithCoords, geoJson, onCityCl
         zoomControl={false}
       >
         <TileLayer
-          url="https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=2&style=8&x={x}&y={y}&z={z}"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution=""
           maxZoom={18}
           minZoom={4}
-          noWrap={true}
-          bounds={[[-55, -180], [85, 180]]}
-          subdomains={["0", "1", "2", "3"]}
+          errorTileUrl="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+          subdomains={["a", "b", "c"]}
         />
         <FitBounds geoJson={geoJson} />
         <ProvinceGeoJson geoJson={geoJson} />
