@@ -17,7 +17,7 @@ function FitBounds({ geoJson }: { geoJson: Record<string, unknown> | null }) {
   useEffect(() => {
     if (geoJson) {
       const layer = L.geoJSON(geoJson as never);
-      map.fitBounds(layer.getBounds(), { padding: [20, 20] });
+      map.fitBounds(layer.getBounds(), { padding: [20, 20], maxZoom: 8 });
     }
   }, [geoJson, map]);
   return null;
@@ -120,6 +120,9 @@ export function LeafletProvinceMap({ center, citiesWithCoords, geoJson, onCityCl
           url="https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=2&style=8&x={x}&y={y}&z={z}"
           attribution=""
           maxZoom={18}
+          minZoom={4}
+          noWrap={true}
+          bounds={[[-55, -180], [85, 180]]}
           subdomains={["0", "1", "2", "3"]}
         />
         <FitBounds geoJson={geoJson} />
