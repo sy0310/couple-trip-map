@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { geojsonToSvgPaths } from '@/lib/geojson-to-svg';
+import { useState, useEffect, useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { getProvinceByName, getGeoJsonFileName } from '@/lib/provinces';
-import { SealMarker } from '@/components/seal-marker';
-import { SvgCompass } from '@/components/svg-compass';
-import { useSvgZoom } from '@/hooks/use-svg-zoom';
 
 interface WoodReliefMapProps {
   provinceName: string;
@@ -15,22 +14,66 @@ interface WoodReliefMapProps {
   onBack?: () => void;
 }
 
-const SVG_WIDTH = 800;
-const SVG_HEIGHT = 380;
+function FitBounds({ geoJson }: { geoJson: Record<string, unknown> }) {
+  const map = useMap();
+  useEffect(() => {
+    const layer = L.geoJSON(geoJson as never);
+    const bounds = layer.getBounds();
+    map.fitBounds(bounds, { padding: [20, 20], maxZoom: 8 });
+  }, [geoJson, map]);
+  return null;
+}
 
-export function WoodReliefMap({ provinceName, visitedCities, cityCoords, onCityClick, onBack }: WoodReliefMapProps) {
-  const [svgPaths, setSvgPaths] = useState<string[]>([]);
-  const [projectedCoords, setProjectedCoords] = useState<Record<string, { x: number; y: number }>>({});
-  const [allCities, setAllCities] = useState<{ name: string; x: number; y: number }[]>([]);
+function createPinIcon(visited: boolean, name: string) {
+  const pinColor = visited ? '#c99a6c' : '#6B5438';
+  const pinGlow = visited ? 'rgba(255,222,165,0.5)' : 'rgba(141,107,42,0.3)';
+  const pillBg = visited ? 'rgba(255,250,240,0.95)' : 'rgba(250,245,239,0.92)';
+  const pillColor = visited ? '#563a31' : '#8d6b2a';
+  const pillBorder = visited ? '#c99a6c' : '#dac2b6';
+  const pinSize = visited ? 36 : 30;
+
+  return L.divIcon({
+    className: '',
+    html: `
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;">
+        <svg width="${pinSize}" height="${pinSize * 1.25}" viewBox="0 0 36 45" fill="none">
+          <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 27 18 27s18-13.5 18-27C36 8.06 27.94 0 18 0z" fill="${pinColor}" opacity="0.9"/>
+          <circle cx="18" cy="18" r="8" fill="${pillBg}" opacity="0.3"/>
+          <circle cx="18" cy="18" r="5" fill="${pillBg}"/>
+          ${visited ? `<circle cx="18" cy="18" r="14" fill="none" stroke="${pinGlow}" stroke-width="1.5" opacity="0.6">
+            <animate attributeName="r" values="14;18;14" dur="2.5s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.6;0;0.6" dur="2.5s" repeatCount="indefinite"/>
+          </circle>` : ''}
+        </svg>
+        <div style="
+          margin-top:-4px;
+          background:${pillBg};color:${pillColor};
+          font-size:${visited ? 12 : 11}px;
+          font-weight:${visited ? 700 : 500};
+          padding:3px 12px;border-radius:999px;
+          border:1px solid ${pillBorder};
+          white-space:nowrap;
+          font-family:var(--font-manrope,sans-serif);
+          box-shadow:0 2px 8px rgba(0,0,0,0.15);
+          letter-spacing:0.03em;
+        ">${name}</div>
+      </div>
+    `,
+    iconSize: [pinSize, pinSize * 1.25 + 32],
+    iconAnchor: [pinSize / 2, 0],
+    popupAnchor: [0, -8],
+  });
+}
+
+export function WoodReliefMap({ provinceName, visitedCities, cityCoords, onCityClick }: WoodReliefMapProps) {
+  const [geoJson, setGeoJson] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
 
-  const zoom = useSvgZoom({ width: SVG_WIDTH, height: SVG_HEIGHT, minZoom: 1, maxZoom: 6 });
+  const visitedSet = new Set(visitedCities);
 
   useEffect(() => {
-    const prov = getProvinceByName(provinceName);
-    if (!prov) { setError(true); setLoading(false); return; }
-
     const fileName = getGeoJsonFileName(provinceName);
     if (!fileName) { setError(true); setLoading(false); return; }
 
@@ -39,58 +82,61 @@ export function WoodReliefMap({ provinceName, visitedCities, cityCoords, onCityC
         if (!r.ok) throw new Error('GeoJSON not found');
         return r.json();
       })
-      .then((geoJson) => {
-        const result = geojsonToSvgPaths(geoJson, { width: SVG_WIDTH, height: SVG_HEIGHT, padding: 40, tolerance: 1.2 });
-        setSvgPaths(result.paths);
-
-        const { minLng, maxLng, minLat, maxLat } = result.boundingBox;
-        const padding = 40;
-        const lngRange = maxLng - minLng || 1;
-        const latRange = maxLat - minLat || 1;
-        const scaleX = (SVG_WIDTH - padding * 2) / lngRange;
-        const scaleY = (SVG_HEIGHT - padding * 2) / latRange;
-        const scale = Math.min(scaleX, scaleY);
-        const offsetX = padding + ((SVG_WIDTH - padding * 2) - lngRange * scale) / 2;
-        const offsetY = padding + ((SVG_HEIGHT - padding * 2) - latRange * scale) / 2;
-
-        const coords: Record<string, { x: number; y: number }> = {};
-        for (const city of cityCoords) {
-          coords[city.name] = {
-            x: (city.lng - minLng) * scale + offsetX,
-            y: (maxLat - city.lat) * scale + offsetY,
-          };
-        }
-        setProjectedCoords(coords);
-
-        // Project ALL cities from province data
-        const allProjected = prov.cities.map((c) => ({
-          name: c.name,
-          x: (c.lng - minLng) * scale + offsetX,
-          y: (maxLat - c.lat) * scale + offsetY,
-        }));
-        setAllCities(allProjected);
+      .then((data) => {
+        setGeoJson(data);
+        const layer = L.geoJSON(data as never);
+        const bounds = layer.getBounds();
+        setMapBounds(bounds);
         setLoading(false);
       })
       .catch(() => {
         setError(true);
         setLoading(false);
       });
-  }, [provinceName, cityCoords]);
+  }, [provinceName]);
+
+  const markers = useMemo(() => {
+    const prov = getProvinceByName(provinceName);
+    if (!prov) return null;
+
+    const allCities = prov.cities.map((c) => ({
+      name: c.name,
+      lat: c.lat,
+      lng: c.lng,
+      visited: visitedSet.has(c.name),
+    }));
+
+    const sorted = [...allCities].sort((a, b) => (b.visited ? 1 : 0) - (a.visited ? 1 : 0));
+    return sorted.map((city) => (
+      <Marker
+        key={city.name}
+        position={[city.lat, city.lng] as [number, number]}
+        icon={createPinIcon(city.visited, city.name)}
+        eventHandlers={{ click: () => onCityClick?.(city.name) }}
+      >
+        <Popup>
+          <div style={{ textAlign: 'center', fontFamily: 'var(--font-manrope, sans-serif)' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: city.visited ? '#c99a6c' : '#8d6b2a', marginBottom: 2 }}>
+              {city.visited ? '★ ' : ''}{city.name}
+            </div>
+            <div style={{ fontSize: 11, color: '#9A8B7A' }}>
+              {city.visited ? '已访问' : '未访问'}
+            </div>
+          </div>
+        </Popup>
+      </Marker>
+    ));
+  }, [provinceName, visitedCities, onCityClick]);
 
   if (error) {
     return (
       <div className="w-full py-4 text-center text-sm" style={{ color: '#9A8B7A' }}>
         <p>地图加载失败</p>
-        {onBack && (
-          <button onClick={onBack} className="mt-2 px-4 py-1.5 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.08)', color: '#dac2b6' }}>
-            返回列表
-          </button>
-        )}
       </div>
     );
   }
 
-  if (loading) {
+  if (loading || !mapBounds) {
     return (
       <div className="w-full py-4 text-center text-sm" style={{ color: '#9A8B7A' }}>
         加载地图中...
@@ -98,87 +144,75 @@ export function WoodReliefMap({ provinceName, visitedCities, cityCoords, onCityC
     );
   }
 
+  const center = mapBounds.getCenter();
+
   return (
-    <svg
-      viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
-      className="w-full h-full"
-      style={{ background: '#352118', cursor: 'grab' }}
-      onMouseDown={zoom.onMouseDown}
-      onMouseMove={zoom.onMouseMove}
-      onWheel={zoom.onWheel}
-      onTouchStart={zoom.onTouchStart}
-      onTouchMove={zoom.onTouchMove}
-      onTouchEnd={zoom.onTouchEnd}
-    >
-      <defs>
-        <filter id="wood-carve">
-          <feTurbulence type="fractalNoise" baseFrequency="0.03 0.15" numOctaves="4" seed="7" result="noise" />
-          <feDiffuseLighting in="noise" surfaceScale="1.5" lightingColor="#c99a6c" diffuseConstant="0.6" result="light">
-            <feDistantLight azimuth="135" elevation="50" />
-          </feDiffuseLighting>
-          <feComposite in="SourceGraphic" in2="light" operator="arithmetic" k1="0.6" k2="0.4" k3="0" k4="0" />
-        </filter>
-        <filter id="seal-shadow">
-          <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#1a0f05" flood-opacity="0.6" />
-        </filter>
-        <filter id="outline-glow">
-          <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#8d6b2a" flood-opacity="0.3" />
-        </filter>
-      </defs>
-
-      {/* Background */}
-      <rect x={-2000} y={-2000} width={SVG_WIDTH + 4000} height={SVG_HEIGHT + 4000} fill="#352118" />
-
-      <g transform={zoom.transform}>
-        {/* Province outline — carved relief */}
-        <g filter="url(#wood-carve)">
-          {svgPaths.map((d, i) => (
-            <path key={i} d={d} fill="#2a1a0e" stroke="#8d6b2a" strokeWidth="0.8" opacity="0.9" />
-          ))}
-        </g>
-
-        {svgPaths.map((d, i) => (
-          <path key={`outline-${i}`} d={d} fill="none" stroke="#c99a6c" strokeWidth="0.5" filter="url(#outline-glow)" opacity="0.6" />
-        ))}
-
-        {/* All cities */}
-        {allCities.map((city) => {
-          const isVisited = projectedCoords[city.name] !== undefined;
-          if (isVisited) {
-            return (
-              <SealMarker
-                key={city.name}
-                x={city.x}
-                y={city.y}
-                label={city.name}
-                size={7}
-                onClick={() => onCityClick?.(city.name)}
-              />
-            );
-          }
-          return (
-            <g key={city.name} transform={`translate(${city.x}, ${city.y})`}>
-              <circle r={5} fill="none" stroke="#8d6b2a" strokeWidth="0.8" opacity="0.4" />
-              <circle r={2} fill="#8d6b2a" opacity="0.35" />
-              <text
-                y={-8}
-                textAnchor="middle"
-                fontSize={8}
-                fill="#8d6b2a"
-                opacity={0.45}
-                style={{ paintOrder: 'stroke', stroke: '#352118', strokeWidth: 2 }}
-              >
-                {city.name}
-              </text>
-            </g>
-          );
-        })}
-
-        {/* Compass — not zoomed */}
-      </g>
-
-      {/* Compass fixed on top */}
-      <SvgCompass x={720} y={55} size={42} />
-    </svg>
+    <>
+      <style>{`
+        .leaflet-control-attribution { display: none !important; }
+        .leaflet-control-zoom { display: none !important; }
+        .leaflet-tile-pane {
+          filter: brightness(0.95) saturate(0.85);
+        }
+        .leaflet-tile {
+          background: #3a2f25;
+        }
+        .leaflet-popup-content-wrapper {
+          background: rgba(255,250,240,0.97) !important;
+          border: 1px solid rgba(201,154,108,0.4) !important;
+          border-radius: 16px !important;
+          box-shadow: 0 8px 32px rgba(86,58,49,0.2) !important;
+        }
+        .leaflet-popup-tip {
+          background: rgba(255,250,240,0.97) !important;
+          box-shadow: none !important;
+        }
+        .leaflet-popup-content {
+          margin: 12px 18px !important;
+          line-height: 1.4 !important;
+        }
+        .leaflet-popup-close-button {
+          color: #9A8B7A !important;
+          font-size: 20px !important;
+        }
+        .leaflet-container {
+          border-radius: 8px;
+          background: #1a130c;
+        }
+      `}</style>
+      <MapContainer
+        center={[center.lat, center.lng]}
+        zoom={10}
+        style={{ width: '100%', height: '100%' }}
+        scrollWheelZoom={true}
+        zoomControl={false}
+        maxBounds={mapBounds}
+        minZoom={mapBounds ? undefined : 4}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution=""
+          maxZoom={18}
+          errorTileUrl="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+          subdomains={["a", "b", "c"]}
+        />
+        {geoJson && (
+          <>
+            <FitBounds geoJson={geoJson} />
+            <GeoJSON
+              data={geoJson as never}
+              style={() => ({
+                fillColor: 'transparent',
+                fillOpacity: 0,
+                color: '#c99a6c',
+                weight: 2,
+                opacity: 0.6,
+              })}
+            />
+          </>
+        )}
+        {markers}
+      </MapContainer>
+    </>
   );
 }
