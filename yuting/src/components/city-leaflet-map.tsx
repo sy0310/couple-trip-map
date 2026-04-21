@@ -14,17 +14,17 @@ interface CityLeafletMapProps {
 }
 
 function calcMinZoom(bounds: L.LatLngBounds): number {
-  const latRange = bounds.getNorth() - bounds.getSouth();
-  const lngRange = bounds.getEast() - bounds.getWest();
-  const maxRange = Math.max(lngRange, latRange * 1.5);
+  const containerW = 800;
+  const containerH = 380;
+  const tileSize = 256;
 
-  for (let z = 1; z <= 18; z++) {
-    const tilesWide = 2 ** z;
-    const degreesPerTile = 360 / tilesWide;
-    const tilesNeeded = maxRange / degreesPerTile;
-    if (tilesNeeded <= 1.8) return z;
-  }
-  return 8;
+  const lngRange = bounds.getEast() - bounds.getWest();
+  const latRange = bounds.getNorth() - bounds.getSouth();
+
+  const zLng = Math.ceil(Math.log2((containerW / tileSize) * 360 / lngRange));
+  const zLat = Math.ceil(Math.log2((containerH / tileSize) * 170 / latRange));
+
+  return Math.max(zLng, zLat, 9);
 }
 
 function createPinIcon(visited: boolean, name: string) {
