@@ -18,11 +18,64 @@ function FitBounds({ geoJson, onMinZoomReady }: { geoJson: Record<string, unknow
   useEffect(() => {
     const layer = L.geoJSON(geoJson as never);
     const bounds = layer.getBounds();
-    map.fitBounds(bounds, { padding: [20, 20], maxZoom: 8 });
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
     const zoom = map.getZoom();
     onMinZoomReady?.(zoom);
   }, [geoJson, map, onMinZoomReady]);
   return null;
+}
+
+function createInvertedMask(geoJson: Record<string, unknown>): Record<string, unknown> | null {
+  const layer = L.geoJSON(geoJson as never);
+  const bounds = layer.getBounds();
+  const pad = 5;
+  const outer = [
+    [-180 + bounds.getWest() - pad, -180 + bounds.getSouth() - pad],
+    [180 + bounds.getEast() + pad, -180 + bounds.getSouth() - pad],
+    [180 + bounds.getEast() + pad, 180 + bounds.getNorth() + pad],
+    [-180 + bounds.getWest() - pad, 180 + bounds.getNorth() + pad],
+    [-180 + bounds.getWest() - pad, -180 + bounds.getSouth() - pad],
+  ];
+
+  const innerRings: number[][][] = [];
+  const features = (geoJson as { features?: { geometry?: { coordinates?: number[][][][] | number[][][] } }[] }).features || [];
+  for (const feature of features) {
+    const coords = feature.geometry?.coordinates;
+    if (!coords) continue;
+    if (Array.isArray(coords[0]?.[0]?.[0]) && Array.isArray(coords[0][0][0][0])) {
+      for (const polygon of coords as number[][][][]) {
+        for (let i = 1; i < polygon.length; i++) {
+          innerRings.push(polygon[i]);
+        }
+      }
+    } else if (Array.isArray(coords[0]?.[0]) && Array.isArray(coords[0][0][0])) {
+      // Polygon: [[...], [...]]
+      for (let i = 1; i < (coords as number[][][]).length; i++) {
+        innerRings.push((coords as number[][][])[i] as number[][]);
+      }
+    }
+  }
+
+  if (innerRings.length === 0) {
+    const features2 = (geoJson as { features?: { geometry?: { coordinates?: number[][][] } }[] }).features || [];
+    for (const feature of features2) {
+      const coords = feature.geometry?.coordinates;
+      if (coords && Array.isArray(coords[0])) {
+        innerRings.push(coords[0]);
+      }
+    }
+  }
+
+  const coordinates = [outer, ...innerRings];
+
+  return {
+    type: 'Feature',
+    geometry: {
+      type: 'Polygon',
+      coordinates,
+    },
+    properties: {},
+  };
 }
 
 function createPinIcon(visited: boolean, name: string) {
@@ -68,6 +121,7 @@ function createPinIcon(visited: boolean, name: string) {
 
 export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: CityLeafletMapProps) {
   const [minZoom, setMinZoom] = useState<number>(8);
+  const [maskGeoJson, setMaskGeoJson] = useState<Record<string, unknown> | null>(null);
 
   const mapBounds = useMemo(() => {
     if (geoJson) {
@@ -75,6 +129,13 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: 
       return layer.getBounds();
     }
     return null;
+  }, [geoJson]);
+
+  useEffect(() => {
+    if (geoJson) {
+      const mask = createInvertedMask(geoJson);
+      setMaskGeoJson(mask);
+    }
   }, [geoJson]);
 
   const markers = useMemo(() => {
@@ -116,12 +177,6 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: 
       <style>{`
         .leaflet-control-attribution { display: none !important; }
         .leaflet-control-zoom { display: none !important; }
-        .leaflet-tile-pane {
-          filter: brightness(0.95) saturate(0.85);
-        }
-        .leaflet-tile {
-          background: #3a2f25;
-        }
         .leaflet-popup-content-wrapper {
           background: rgba(255,250,240,0.97) !important;
           border: 1px solid rgba(201,154,108,0.4) !important;
@@ -165,6 +220,21 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: 
         {geoJson && (
           <>
             <FitBounds geoJson={geoJson} onMinZoomReady={setMinZoom} />
+            {/* Dark mask over tiles outside city */}
+            {maskGeoJson && (
+              <GeoJSON
+                data={maskGeoJson as never}
+                style={() => ({
+                  fillColor: '#1a130c',
+                  fillOpacity: 0.95,
+                  color: 'transparent',
+                  weight: 0,
+                  opacity: 0,
+                })}
+                interactive={false}
+              />
+            )}
+            {/* Gold city boundary */}
             <GeoJSON
               data={geoJson as never}
               style={() => ({
