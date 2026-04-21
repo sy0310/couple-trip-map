@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/bottom-nav';
 import { RoomPanel } from '@/components/furniture';
-import { CityMap } from '@/components/city-map';
+import { WoodReliefCityMap as CityMap } from '@/components/wood-relief-city-map';
 import { getCoupleId, getTripsByCity, getPhotosByTrip } from '@/lib/trips';
 import { AddTripForm } from '@/components/add-trip-form';
 import { normalizeProvinceName, getProvinceByName } from '@/lib/provinces';
