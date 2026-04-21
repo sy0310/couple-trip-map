@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from 'react-leaflet';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getProvinceByName } from '@/lib/provinces';
@@ -13,24 +13,27 @@ interface ProvinceLeafletMapProps {
   onCityClick?: (name: string) => void;
 }
 
-function calcMinZoom(bounds: L.LatLngBounds): number {
-  // Estimate the zoom level where bounds fills a ~800x380 container
-  const containerW = 800;
-  const containerH = 380;
-  const tileSize = 256;
+function FitAndLock({ geoJson }: { geoJson: Record<string, unknown> }) {
+  const map = useMap();
+  const initialized = useRef(false);
 
-  const lngRange = bounds.getEast() - bounds.getWest();
-  const latRange = bounds.getNorth() - bounds.getSouth();
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
 
-  // How many degrees fit in the container at zoom z
-  // visibleLng = (containerW / tileSize) * (360 / 2^z)
-  // visibleLat = (containerH / tileSize) * (170 / 2^z)  (Mercator)
-  // Need: visibleLng >= lngRange AND visibleLat >= latRange
-  const zLng = Math.ceil(Math.log2((containerW / tileSize) * 360 / lngRange));
-  const zLat = Math.ceil(Math.log2((containerH / tileSize) * 170 / latRange));
+    const layer = L.geoJSON(geoJson as never);
+    const bounds = layer.getBounds();
 
-  // Use the more restrictive (higher) zoom
-  return Math.max(zLng, zLat, 7); // floor at 7 so provinces are never too zoomed in globally
+    // Fit bounds to map
+    map.fitBounds(bounds, { padding: [20, 20] });
+
+    // After fitting, get the zoom and lock it as minZoom
+    const zoom = map.getZoom();
+    map.setMinZoom(zoom);
+    map.setMaxBounds(bounds.pad(0.01));
+  }, [geoJson, map]);
+
+  return null;
 }
 
 function createPinIcon(visited: boolean, name: string) {
@@ -77,11 +80,11 @@ function createPinIcon(visited: boolean, name: string) {
 export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, onCityClick }: ProvinceLeafletMapProps) {
   const visitedSet = new Set(visitedCities);
 
-  const mapInfo = useMemo(() => {
+  const mapCenter = useMemo(() => {
     if (!geoJson) return null;
     const layer = L.geoJSON(geoJson as never);
     const bounds = layer.getBounds();
-    return { bounds, center: bounds.getCenter(), minZoom: calcMinZoom(bounds) };
+    return bounds.getCenter();
   }, [geoJson]);
 
   const markers = useMemo(() => {
@@ -117,7 +120,7 @@ export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, onCit
     ));
   }, [provinceName, visitedCities, onCityClick]);
 
-  if (!mapInfo) {
+  if (!mapCenter) {
     return (
       <div className="w-full py-4 text-center text-sm" style={{ color: '#9A8B7A' }}>
         地图加载中...
@@ -152,19 +155,15 @@ export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, onCit
           border-radius: 8px;
           background: #1a130c;
         }
-        .leaflet-pane { z-index: 1; }
-        .leaflet-overlay-pane svg { z-index: 1; }
       `}</style>
       <MapContainer
-        center={[mapInfo.center.lat, mapInfo.center.lng]}
-        zoom={mapInfo.minZoom}
-        style={{ width: '100%', height: '100%', background: '#1a130c' }}
+        center={[mapCenter.lat, mapCenter.lng]}
+        zoom={7}
+        style={{ width: '100%', height: '100%' }}
         scrollWheelZoom={true}
         zoomControl={false}
-        maxBounds={mapInfo.bounds}
-        maxBoundsViscosity={1.0}
-        minZoom={mapInfo.minZoom}
       >
+        {geoJson && <FitAndLock geoJson={geoJson} />}
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution=""

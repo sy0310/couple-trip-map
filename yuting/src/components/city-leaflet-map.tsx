@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from 'react-leaflet';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -13,18 +13,27 @@ interface CityLeafletMapProps {
   onSpotClick?: (name: string) => void;
 }
 
-function calcMinZoom(bounds: L.LatLngBounds): number {
-  const containerW = 800;
-  const containerH = 380;
-  const tileSize = 256;
+function FitAndLock({ geoJson }: { geoJson: Record<string, unknown> }) {
+  const map = useMap();
+  const initialized = useRef(false);
 
-  const lngRange = bounds.getEast() - bounds.getWest();
-  const latRange = bounds.getNorth() - bounds.getSouth();
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
 
-  const zLng = Math.ceil(Math.log2((containerW / tileSize) * 360 / lngRange));
-  const zLat = Math.ceil(Math.log2((containerH / tileSize) * 170 / latRange));
+    const layer = L.geoJSON(geoJson as never);
+    const bounds = layer.getBounds();
 
-  return Math.max(zLng, zLat, 9);
+    // Fit bounds to map
+    map.fitBounds(bounds, { padding: [20, 20] });
+
+    // After fitting, get the zoom and lock it as minZoom
+    const zoom = map.getZoom();
+    map.setMinZoom(zoom);
+    map.setMaxBounds(bounds.pad(0.01));
+  }, [geoJson, map]);
+
+  return null;
 }
 
 function createPinIcon(visited: boolean, name: string) {
@@ -69,11 +78,11 @@ function createPinIcon(visited: boolean, name: string) {
 }
 
 export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: CityLeafletMapProps) {
-  const mapInfo = useMemo(() => {
+  const mapCenter = useMemo(() => {
     if (!geoJson) return null;
     const layer = L.geoJSON(geoJson as never);
     const bounds = layer.getBounds();
-    return { bounds, center: bounds.getCenter(), minZoom: calcMinZoom(bounds) };
+    return bounds.getCenter();
   }, [geoJson]);
 
   const markers = useMemo(() => {
@@ -100,7 +109,7 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: 
     ));
   }, [allSpots, passedSpots, onSpotClick]);
 
-  if (!mapInfo) {
+  if (!mapCenter) {
     return (
       <div className="w-full py-4 text-center text-sm" style={{ color: '#9A8B7A' }}>
         地图加载中...
@@ -135,19 +144,15 @@ export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: 
           border-radius: 8px;
           background: #1a130c;
         }
-        .leaflet-pane { z-index: 1; }
-        .leaflet-overlay-pane svg { z-index: 1; }
       `}</style>
       <MapContainer
-        center={[mapInfo.center.lat, mapInfo.center.lng]}
-        zoom={mapInfo.minZoom}
-        style={{ width: '100%', height: '100%', background: '#1a130c' }}
+        center={[mapCenter.lat, mapCenter.lng]}
+        zoom={8}
+        style={{ width: '100%', height: '100%' }}
         scrollWheelZoom={true}
         zoomControl={false}
-        maxBounds={mapInfo.bounds}
-        maxBoundsViscosity={1.0}
-        minZoom={mapInfo.minZoom}
       >
+        {geoJson && <FitAndLock geoJson={geoJson} />}
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution=""
