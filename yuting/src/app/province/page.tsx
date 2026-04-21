@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/bottom-nav';
 import { RoomPanel } from '@/components/furniture';
-import { ProvinceMap } from '@/components/province-map-leaflet';
+import { ProvinceMap } from '@/components/province-map';
 import { CityMap } from '@/components/city-map';
 import { getCoupleId, getVisitedCities, getVisitedProvinces, getTripsByCity } from '@/lib/trips';
 import { AddTripForm } from '@/components/add-trip-form';
