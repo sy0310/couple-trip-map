@@ -25,12 +25,12 @@ function FitAndLock({ geoJson }: { geoJson: Record<string, unknown> }) {
     const bounds = layer.getBounds();
 
     // Fit bounds to map
-    map.fitBounds(bounds, { padding: [20, 20] });
+    map.fitBounds(bounds, { padding: [20, 20], animate: false });
 
     // After fitting, get the zoom and lock it as minZoom
     const zoom = map.getZoom();
     map.setMinZoom(zoom);
-    map.setMaxBounds(bounds.pad(0.01));
+    map.setMaxBounds(bounds.pad(0.3));
   }, [geoJson, map]);
 
   return null;
@@ -158,10 +158,13 @@ export function ProvinceLeafletMap({ provinceName, visitedCities, geoJson, onCit
       `}</style>
       <MapContainer
         center={[mapCenter.lat, mapCenter.lng]}
-        zoom={7}
+        zoom={10}
         style={{ width: '100%', height: '100%' }}
         scrollWheelZoom={true}
         zoomControl={false}
+        zoomSnap={1}
+        zoomDelta={1}
+        wheelPxPerZoomLevel={80}
       >
         {geoJson && <FitAndLock geoJson={geoJson} />}
         <TileLayer
