@@ -69,14 +69,16 @@ export function WoodReliefCityMap({ cityName, spots, onSpotClick }: WoodReliefCi
 
         setGeoJson(filteredGeoJson);
 
-        // Build all scenic spots for this city
+        // Build all scenic spots for this city — only visited ones
         if (cityData?.scenicSpots && cityData.scenicSpots.length > 0) {
-          const allSpotsWithVisited = cityData.scenicSpots.map((s) => ({
-            name: s.name,
-            lat: s.lat,
-            lng: s.lng,
-            visited: visitedSet.has(s.name),
-          }));
+          const allSpotsWithVisited = cityData.scenicSpots
+            .filter((s) => visitedSet.has(s.name))
+            .map((s) => ({
+              name: s.name,
+              lat: s.lat,
+              lng: s.lng,
+              visited: true,
+            }));
           setAllSpots(allSpotsWithVisited);
         }
 

@@ -31,8 +31,12 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   const option = {
     geo: {
       map: 'china',
-      roam: false,
+      roam: true,
       zoom: 1.15,
+      scaleLimit: {
+        min: 0.8,
+        max: 3,
+      },
       label: { show: false },
       itemStyle: {
         areaColor: {
