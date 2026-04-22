@@ -29,6 +29,7 @@ function CityContent() {
   const [expandedPhoto, setExpandedPhoto] = useState<string | null>(null);
   const [cityMapSpots, setCityMapSpots] = useState<{ name: string; lat: number; lng: number; visited: boolean }[]>([]);
   const [hasCityData, setHasCityData] = useState(false);
+  const [totalSpotCount, setTotalSpotCount] = useState(0);
 
   useEffect(() => {
     getCoupleId().then((id) => {
@@ -38,6 +39,7 @@ function CityContent() {
       const provinceData = getProvinceByName(provinceName);
       const cityData = provinceData?.cities.find((c) => c.name === cityName);
       setHasCityData(!!cityData?.scenicSpots && cityData.scenicSpots.length > 0);
+      setTotalSpotCount(cityData?.scenicSpots?.length || 0);
 
       if (id) {
         getTripsByCity(id, cityName).then((trips) => {
@@ -85,6 +87,11 @@ function CityContent() {
     setShowAddForm(false);
     getCoupleId().then((id) => {
       if (!id) return;
+
+      const provinceData = getProvinceByName(provinceName);
+      const cityData = provinceData?.cities.find((c) => c.name === cityName);
+      setTotalSpotCount(cityData?.scenicSpots?.length || 0);
+
       getTripsByCity(id, cityName).then((trips) => {
         setTripRecords(trips);
 
@@ -140,11 +147,18 @@ function CityContent() {
         <div className="relative z-10 pt-6 pb-6">
           <h1 className="text-4xl font-bold mb-1" style={{ color: '#3D2E1F', fontFamily: "var(--font-newsreader)" }}>{cityName}</h1>
           {provinceName && <p className="text-base" style={{ color: '#9A8B7A' }}>{provinceName}</p>}
-          <div className="flex justify-center gap-3 mt-5">
-            <span className="text-sm px-4 py-1.5 rounded-full border border-[#E4D5C0]/40" style={{ background: '#FAF5EF', color: '#9A8B7A' }}>
-              旅行 {loading ? '...' : tripRecords.length} 次
-            </span>
+          <div className="flex justify-center gap-8 text-base mt-5" style={{ color: '#9A8B7A' }}>
+            <span>已访问 <span className="font-semibold text-lg" style={{ color: '#3D2E1F' }}>{cityMapSpots.length}</span>/{totalSpotCount} 个景点</span>
+            <span>完成度 <span className="font-semibold text-lg" style={{ color: '#c99a6c' }}>{totalSpotCount > 0 ? Math.round((cityMapSpots.length / totalSpotCount) * 100) : 0}%</span></span>
           </div>
+          {totalSpotCount > 0 && (
+            <div className="h-3 bg-[#F3EBE0] rounded-full overflow-hidden max-w-md mx-auto mt-3 border border-[#E4D5C0]/30">
+              <div
+                className="h-full transition-all duration-500 ease-out rounded-full"
+                style={{ width: `${Math.round((cityMapSpots.length / totalSpotCount) * 100)}%`, background: 'linear-gradient(90deg, #c99a6c, #b8895e)' }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
