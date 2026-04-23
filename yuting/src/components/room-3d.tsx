@@ -17,7 +17,6 @@ interface Room3DProps {
   onProvinceClick?: (name: string) => void;
   onCityClick?: (cityName: string) => void;
   onDiaryClick?: () => void;
-  onAlbumClick?: () => void;
   onProfileClick?: () => void;
   visitedProvinces?: string[];
   visitedCities?: { name: string; province: string; lat: number; lng: number; photoCount: number; coverUrl?: string }[];
@@ -106,7 +105,6 @@ export function Room3D({
   onProvinceClick,
   onCityClick,
   onDiaryClick,
-  onAlbumClick,
   onProfileClick,
   visitedProvinces = [],
   visitedCities = [],
@@ -116,10 +114,12 @@ export function Room3D({
   totalProvinces = TOTAL_PROVINCES,
 }: Room3DProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(allPhotos[0]?.file_url ?? null);
-  const [showPicker, setShowPicker] = useState(false);
+  const [selectedPhotoRight, setSelectedPhotoRight] = useState<string | null>(allPhotos[1]?.file_url ?? allPhotos[0]?.file_url ?? null);
+  const [showPicker, setShowPicker] = useState<'left' | 'right' | null>(null);
 
   const latestPhoto = allPhotos[0]?.file_url ?? null;
   const displayUrl = selectedPhoto ?? latestPhoto;
+  const displayUrlRight = selectedPhotoRight ?? allPhotos[1]?.file_url ?? allPhotos[0]?.file_url ?? null;
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-x-hidden">
@@ -194,11 +194,7 @@ export function Room3D({
               transform: 'rotate(-2deg)',
               transition: 'transform 0.3s ease',
             }}
-            onClick={() => {
-              if (allPhotos.length > 0) {
-                setShowPicker(true);
-              }
-            }}
+            onClick={() => allPhotos.length > 0 && setShowPicker('left')}
             onMouseEnter={(e) => (e.currentTarget.style.transform = 'rotate(0deg)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'rotate(-2deg)')}
           >
@@ -236,7 +232,7 @@ export function Room3D({
             </div>
           </div>
 
-          {/* Right frame */}
+          {/* Right frame — also displays a photo, clickable to pick */}
           <div
             className="relative flex-1 rounded-sm p-1.5 cursor-pointer wood-walnut border border-[#1f120c] mt-4"
             style={{
@@ -244,7 +240,7 @@ export function Room3D({
               transform: 'rotate(3deg)',
               transition: 'transform 0.3s ease',
             }}
-            onClick={onAlbumClick}
+            onClick={() => allPhotos.length > 0 && setShowPicker('right')}
             onMouseEnter={(e) => (e.currentTarget.style.transform = 'rotate(0deg)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'rotate(3deg)')}
           >
@@ -255,9 +251,19 @@ export function Room3D({
                 background: 'linear-gradient(180deg, #4682B4 0%, #87CEEB 40%, #F5DEB3 70%, #DEB887 100%)',
               }}
             >
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-xs" style={{ color: 'rgba(255,222,165,0.5)' }}>📷</span>
-              </div>
+              {displayUrlRight ? (
+                <Image
+                  src={displayUrlRight}
+                  alt="旅行照片"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="text-xs" style={{ color: 'rgba(255,222,165,0.5)' }}>📷</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -358,11 +364,15 @@ export function Room3D({
       {showPicker && (
         <PhotoPickerModal
           photos={allPhotos}
-          currentUrl={selectedPhoto}
+          currentUrl={showPicker === 'left' ? displayUrl : displayUrlRight}
           onSelect={(photo) => {
-            setSelectedPhoto(photo.file_url);
+            if (showPicker === 'left') {
+              setSelectedPhoto(photo.file_url);
+            } else {
+              setSelectedPhotoRight(photo.file_url);
+            }
           }}
-          onClose={() => setShowPicker(false)}
+          onClose={() => setShowPicker(null)}
         />
       )}
     </div>

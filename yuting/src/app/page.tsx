@@ -75,9 +75,6 @@ export default function HomePage() {
       onDiaryClick={() => {
         window.location.href = '/album';
       }}
-      onAlbumClick={() => {
-        window.location.href = '/album';
-      }}
       onProfileClick={() => {
         window.location.href = '/profile';
       }}

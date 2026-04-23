@@ -18,7 +18,7 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch('/china.json')
+    fetch('/china.json?v=2')
       .then((res) => res.json())
       .then((geoJson) => {
         // Remove South China Sea islands (adcode 100000_JD)
@@ -171,36 +171,20 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   }
 
   return (
-    <div
-      className="w-full h-full"
-      style={{
-        perspective: '1200px',
-        perspectiveOrigin: '50% 30%',
+    <ReactECharts
+      ref={chartRef}
+      option={option}
+      style={{ width: '100%', height: '100%' }}
+      onEvents={{
+        click: (params: { name: string; componentType: string; seriesType: string }) => {
+          if (params.seriesType === 'scatter') {
+            onCityClick?.(params.name);
+          } else {
+            const normalizedName = normalizeProvinceName(params.name);
+            onProvinceClick?.(normalizedName);
+          }
+        },
       }}
-    >
-      <div
-        style={{
-          transform: 'rotateX(6deg)',
-          transformOrigin: 'center top',
-          filter: 'drop-shadow(0 12px 20px rgba(0,0,0,0.3))',
-        }}
-      >
-        <ReactECharts
-          ref={chartRef}
-          option={option}
-          style={{ width: '100%', height: '100%' }}
-          onEvents={{
-            click: (params: { name: string; componentType: string; seriesType: string }) => {
-              if (params.seriesType === 'scatter') {
-                onCityClick?.(params.name);
-              } else {
-                const normalizedName = normalizeProvinceName(params.name);
-                onProvinceClick?.(normalizedName);
-              }
-            },
-          }}
-        />
-      </div>
-    </div>
+    />
   );
 }
