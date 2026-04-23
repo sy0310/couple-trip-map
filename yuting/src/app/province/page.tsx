@@ -8,6 +8,7 @@ import { WoodReliefMap as ProvinceMap } from '@/components/wood-relief-map';
 import { WoodReliefCityMap as CityMap } from '@/components/wood-relief-city-map';
 import { getCoupleId, getVisitedCities, getVisitedProvinces, getTripsByCity } from '@/lib/trips';
 import { AddTripForm } from '@/components/add-trip-form';
+import { LoadingScreen } from '@/components/loading-screen';
 import { getProvinceByName, normalizeProvinceName, getGeoJsonFileName } from '@/lib/provinces';
 
 const MUNICIPALITIES = new Set(['北京', '上海', '天津', '重庆']);
@@ -289,7 +290,7 @@ function ProvinceContent() {
 
 export default function ProvincePage() {
   return (
-    <Suspense fallback={<div className="container text-center py-24" style={{ color: '#9A8B7A' }}>加载中...</div>}>
+    <Suspense fallback={<LoadingScreen />}>
       <ProvinceContent />
     </Suspense>
   );

@@ -4,6 +4,7 @@ import { useRef, useEffect, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import { normalizeProvinceName, provinceToGeoJsonName } from '@/lib/provinces';
+import { LoadingScreen } from '@/components/loading-screen';
 
 interface WoodMapProps {
   visitedProvinces: string[];
@@ -16,9 +17,43 @@ interface WoodMapProps {
   completionRate?: string;
 }
 
+// Remove coordinates with latitude < 15 (South China Sea islands / 南沙群岛)
+function filterSouthChinaSeaIslands(geoJson: Record<string, unknown>): Record<string, unknown> {
+  const features = (geoJson as { features?: unknown[] }).features;
+  if (!features) return geoJson;
+
+  for (const feature of features) {
+    const f = feature as { geometry?: { type: string; coordinates: number[][][][] } };
+    const geometry = f.geometry;
+    if (!geometry?.coordinates) continue;
+
+    geometry.coordinates = geometry.coordinates.map((group) => {
+      const allCoords = group.flat(2) as unknown as number[][];
+      const minLat = Math.min(...allCoords.map((c) => c[1]));
+      return minLat < 15 ? [] : group;
+    }).filter((g) => g.length > 0);
+  }
+
+  return geoJson;
+}
+
+// Compute zoom so mainland China fills the container
+function computeZoom(containerWidth: number, containerHeight: number): number {
+  const geoWidth = 135.1 - 73.5; // ~61.6
+  const geoHeight = 53.6 - 15; // ~38.6
+  const geoAspect = geoWidth / geoHeight;
+  const containerAspect = containerWidth / containerHeight;
+
+  if (containerAspect > geoAspect) {
+    return (containerHeight / geoHeight) * 0.9;
+  }
+  return (containerWidth / geoWidth) * 0.9;
+}
+
 export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick, onCityClick, onMapReady, provinceCount, cityCount, completionRate }: WoodMapProps) {
   const chartRef = useRef<ReactECharts>(null);
   const [loaded, setLoaded] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   const flightLineData = (() => {
     if (visitedCities.length < 2) return [];
@@ -33,24 +68,33 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   useEffect(() => {
     fetch('/china.json?v=5')
       .then((res) => res.json())
-      .then((geoJson) => {
+      .then((geoJson: Record<string, unknown>) => {
         setTimeout(() => {
-          echarts.registerMap('china', geoJson);
+          const cleaned = filterSouthChinaSeaIslands(geoJson);
+          echarts.registerMap('china', cleaned as never);
           setLoaded(true);
           onMapReady?.();
-          requestAnimationFrame(() => chartRef.current?.getEchartsInstance().resize());
         }, 50);
       })
       .catch((err) => console.error('Failed to load China GeoJSON:', err));
   }, [onMapReady]);
 
-  // Resize ECharts when container changes
+  // Resize ECharts and compute zoom when container changes
   useEffect(() => {
     if (!loaded || !chartRef.current) return;
     const instance = chartRef.current.getEchartsInstance();
     const dom = instance.getDom();
     if (!dom?.parentElement) return;
-    const observer = new ResizeObserver(() => instance.resize());
+
+    const observer = new ResizeObserver((entries) => {
+      const rect = entries[0]?.contentRect;
+      if (!rect?.width || !rect?.height) return;
+      instance.resize();
+
+      const newZoom = computeZoom(rect.width, rect.height);
+      setZoom(newZoom);
+      instance.setOption({ geo: { zoom: newZoom } }, false);
+    });
     observer.observe(dom.parentElement);
     return () => observer.disconnect();
   }, [loaded]);
@@ -59,11 +103,12 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
     geo: {
       map: 'china',
       roam: true,
-      layoutCenter: ['50%', '50%'],
-      layoutSize: '100%',
+      zoom,
+      left: 'center',
+      top: 'center',
       scaleLimit: {
-        min: 0.8,
-        max: 3,
+        min: 0.5,
+        max: 8,
       },
       label: { show: false },
       light: {
@@ -148,7 +193,6 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
       },
     },
     series: [
-      // Flight lines connecting visited cities
       ...(visitedCities.length >= 2 ? [{
         name: '旅行路线',
         type: 'lines' as const,
@@ -170,7 +214,6 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
         data: flightLineData,
         zlevel: 1,
       }] : []),
-      // City markers as scatter points on the geo coordinate system
       {
         name: '已访问城市',
         type: 'effectScatter' as const,
@@ -228,76 +271,11 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   };
 
   if (!loaded) {
-    return (
-      <div
-        className="flex flex-col items-center justify-center w-full h-full relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #2c160e 0%, #3a1f14 40%, #26120b 100%)' }}
-      >
-        {/* 环境光晕 */}
-        <div
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            width: '80%',
-            height: '80%',
-            maxWidth: 400,
-            maxHeight: 400,
-            background: '#775a19',
-            opacity: 0.05,
-            filter: 'blur(120px)',
-          }}
-        />
-
-        {/* 标题 */}
-        <h2
-          className="italic text-xl tracking-wide mb-6 relative z-10"
-          style={{
-            color: '#ffdea5',
-            fontFamily: "'Newsreader', serif",
-            textShadow: '0 2px 4px rgba(0,0,0,0.8)',
-          }}
-        >
-          加载地图中...
-        </h2>
-
-        {/* 进度条容器 — 凹槽效果 */}
-        <div
-          className="w-[80%] max-w-[240px] h-3 rounded-full relative overflow-hidden"
-          style={{
-            background: '#1a0f0a',
-            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.05)',
-          }}
-        >
-          {/* 进度填充 — 金色渐变 */}
-          <div
-            className="h-full rounded-full animate-pulse"
-            style={{
-              width: '60%',
-              background: 'linear-gradient(90deg, #775a19, #e9c176, #775a19)',
-              boxShadow: '0 0 10px rgba(233,193,118,0.5)',
-            }}
-          >
-            <div className="absolute inset-0 border-t border-white/20 rounded-full" />
-          </div>
-        </div>
-
-        {/* 副文字 */}
-        <p
-          className="text-sm mt-3 tracking-wide font-medium relative z-10"
-          style={{
-            color: '#dac2b6',
-            opacity: 0.7,
-            fontFamily: "'Manrope', sans-serif",
-          }}
-        >
-          正在绘制你们的旅途...
-        </p>
-      </div>
-    );
+    return <LoadingScreen message="加载地图中..." subMessage="正在绘制你们的旅途..." />;
   }
 
   return (
     <>
-      {/* Progress statistics panel */}
       <div
         className="absolute top-3 left-3 px-3 py-2 rounded-sm"
         style={{

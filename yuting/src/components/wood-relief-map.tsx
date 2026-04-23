@@ -3,16 +3,9 @@
 import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
 import { getProvinceByName, getGeoJsonFileName } from '@/lib/provinces';
+import { LoadingScreen } from '@/components/loading-screen';
 
 const LeafletMapView = dynamic(() => import('./province-leaflet-map').then((mod) => mod.ProvinceLeafletMap), { ssr: false });
-
-function LoadingState() {
-  return (
-    <div className="w-full py-4 text-center text-sm" style={{ color: '#9A8B7A' }}>
-      加载地图中...
-    </div>
-  );
-}
 
 interface WoodReliefMapProps {
   provinceName: string;
@@ -58,7 +51,7 @@ export function WoodReliefMap({ provinceName, visitedCities, cityCoords, onCityC
   }
 
   if (loading) {
-    return <LoadingState />;
+    return <LoadingScreen message="加载地图中..." />;
   }
 
   return (
