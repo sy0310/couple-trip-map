@@ -59,17 +59,30 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
         echarts.registerMap('china', filteredGeoJson);
         setLoaded(true);
         onMapReady?.();
-        setTimeout(() => chartRef.current?.getEchartsInstance().resize(), 100);
       })
       .catch((err) => console.error('Failed to load China GeoJSON:', err));
   }, [onMapReady]);
+
+  // Resize ECharts when container changes
+  useEffect(() => {
+    if (!loaded || !chartRef.current) return;
+    const instance = chartRef.current.getEchartsInstance();
+    const dom = instance.getDom();
+    if (!dom?.parentElement) return;
+    const observer = new ResizeObserver(() => instance.resize());
+    observer.observe(dom.parentElement);
+    return () => observer.disconnect();
+  }, [loaded]);
 
   const option = {
     geo: {
       map: 'china',
       roam: true,
-      layoutCenter: ['50%', '50%'],
-      layoutSize: '102%',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      aspectScale: 0.75,
       scaleLimit: {
         min: 0.8,
         max: 3,
@@ -238,8 +251,24 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
 
   if (!loaded) {
     return (
-      <div className="flex items-center justify-center w-full h-full" style={{ background: '#4a3227' }}>
-        <span className="text-sm" style={{ color: '#dac2b6' }}>加载地图中...</span>
+      <div
+        className="flex flex-col items-center justify-center w-full h-full gap-4"
+        style={{ background: '#4a3227' }}
+      >
+        {/* Map outline skeleton */}
+        <div
+          className="rounded-lg animate-pulse"
+          style={{
+            width: '80%',
+            maxWidth: 400,
+            aspectRatio: '4/3',
+            background: 'linear-gradient(135deg, #5a3e30 25%, #6b4c3a 50%, #5a3e30 75%)',
+            backgroundSize: '200% 200%',
+          }}
+        />
+        <span className="text-sm animate-pulse" style={{ color: '#dac2b6' }}>
+          加载地图中...
+        </span>
       </div>
     );
   }
@@ -277,6 +306,7 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
         <ReactECharts
           ref={chartRef}
           option={option}
+          notMerge={true}
           style={{ width: '100%', height: '100%' }}
           onEvents={{
             click: (params: { name: string; componentType: string; seriesType: string }) => {
