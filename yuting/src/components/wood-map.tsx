@@ -21,7 +21,14 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
     fetch('/china.json')
       .then((res) => res.json())
       .then((geoJson) => {
-        echarts.registerMap('china', geoJson);
+        // Remove South China Sea islands (adcode 100000_JD)
+        const filteredGeoJson = {
+          ...geoJson,
+          features: geoJson.features.filter(
+            (f: { properties?: { adcode?: string } }) => f.properties?.adcode !== '100000_JD'
+          ),
+        };
+        echarts.registerMap('china', filteredGeoJson);
         setLoaded(true);
         onMapReady?.();
       })
@@ -164,20 +171,36 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   }
 
   return (
-    <ReactECharts
-      ref={chartRef}
-      option={option}
-      style={{ width: '100%', height: '100%' }}
-      onEvents={{
-        click: (params: { name: string; componentType: string; seriesType: string }) => {
-          if (params.seriesType === 'scatter') {
-            onCityClick?.(params.name);
-          } else {
-            const normalizedName = normalizeProvinceName(params.name);
-            onProvinceClick?.(normalizedName);
-          }
-        },
+    <div
+      className="w-full h-full"
+      style={{
+        perspective: '1200px',
+        perspectiveOrigin: '50% 30%',
       }}
-    />
+    >
+      <div
+        style={{
+          transform: 'rotateX(6deg)',
+          transformOrigin: 'center top',
+          filter: 'drop-shadow(0 12px 20px rgba(0,0,0,0.3))',
+        }}
+      >
+        <ReactECharts
+          ref={chartRef}
+          option={option}
+          style={{ width: '100%', height: '100%' }}
+          onEvents={{
+            click: (params: { name: string; componentType: string; seriesType: string }) => {
+              if (params.seriesType === 'scatter') {
+                onCityClick?.(params.name);
+              } else {
+                const normalizedName = normalizeProvinceName(params.name);
+                onProvinceClick?.(normalizedName);
+              }
+            },
+          }}
+        />
+      </div>
+    </div>
   );
 }

@@ -4,22 +4,25 @@ import { useState, useEffect } from 'react';
 import { BottomNav } from '@/components/bottom-nav';
 import { Room3D } from '@/components/room-3d';
 import { TOTAL_PROVINCES } from '@/lib/provinces';
-import { getCoupleId, getVisitedProvinces, getVisitedCitiesWithCoords } from '@/lib/trips';
+import { getCoupleId, getVisitedProvinces, getVisitedCitiesWithCoords, getAllPhotosForCouple } from '@/lib/trips';
 
 export default function HomePage() {
   const [visitedProvinces, setVisitedProvinces] = useState<string[]>([]);
   const [visitedCities, setVisitedCities] = useState<Awaited<ReturnType<typeof getVisitedCitiesWithCoords>>>([]);
+  const [allPhotos, setAllPhotos] = useState<Awaited<ReturnType<typeof getAllPhotosForCouple>>>([]);
   const [loading, setLoading] = useState(true);
 
   const [coupleId, setCoupleId] = useState<string | null>(null);
 
   const loadData = async (cid: string) => {
-    const [provinces, cities] = await Promise.all([
+    const [provinces, cities, photos] = await Promise.all([
       getVisitedProvinces(cid),
       getVisitedCitiesWithCoords(cid),
+      getAllPhotosForCouple(cid),
     ]);
     setVisitedProvinces(provinces);
     setVisitedCities(cities);
+    setAllPhotos(photos);
     setLoading(false);
   };
 
@@ -56,6 +59,7 @@ export default function HomePage() {
     <Room3D
       visitedProvinces={visitedProvinces}
       visitedCities={visitedCities}
+      allPhotos={allPhotos}
       visitedCount={loading ? 0 : visitedCount}
       completionRate={loading ? '0.0' : completionRate}
       totalProvinces={TOTAL_PROVINCES}

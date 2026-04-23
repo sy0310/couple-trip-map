@@ -1,8 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { TOTAL_PROVINCES } from '@/lib/provinces';
 import { WoodMap } from '@/components/wood-map';
+
+interface PhotoInfo {
+  id: string;
+  file_url: string;
+  created_at: string;
+  tripLocation?: string;
+}
 
 interface Room3DProps {
   children?: React.ReactNode;
@@ -13,9 +21,84 @@ interface Room3DProps {
   onProfileClick?: () => void;
   visitedProvinces?: string[];
   visitedCities?: { name: string; province: string; lat: number; lng: number; photoCount: number; coverUrl?: string }[];
+  allPhotos?: PhotoInfo[];
   visitedCount?: number;
   completionRate?: string;
   totalProvinces?: number;
+}
+
+function PhotoPickerModal({
+  photos,
+  currentUrl,
+  onSelect,
+  onClose,
+}: {
+  photos: PhotoInfo[];
+  currentUrl: string | null;
+  onSelect: (photo: PhotoInfo) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-[90vw] max-w-md max-h-[70vh] rounded-lg p-4 overflow-y-auto"
+        style={{
+          background: 'linear-gradient(180deg, #3a2519, #2a1b14)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-3">
+          <h3
+            className="text-sm font-medium"
+            style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}
+          >
+            选择照片
+          </h3>
+          <button
+            className="w-6 h-6 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(255,255,255,0.1)', color: '#ffdea5' }}
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {photos.map((photo) => (
+            <button
+              key={photo.id}
+              className="relative aspect-square rounded overflow-hidden border-2 transition-all"
+              style={{
+                borderColor: photo.file_url === currentUrl ? '#ffdea5' : 'transparent',
+                boxShadow: photo.file_url === currentUrl ? '0 0 8px rgba(255,222,165,0.4)' : 'none',
+              }}
+              onClick={() => {
+                onSelect(photo);
+                onClose();
+              }}
+            >
+              <Image
+                src={photo.file_url}
+                alt={photo.tripLocation || '照片'}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            </button>
+          ))}
+        </div>
+        {photos.length === 0 && (
+          <p className="text-center py-8" style={{ color: '#9A8B7A', fontSize: '13px' }}>
+            还没有照片，先去记录旅行吧
+          </p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function Room3D({
@@ -27,11 +110,16 @@ export function Room3D({
   onProfileClick,
   visitedProvinces = [],
   visitedCities = [],
+  allPhotos = [],
   visitedCount = 0,
   completionRate = '0.0',
   totalProvinces = TOTAL_PROVINCES,
 }: Room3DProps) {
-  const [hoveredMap, setHoveredMap] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(allPhotos[0]?.file_url ?? null);
+  const [showPicker, setShowPicker] = useState(false);
+
+  const latestPhoto = allPhotos[0]?.file_url ?? null;
+  const displayUrl = selectedPhoto ?? latestPhoto;
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-x-hidden">
@@ -98,7 +186,7 @@ export function Room3D({
 
         {/* ── RECENT MOMENTS (Photo Frames) ── */}
         <div className="flex gap-3 w-full">
-          {/* Left frame */}
+          {/* Left frame — displays a photo, clickable to pick */}
           <div
             className="relative flex-1 rounded-sm p-1.5 cursor-pointer wood-walnut border border-[#1f120c]"
             style={{
@@ -106,7 +194,11 @@ export function Room3D({
               transform: 'rotate(-2deg)',
               transition: 'transform 0.3s ease',
             }}
-            onClick={onProfileClick}
+            onClick={() => {
+              if (allPhotos.length > 0) {
+                setShowPicker(true);
+              }
+            }}
             onMouseEnter={(e) => (e.currentTarget.style.transform = 'rotate(0deg)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'rotate(-2deg)')}
           >
@@ -117,10 +209,19 @@ export function Room3D({
                 background: 'linear-gradient(180deg, #87CEEB 0%, #DEB887 50%, #8B7355 100%)',
               }}
             >
-              {/* Placeholder — real photo when loaded */}
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-xs" style={{ color: 'rgba(255,222,165,0.5)' }}>👤</span>
-              </div>
+              {displayUrl ? (
+                <Image
+                  src={displayUrl}
+                  alt="旅行照片"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="text-xs" style={{ color: 'rgba(255,222,165,0.5)' }}>👤</span>
+                </div>
+              )}
             </div>
             <div
               className="absolute bottom-1 right-2 px-1 py-0.5 text-[8px]"
@@ -252,6 +353,18 @@ export function Room3D({
       </main>
 
       {children}
+
+      {/* Photo picker modal */}
+      {showPicker && (
+        <PhotoPickerModal
+          photos={allPhotos}
+          currentUrl={selectedPhoto}
+          onSelect={(photo) => {
+            setSelectedPhoto(photo.file_url);
+          }}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
     </div>
   );
 }

@@ -409,6 +409,32 @@ export async function getPhotosByTrip(tripId: string): Promise<PhotoRow[]> {
 }
 
 /**
+ * Fetch all photos for a couple, ordered by created_at descending.
+ */
+export async function getAllPhotosForCouple(
+  coupleId: string
+): Promise<{ id: string; file_url: string; created_at: string; tripLocation?: string }[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('photos')
+    .select('id, file_url, created_at, trips!inner(location_name)')
+    .eq('trips.couple_id', coupleId)
+    .order('created_at', { ascending: false }) as { data: { id: string; file_url: string; created_at: string; trips: { location_name: string | null } }[] | null; error: { message: string } | null };
+
+  if (error) {
+    console.error('Failed to fetch couple photos:', error.message);
+    return [];
+  }
+
+  return (data ?? []).map((p) => ({
+    id: p.id,
+    file_url: p.file_url,
+    created_at: p.created_at,
+    tripLocation: p.trips?.location_name ?? undefined,
+  }));
+}
+
+/**
  * Create a photo record linked to a trip.
  */
 export async function createPhotoRecord(
