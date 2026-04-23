@@ -18,7 +18,7 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch('/china.json?v=2')
+    fetch('/china.json?v=3')
       .then((res) => res.json())
       .then((geoJson) => {
         // Remove South China Sea islands (adcode 100000_JD)
@@ -39,7 +39,8 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
     geo: {
       map: 'china',
       roam: true,
-      zoom: 1.15,
+      layoutCenter: ['50%', '50%'],
+      layoutSize: '115%',
       scaleLimit: {
         min: 0.8,
         max: 3,
@@ -57,6 +58,8 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
         },
         borderColor: '#8d6b2a',
         borderWidth: 1,
+        shadowColor: 'rgba(0,0,0,0.15)',
+        shadowBlur: 3,
       },
       emphasis: {
         label: { color: '#1f120c', fontSize: 11, fontWeight: 700 },
@@ -64,8 +67,10 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
           areaColor: '#8d6b2a',
           borderColor: '#352118',
           borderWidth: 2,
-          shadowColor: 'rgba(53,33,24,0.4)',
-          shadowBlur: 10,
+          shadowColor: 'rgba(53,33,24,0.5)',
+          shadowBlur: 15,
+          shadowOffsetX: 2,
+          shadowOffsetY: 2,
         },
       },
       regions: visitedProvinces.map((name) => ({
@@ -82,8 +87,8 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
           },
           borderColor: '#ffdea5',
           borderWidth: 1.5,
-          shadowColor: 'rgba(255,222,165,0.3)',
-          shadowBlur: 6,
+          shadowColor: 'rgba(255,222,165,0.4)',
+          shadowBlur: 10,
         },
         label: {
           color: '#ffdea5',
