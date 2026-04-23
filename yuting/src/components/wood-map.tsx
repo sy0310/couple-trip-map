@@ -5,11 +5,6 @@ import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import { normalizeProvinceName, provinceToGeoJsonName } from '@/lib/provinces';
 
-interface GeoJsonFeature {
-  properties?: { adcode?: string | number; name?: string };
-  geometry?: { coordinates: unknown[] };
-}
-
 interface WoodMapProps {
   visitedProvinces: string[];
   visitedCities?: { name: string; province: string; lat: number; lng: number; photoCount: number; coverUrl?: string }[];
@@ -36,29 +31,15 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   })();
 
   useEffect(() => {
-    fetch('/china.json?v=4')
+    fetch('/china.json?v=5')
       .then((res) => res.json())
       .then((geoJson) => {
-        // Remove South China Sea islands (adcode 100000_JD)
-        const filteredGeoJson = {
-          ...geoJson,
-          features: geoJson.features.filter((f: GeoJsonFeature) => {
-            const ac = String(f.properties?.adcode ?? '');
-            const name = f.properties?.name ?? '';
-            // Filter South China Sea: adcode contains JD
-            if (ac.includes('JD')) return false;
-            // Safety net: empty name + low-latitude geometry
-            if (!name && f.geometry?.coordinates) {
-              const allNums = f.geometry.coordinates.flat(10) as number[];
-              const lats = allNums.filter((v: unknown, i: number) => typeof v === 'number' && i % 2 === 1) as number[];
-              if (lats.length && Math.max(...lats) < 25) return false;
-            }
-            return true;
-          }),
-        };
-        echarts.registerMap('china', filteredGeoJson);
-        setLoaded(true);
-        onMapReady?.();
+        setTimeout(() => {
+          echarts.registerMap('china', geoJson);
+          setLoaded(true);
+          onMapReady?.();
+          requestAnimationFrame(() => chartRef.current?.getEchartsInstance().resize());
+        }, 50);
       })
       .catch((err) => console.error('Failed to load China GeoJSON:', err));
   }, [onMapReady]);
@@ -78,11 +59,8 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
     geo: {
       map: 'china',
       roam: true,
-      left: 0,
-      right: 0,
-      top: 0,
-      bottom: 0,
-      aspectScale: 0.75,
+      layoutCenter: ['50%', '50%'],
+      layoutSize: '100%',
       scaleLimit: {
         min: 0.8,
         max: 3,
@@ -252,23 +230,67 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   if (!loaded) {
     return (
       <div
-        className="flex flex-col items-center justify-center w-full h-full gap-4"
-        style={{ background: '#4a3227' }}
+        className="flex flex-col items-center justify-center w-full h-full relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #2c160e 0%, #3a1f14 40%, #26120b 100%)' }}
       >
-        {/* Map outline skeleton */}
+        {/* 环境光晕 */}
         <div
-          className="rounded-lg animate-pulse"
+          className="absolute rounded-full pointer-events-none"
           style={{
             width: '80%',
+            height: '80%',
             maxWidth: 400,
-            aspectRatio: '4/3',
-            background: 'linear-gradient(135deg, #5a3e30 25%, #6b4c3a 50%, #5a3e30 75%)',
-            backgroundSize: '200% 200%',
+            maxHeight: 400,
+            background: '#775a19',
+            opacity: 0.05,
+            filter: 'blur(120px)',
           }}
         />
-        <span className="text-sm animate-pulse" style={{ color: '#dac2b6' }}>
+
+        {/* 标题 */}
+        <h2
+          className="italic text-xl tracking-wide mb-6 relative z-10"
+          style={{
+            color: '#ffdea5',
+            fontFamily: "'Newsreader', serif",
+            textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+          }}
+        >
           加载地图中...
-        </span>
+        </h2>
+
+        {/* 进度条容器 — 凹槽效果 */}
+        <div
+          className="w-[80%] max-w-[240px] h-3 rounded-full relative overflow-hidden"
+          style={{
+            background: '#1a0f0a',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.05)',
+          }}
+        >
+          {/* 进度填充 — 金色渐变 */}
+          <div
+            className="h-full rounded-full animate-pulse"
+            style={{
+              width: '60%',
+              background: 'linear-gradient(90deg, #775a19, #e9c176, #775a19)',
+              boxShadow: '0 0 10px rgba(233,193,118,0.5)',
+            }}
+          >
+            <div className="absolute inset-0 border-t border-white/20 rounded-full" />
+          </div>
+        </div>
+
+        {/* 副文字 */}
+        <p
+          className="text-sm mt-3 tracking-wide font-medium relative z-10"
+          style={{
+            color: '#dac2b6',
+            opacity: 0.7,
+            fontFamily: "'Manrope', sans-serif",
+          }}
+        >
+          正在绘制你们的旅途...
+        </p>
       </div>
     );
   }
