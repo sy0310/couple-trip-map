@@ -5,6 +5,11 @@ import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import { normalizeProvinceName, provinceToGeoJsonName } from '@/lib/provinces';
 
+interface GeoJsonFeature {
+  properties?: { adcode?: string | number; name?: string };
+  geometry?: { coordinates: unknown[] };
+}
+
 interface WoodMapProps {
   visitedProvinces: string[];
   visitedCities?: { name: string; province: string; lat: number; lng: number; photoCount: number; coverUrl?: string }[];
@@ -20,6 +25,16 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   const chartRef = useRef<ReactECharts>(null);
   const [loaded, setLoaded] = useState(false);
 
+  const flightLineData = (() => {
+    if (visitedCities.length < 2) return [];
+    const coords = visitedCities.map((c) => [c.lng, c.lat] as [number, number]);
+    return coords.slice(0, -1).map((from, i) => ({
+      fromName: visitedCities[i].name,
+      toName: visitedCities[i + 1].name,
+      coords: [from, coords[i + 1]],
+    }));
+  })();
+
   useEffect(() => {
     fetch('/china.json?v=4')
       .then((res) => res.json())
@@ -27,14 +42,14 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
         // Remove South China Sea islands (adcode 100000_JD)
         const filteredGeoJson = {
           ...geoJson,
-          features: geoJson.features.filter((f: { properties?: Record<string, unknown>; geometry?: unknown }) => {
+          features: geoJson.features.filter((f: GeoJsonFeature) => {
             const ac = String(f.properties?.adcode ?? '');
             const name = f.properties?.name ?? '';
             // Filter South China Sea: adcode contains JD
             if (ac.includes('JD')) return false;
             // Safety net: empty name + low-latitude geometry
-            if (!name && (f.geometry as any)?.coordinates) {
-              const allNums = (f.geometry as any).coordinates.flat(10) as number[];
+            if (!name && f.geometry?.coordinates) {
+              const allNums = f.geometry.coordinates.flat(10) as number[];
               const lats = allNums.filter((v: unknown, i: number) => typeof v === 'number' && i % 2 === 1) as number[];
               if (lats.length && Math.max(...lats) < 25) return false;
             }
@@ -160,14 +175,7 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
           width: 1.5,
           curveness: 0.3,
         },
-        data: (() => {
-          const coords = visitedCities.map((c) => ({ coord: [c.lng, c.lat] as [number, number] }));
-          return coords.slice(0, -1).map((from, i) => ({
-            fromName: visitedCities[i].name,
-            toName: visitedCities[i + 1].name,
-            coords: [from.coord, coords[i + 1].coord],
-          }));
-        })(),
+        data: flightLineData,
         zlevel: 1,
       }] : []),
       // City markers as scatter points on the geo coordinate system
@@ -175,7 +183,7 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
         name: '已访问城市',
         type: 'effectScatter' as const,
         coordinateSystem: 'geo' as const,
-        symbolSize: (val: number[], params: { dataIndex: number }) => {
+        symbolSize: (_val: number[], params: { dataIndex: number }) => {
           const city = visitedCities[params.dataIndex];
           const base = 10;
           const extra = Math.min(8, Math.floor((city?.photoCount ?? 0) / 10));
