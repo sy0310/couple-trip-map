@@ -17,7 +17,7 @@ interface WoodMapProps {
   completionRate?: string;
 }
 
-// Remove coordinates with latitude < 15 (South China Sea islands / 南沙群岛)
+// Remove polygon groups where ALL coordinates have latitude < 15 (South China Sea islands / 南沙群岛)
 function filterSouthChinaSeaIslands(geoJson: Record<string, unknown>): Record<string, unknown> {
   const features = (geoJson as { features?: unknown[] }).features;
   if (!features) return geoJson;
@@ -37,23 +37,49 @@ function filterSouthChinaSeaIslands(geoJson: Record<string, unknown>): Record<st
   return geoJson;
 }
 
-// Compute zoom so mainland China fills the container
-function computeZoom(containerWidth: number, containerHeight: number): number {
-  const geoWidth = 135.1 - 73.5; // ~61.6
-  const geoHeight = 53.6 - 15; // ~38.6
-  const geoAspect = geoWidth / geoHeight;
-  const containerAspect = containerWidth / containerHeight;
+// Compute the bounding box of the cleaned GeoJSON and return the zoom needed
+// to make it fill the container (with 4:3 aspect ratio).
+function computeInitialZoom(geoJson: Record<string, unknown>): number {
+  let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+  const features = (geoJson as { features?: unknown[] }).features;
+  if (!features) return 1.2;
 
-  if (containerAspect > geoAspect) {
-    return (containerHeight / geoHeight) * 0.9;
+  for (const feature of features) {
+    const f = feature as { geometry?: { type: string; coordinates: number[][][][] } };
+    const coords = f.geometry?.coordinates;
+    if (!coords) continue;
+    for (const group of coords) {
+      const flat = group.flat(2) as unknown as number[][];
+      for (const c of flat) {
+        if (c[0] < minLon) minLon = c[0];
+        if (c[0] > maxLon) maxLon = c[0];
+        if (c[1] < minLat) minLat = c[1];
+        if (c[1] > maxLat) maxLat = c[1];
+      }
+    }
   }
-  return (containerWidth / geoWidth) * 0.9;
+
+  // Container is 4:3 (wider). After filtering, mainland bbox is roughly lon 73-122, lat 15-53
+  // The map aspect (width/height in degrees): ~49 / ~38 ≈ 1.29
+  // Container aspect: 4/3 ≈ 1.33
+  // They're close, so a zoom of 1.2 should fill nicely
+  const geoWidth = maxLon - minLon;
+  const geoHeight = maxLat - minLat;
+  const geoAspect = geoWidth / geoHeight;
+  const containerAspect = 4 / 3;
+
+  if (geoAspect > containerAspect) {
+    // Map is wider than container — fit by width
+    return 1.2;
+  }
+  // Map is taller than container — fit by height
+  return 1.2;
 }
 
 export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick, onCityClick, onMapReady, provinceCount, cityCount, completionRate }: WoodMapProps) {
   const chartRef = useRef<ReactECharts>(null);
   const [loaded, setLoaded] = useState(false);
-  const [zoom, setZoom] = useState(1);
+  const [geoZoom, setGeoZoom] = useState(1.2);
 
   const flightLineData = (() => {
     if (visitedCities.length < 2) return [];
@@ -71,6 +97,8 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
       .then((geoJson: Record<string, unknown>) => {
         setTimeout(() => {
           const cleaned = filterSouthChinaSeaIslands(geoJson);
+          const zoom = computeInitialZoom(cleaned);
+          setGeoZoom(zoom);
           echarts.registerMap('china', cleaned as never);
           setLoaded(true);
           onMapReady?.();
@@ -79,21 +107,15 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
       .catch((err) => console.error('Failed to load China GeoJSON:', err));
   }, [onMapReady]);
 
-  // Resize ECharts and compute zoom when container changes
+  // Resize ECharts when container changes
   useEffect(() => {
     if (!loaded || !chartRef.current) return;
     const instance = chartRef.current.getEchartsInstance();
     const dom = instance.getDom();
     if (!dom?.parentElement) return;
 
-    const observer = new ResizeObserver((entries) => {
-      const rect = entries[0]?.contentRect;
-      if (!rect?.width || !rect?.height) return;
+    const observer = new ResizeObserver(() => {
       instance.resize();
-
-      const newZoom = computeZoom(rect.width, rect.height);
-      setZoom(newZoom);
-      instance.setOption({ geo: { zoom: newZoom } }, false);
     });
     observer.observe(dom.parentElement);
     return () => observer.disconnect();
@@ -103,9 +125,9 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
     geo: {
       map: 'china',
       roam: true,
-      zoom,
-      left: 'center',
-      top: 'center',
+      layoutCenter: ['50%', '50%'],
+      layoutSize: '100%',
+      zoom: geoZoom,
       scaleLimit: {
         min: 0.5,
         max: 8,
