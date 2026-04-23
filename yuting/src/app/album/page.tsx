@@ -210,17 +210,41 @@ export default function AlbumPage() {
   if (loading) {
     return (
       <div className="min-h-screen relative pb-32" style={{ background: 'linear-gradient(135deg, #4a2e1d 0%, #352118 50%, #2a1b14 100%)' }}>
-        <div className="relative z-10 max-w-5xl mx-auto px-6 py-12">
-          <div className="text-center py-24" style={{ color: '#9A8B7A' }}>
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl border flex items-center justify-center" style={{ borderColor: 'rgba(255,222,165,0.15)', background: 'rgba(255,255,255,0.04)' }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c99a6c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <path d="M21 15l-5-5L5 21" />
-              </svg>
+        <div className="relative z-10 max-w-5xl mx-auto px-4 py-8">
+          {/* Header skeleton */}
+          <div className="mb-8 flex items-end justify-between">
+            <div>
+              <div className="h-8 w-40 rounded" style={{ background: 'rgba(255,222,165,0.1)', animation: 'pulse 2s ease-in-out infinite' }} />
+              <div className="h-4 w-32 mt-2 rounded" style={{ background: 'rgba(218,194,182,0.08)', animation: 'pulse 2s ease-in-out infinite 0.3s' }} />
             </div>
-            <p className="text-sm" style={{ fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>加载中...</p>
+            <div className="h-10 w-28 rounded-lg" style={{ background: 'rgba(201,154,108,0.15)', animation: 'pulse 2s ease-in-out infinite 0.5s' }} />
           </div>
+
+          {/* Hero skeleton */}
+          <div className="mb-10" style={{ background: '#352118', boxShadow: '0 15px 45px rgba(0,0,0,0.5)', padding: '12px 12px 60px 12px', borderRadius: '8px' }}>
+            <div className="w-full aspect-[4/3] md:aspect-[16/9] rounded" style={{ background: 'rgba(255,222,165,0.06)', animation: 'pulse 2s ease-in-out infinite' }} />
+            <div className="mt-4 px-2">
+              <div className="h-6 w-48 rounded" style={{ background: 'rgba(255,222,165,0.1)', animation: 'pulse 2s ease-in-out infinite 0.2s' }} />
+              <div className="h-4 w-64 mt-2 rounded" style={{ background: 'rgba(218,194,182,0.08)', animation: 'pulse 2s ease-in-out infinite 0.4s' }} />
+            </div>
+          </div>
+
+          {/* Trip card skeletons */}
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="mb-8">
+              <div className="flex items-center gap-4 mb-3">
+                <div className="h-px flex-1" style={{ background: 'rgba(218,194,182,0.15)' }} />
+                <div className="text-center">
+                  <div className="h-5 w-32 rounded" style={{ background: 'rgba(255,222,165,0.1)', animation: 'pulse 2s ease-in-out infinite' }} />
+                  <div className="h-3 w-24 mt-1 rounded" style={{ background: 'rgba(218,194,182,0.06)', animation: 'pulse 2s ease-in-out infinite 0.3s' }} />
+                </div>
+                <div className="h-px flex-1" style={{ background: 'rgba(218,194,182,0.15)' }} />
+              </div>
+              <div className="rounded-lg overflow-hidden border" style={{ borderColor: 'rgba(255,222,165,0.1)' }}>
+                <div className="w-full aspect-[4/3]" style={{ background: 'rgba(255,222,165,0.04)', animation: 'pulse 2s ease-in-out infinite' }} />
+              </div>
+            </div>
+          ))}
         </div>
         <BottomNav />
       </div>

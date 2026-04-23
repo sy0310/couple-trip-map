@@ -166,21 +166,10 @@ export function Room3D({
               visitedCities={visitedCities}
               onProvinceClick={onProvinceClick}
               onCityClick={onCityClick}
+              provinceCount={visitedCount}
+              cityCount={visitedCities.length}
+              completionRate={completionRate}
             />
-          </div>
-
-          {/* Visit counter badge */}
-          <div
-            className="absolute top-3 right-3 px-3 py-1 rounded-sm"
-            style={{
-              background: 'rgba(0,0,0,0.5)',
-              backdropFilter: 'blur(4px)',
-              zIndex: 15,
-            }}
-          >
-            <span className="text-xs" style={{ color: 'rgba(255,222,165,0.9)', fontWeight: 500, letterSpacing: '0.05em' }}>
-              已走过 {visitedCount}/{totalProvinces}
-            </span>
           </div>
         </div>
 

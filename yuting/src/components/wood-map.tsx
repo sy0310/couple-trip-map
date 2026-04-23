@@ -11,9 +11,12 @@ interface WoodMapProps {
   onProvinceClick?: (name: string) => void;
   onCityClick?: (cityName: string) => void;
   onMapReady?: () => void;
+  provinceCount?: number;
+  cityCount?: number;
+  completionRate?: string;
 }
 
-export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick, onCityClick, onMapReady }: WoodMapProps) {
+export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick, onCityClick, onMapReady, provinceCount, cityCount, completionRate }: WoodMapProps) {
   const chartRef = useRef<ReactECharts>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -138,20 +141,51 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
       },
     },
     series: [
+      // Flight lines connecting visited cities
+      ...(visitedCities.length >= 2 ? [{
+        name: '旅行路线',
+        type: 'lines' as const,
+        coordinateSystem: 'geo' as const,
+        effect: {
+          show: true,
+          period: 5,
+          trailLength: 0.4,
+          symbol: 'arrow' as const,
+          symbolSize: 6,
+          color: '#ffdea5',
+        },
+        lineStyle: {
+          color: '#ffdea5',
+          opacity: 0.25,
+          width: 1.5,
+          curveness: 0.3,
+        },
+        data: (() => {
+          const coords = visitedCities.map((c) => ({ coord: [c.lng, c.lat] as [number, number] }));
+          return coords.slice(0, -1).map((from, i) => ({
+            fromName: visitedCities[i].name,
+            toName: visitedCities[i + 1].name,
+            coords: [from.coord, coords[i + 1].coord],
+          }));
+        })(),
+        zlevel: 1,
+      }] : []),
       // City markers as scatter points on the geo coordinate system
       {
         name: '已访问城市',
         type: 'effectScatter' as const,
         coordinateSystem: 'geo' as const,
-        symbolSize: (val: number[]) => {
+        symbolSize: (val: number[], params: { dataIndex: number }) => {
+          const city = visitedCities[params.dataIndex];
           const base = 10;
-          return base;
+          const extra = Math.min(8, Math.floor((city?.photoCount ?? 0) / 10));
+          return base + extra;
         },
         showEffectOn: 'render' as const,
         rippleEffect: {
           brushType: 'stroke' as const,
           period: 4,
-          scale: 3,
+          scale: 4,
         },
         label: {
           show: false,
@@ -202,22 +236,51 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   }
 
   return (
-    <div style={{ filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.35))' }}>
-      <ReactECharts
-        ref={chartRef}
-        option={option}
-        style={{ width: '100%', height: '100%' }}
-        onEvents={{
-          click: (params: { name: string; componentType: string; seriesType: string }) => {
-            if (params.seriesType === 'scatter') {
-              onCityClick?.(params.name);
-            } else {
-              const normalizedName = normalizeProvinceName(params.name);
-              onProvinceClick?.(normalizedName);
-            }
-          },
+    <>
+      {/* Progress statistics panel */}
+      <div
+        className="absolute top-3 left-3 px-3 py-2 rounded-sm"
+        style={{
+          background: 'rgba(53,33,24,0.85)',
+          backdropFilter: 'blur(8px)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          zIndex: 20,
+          border: '1px solid rgba(201,154,108,0.3)',
         }}
-      />
-    </div>
+      >
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px]" style={{ color: 'rgba(255,222,165,0.6)' }}>省份</span>
+            <span className="text-sm font-semibold" style={{ color: '#ffdea5' }}>{provinceCount ?? visitedProvinces.length}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px]" style={{ color: 'rgba(255,222,165,0.6)' }}>城市</span>
+            <span className="text-sm font-semibold" style={{ color: '#ffdea5' }}>{cityCount ?? visitedCities.length}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px]" style={{ color: 'rgba(255,222,165,0.6)' }}>完成度</span>
+            <span className="text-sm font-semibold" style={{ color: '#ffdea5' }}>{completionRate ?? '0'}%</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.35))' }}>
+        <ReactECharts
+          ref={chartRef}
+          option={option}
+          style={{ width: '100%', height: '100%' }}
+          onEvents={{
+            click: (params: { name: string; componentType: string; seriesType: string }) => {
+              if (params.seriesType === 'scatter') {
+                onCityClick?.(params.name);
+              } else {
+                const normalizedName = normalizeProvinceName(params.name);
+                onProvinceClick?.(normalizedName);
+              }
+            },
+          }}
+        />
+      </div>
+    </>
   );
 }
