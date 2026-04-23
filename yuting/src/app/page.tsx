@@ -39,9 +39,9 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!coupleId) return;
-    const sup = import('@/lib/supabase-browser').then(m => m.createClient());
-    sup.then(client => {
-      const tripsChannel = client
+    let tripsChannel: ReturnType<ReturnType<typeof import('@/lib/supabase-browser').createClient>['channel']> | null = null;
+    import('@/lib/supabase-browser').then(m => m.createClient()).then(client => {
+      tripsChannel = client
         .channel('home-trip-changes')
         .on(
           'postgres_changes',
@@ -50,6 +50,7 @@ export default function HomePage() {
         )
         .subscribe();
     });
+    return () => { tripsChannel?.unsubscribe(); };
   }, [coupleId]);
 
   const visitedCount = visitedProvinces.length;

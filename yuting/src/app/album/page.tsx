@@ -46,7 +46,7 @@ export default function AlbumPage() {
     if (!user) return;
     const cid = await getCoupleId(user.id);
     setCoupleId(cid);
-    if (!cid) { setLoading(false); return; }
+    if (!cid) { return; }
 
     const sup = await import('@/lib/supabase-browser');
     const client = sup.createClient();
@@ -81,9 +81,9 @@ export default function AlbumPage() {
     loadTrips();
 
     if (!coupleId) return;
-    const sup = import('@/lib/supabase-browser').then(m => m.createClient());
-    sup.then(client => {
-      const tripsChannel = client
+    let tripsChannel: ReturnType<ReturnType<typeof import('@/lib/supabase-browser').createClient>['channel']> | null = null;
+    import('@/lib/supabase-browser').then(m => m.createClient()).then(client => {
+      tripsChannel = client
         .channel('album-changes')
         .on(
           'postgres_changes',
@@ -97,6 +97,7 @@ export default function AlbumPage() {
         )
         .subscribe();
     });
+    return () => { tripsChannel?.unsubscribe(); };
   }, [user, coupleId, loadTrips]);
 
   const handleTripSuccess = () => {

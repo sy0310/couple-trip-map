@@ -59,6 +59,7 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
         echarts.registerMap('china', filteredGeoJson);
         setLoaded(true);
         onMapReady?.();
+        setTimeout(() => chartRef.current?.getEchartsInstance().resize(), 100);
       })
       .catch((err) => console.error('Failed to load China GeoJSON:', err));
   }, [onMapReady]);
