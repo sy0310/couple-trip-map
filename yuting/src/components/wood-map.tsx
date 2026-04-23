@@ -84,7 +84,7 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
       map: 'china',
       roam: true,
       layoutCenter: ['50%', '50%'],
-      layoutSize: 700,
+      layoutSize: '85%',
       aspectScale: 1,
       zoom: 1.0,
       scaleLimit: {
