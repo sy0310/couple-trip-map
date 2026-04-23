@@ -1,9 +1,8 @@
 import { createClient } from '@/lib/supabase-browser';
 import type { Database } from './database.types';
-import { PROVINCES, getProvinceByName } from '@/lib/provinces';
+import { getProvinceByName } from '@/lib/provinces';
 
 type TripRow = Database['public']['Tables']['trips']['Row'];
-type TripInsert = Database['public']['Tables']['trips']['Insert'];
 
 /**
  * Get the couple_id for the currently logged-in user.
@@ -326,9 +325,9 @@ export async function createTrip(
     .eq('visit_date', trip.visit_date);
 
   if (trip.scenic_spot) {
-    (existingQuery as any).eq('scenic_spot', trip.scenic_spot);
+    (existingQuery as unknown as typeof existingQuery).eq('scenic_spot', trip.scenic_spot);
   } else {
-    (existingQuery as any).is('scenic_spot', null);
+    (existingQuery as unknown as typeof existingQuery).is('scenic_spot', null);
   }
 
   const { data: existing } = await existingQuery.maybeSingle() as { data: Pick<TripRow, 'id'> | null; error: { message: string } | null };

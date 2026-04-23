@@ -29,7 +29,10 @@ export function WoodReliefMap({ provinceName, visitedCities, cityCoords, onCityC
 
   useEffect(() => {
     const fileName = getGeoJsonFileName(provinceName);
-    if (!fileName) { setError(true); setLoading(false); return; }
+    if (!fileName) {
+      queueMicrotask(() => { setError(true); setLoading(false); });
+      return;
+    }
 
     fetch(`/geojson/${fileName}`)
       .then((r) => {

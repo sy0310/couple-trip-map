@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/bottom-nav';
 import { RoomPanel } from '@/components/furniture';
@@ -16,7 +16,9 @@ function ProvinceContent() {
   const searchParams = useSearchParams();
   const provinceName = normalizeProvinceName(searchParams.get('name') || '');
 
-  const [cities, setCities] = useState<string[]>([]);
+  const provinceData = getProvinceByName(provinceName);
+  const cities = useMemo(() => provinceData?.cities.map((c) => c.name) || [`${provinceName}市`], [provinceName]);
+
   const [visitedCities, setVisitedCities] = useState<string[]>([]);
   const [cityCoords, setCityCoords] = useState<{ name: string; lat: number; lng: number; photoCount: number }[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -26,9 +28,7 @@ function ProvinceContent() {
   const [geoJsonCityCount, setGeoJsonCityCount] = useState(0);
 
   useEffect(() => {
-    const provinceData = getProvinceByName(provinceName);
-    const provinceCities = provinceData?.cities.map((c) => c.name) || [`${provinceName}市`];
-    setCities(provinceCities);
+    const provinceCities = cities;
 
     // Fetch GeoJSON to count administrative divisions (for the denominator)
     const geoJsonFile = getGeoJsonFileName(provinceName);
@@ -41,7 +41,7 @@ function ProvinceContent() {
         })
         .catch(() => setGeoJsonCityCount(provinceCities.length));
     } else {
-      setGeoJsonCityCount(provinceCities.length);
+      queueMicrotask(() => setGeoJsonCityCount(provinceCities.length));
     }
 
     getCoupleId().then((id) => {

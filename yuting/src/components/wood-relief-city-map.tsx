@@ -41,10 +41,16 @@ export function WoodReliefCityMap({ cityName, spots, onSpotClick }: WoodReliefCi
       }
     }
 
-    if (!targetProvinceName) { setError(true); setLoading(false); return; }
+    if (!targetProvinceName) {
+      queueMicrotask(() => { setError(true); setLoading(false); });
+      return;
+    }
 
     const fileName = getGeoJsonFileName(targetProvinceName);
-    if (!fileName) { setError(true); setLoading(false); return; }
+    if (!fileName) {
+      queueMicrotask(() => { setError(true); setLoading(false); });
+      return;
+    }
 
     fetch(`/geojson/${fileName}`)
       .then((r) => {

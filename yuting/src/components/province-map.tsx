@@ -20,7 +20,10 @@ export function ProvinceMap({ provinceName, visitedCities, cityCoords, onCityCli
 
   useEffect(() => {
     const prov = getProvinceByName(provinceName);
-    if (!prov) { setError(true); return; }
+    if (!prov) {
+      queueMicrotask(() => setError(true));
+      return;
+    }
 
     const url = `https://geo.datav.aliyun.com/areas_v3/bound/${prov.adcode}_full.json`;
     fetch(url)

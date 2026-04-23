@@ -46,7 +46,7 @@ export default function AlbumPage() {
     if (!user) return;
     const cid = await getCoupleId(user.id);
     setCoupleId(cid);
-    if (!cid) { return; }
+    if (!cid) { setLoading(false); return; }
 
     const sup = await import('@/lib/supabase-browser');
     const client = sup.createClient();
@@ -77,8 +77,8 @@ export default function AlbumPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    loadTrips();
+    if (!user) return;
+    queueMicrotask(() => loadTrips());
 
     if (!coupleId) return;
     let tripsChannel: ReturnType<ReturnType<typeof import('@/lib/supabase-browser').createClient>['channel']> | null = null;

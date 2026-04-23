@@ -25,7 +25,7 @@ interface UseSvgZoomReturn {
 }
 
 export function useSvgZoom(options: UseSvgZoomOptions): UseSvgZoomReturn {
-  const { width, height, minZoom = 0.5, maxZoom = 8 } = options;
+  const { width: _width, height: _height, minZoom = 0.5, maxZoom = 8 } = options;
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const isDragging = useRef(false);
@@ -40,7 +40,7 @@ export function useSvgZoom(options: UseSvgZoomOptions): UseSvgZoomReturn {
   }, []);
 
   const zoomIn = useCallback(() => setScale((s) => Math.min(s * 1.5, maxZoom)), [maxZoom]);
-  const zoomOut = useCallback(() => setScale((s) => Math.max(s / 1.5, minZoom)), [maxZoom, minZoom]);
+  const zoomOut = useCallback(() => setScale((s) => Math.max(s / 1.5, minZoom)), [minZoom]);
 
   const handleWheel = useCallback<React.WheelEventHandler<SVGSVGElement>>((e) => {
     e.preventDefault();
