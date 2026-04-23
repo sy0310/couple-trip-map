@@ -13,6 +13,7 @@ function CityContent() {
   const searchParams = useSearchParams();
   const cityName = normalizeProvinceName(searchParams.get('name') || '');
   const provinceName = normalizeProvinceName(searchParams.get('province') || '');
+  const spotName = searchParams.get('spot') || '';
 
   const [tripRecords, setTripRecords] = useState<{
     id: string;
@@ -81,7 +82,29 @@ function CityContent() {
         setLoading(false);
       }
     });
-  }, [cityName]);
+  }, [cityName, provinceName, spotName]);
+
+  // Scroll to matching scenic spot trip when spot param is present
+  useEffect(() => {
+    if (!spotName || tripRecords.length === 0) return;
+    const matchingTrip = tripRecords.find((t) => t.scenic_spot === spotName);
+    if (!matchingTrip) return;
+    const timer = setTimeout(() => {
+      const elements = document.querySelectorAll('[data-trip-scenic-spot]');
+      elements.forEach((el) => {
+        if (el.getAttribute('data-trip-scenic-spot') === spotName) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          (el as HTMLElement).style.outline = '2px solid #c99a6c';
+          (el as HTMLElement).style.outlineOffset = '4px';
+          setTimeout(() => {
+            (el as HTMLElement).style.outline = '';
+            (el as HTMLElement).style.outlineOffset = '';
+          }, 3000);
+        }
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [spotName, tripRecords]);
 
   const handleTripAdded = () => {
     setShowAddForm(false);
@@ -210,7 +233,7 @@ function CityContent() {
               {tripRecords.map((trip) => {
                 const photos = tripPhotos[trip.id] || [];
                 return (
-                  <div key={trip.id} className="p-4 bg-[#FAF5EF] rounded-xl border border-[#E4D5C0]/30 transition-colors hover:bg-[#F3EBE0]">
+                  <div key={trip.id} data-trip-scenic-spot={trip.scenic_spot || ''} className="p-4 bg-[#FAF5EF] rounded-xl border border-[#E4D5C0]/30 transition-colors hover:bg-[#F3EBE0]">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="text-xs mb-1" style={{ color: '#9A8B7A' }}>{trip.visit_date}</div>

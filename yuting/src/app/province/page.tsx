@@ -96,6 +96,10 @@ function ProvinceContent() {
     window.location.href = `/city?name=${encodeURIComponent(city)}&province=${encodeURIComponent(provinceName)}`;
   };
 
+  const handleSpotClick = (spotName: string) => {
+    window.location.href = `/city?name=${encodeURIComponent(provinceName)}&province=${encodeURIComponent(provinceName)}&spot=${encodeURIComponent(spotName)}`;
+  };
+
   const handleTripAdded = () => {
     setShowAddForm(false);
     getCoupleId().then((id) => {
@@ -202,6 +206,7 @@ function ProvinceContent() {
               <CityMap
                 cityName={provinceName}
                 spots={cityMapSpots}
+                onSpotClick={handleSpotClick}
               />
             </div>
           </div>
@@ -210,19 +215,21 @@ function ProvinceContent() {
           <RoomPanel title="景点列表">
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
               {cityMapSpots.map((spot) => (
-                <div
+                <button
                   key={spot.name}
+                  onClick={() => handleSpotClick(spot.name)}
                   className="p-5 rounded-xl text-center font-medium border shadow-sm"
                   style={{
                     background: 'linear-gradient(135deg, rgba(201,154,108,0.15), rgba(184,137,94,0.1))',
                     borderColor: '#c99a6c',
                     color: '#8d6b2a',
                     boxShadow: 'inset 0 0 0 1px rgba(141,107,42,0.15)',
+                    cursor: 'pointer',
                   }}
                 >
                   <div className="text-lg mb-1" style={{ color: '#c99a6c' }}>●</div>
                   {spot.name}
-                </div>
+                </button>
               ))}
             </div>
           </RoomPanel>

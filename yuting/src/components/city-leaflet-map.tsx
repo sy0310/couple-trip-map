@@ -80,9 +80,14 @@ function createPinIcon(visited: boolean, name: string) {
 export function CityLeafletMap({ geoJson, allSpots, passedSpots, onSpotClick }: CityLeafletMapProps) {
   const mapCenter = useMemo(() => {
     if (!geoJson) return null;
-    const layer = L.geoJSON(geoJson as never);
-    const bounds = layer.getBounds();
-    return bounds.getCenter();
+    try {
+      const layer = L.geoJSON(geoJson as never);
+      const bounds = layer.getBounds();
+      if (!bounds.isValid()) return null;
+      return bounds.getCenter();
+    } catch {
+      return null;
+    }
   }, [geoJson]);
 
   const markers = useMemo(() => {
