@@ -18,15 +18,25 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch('/china.json?v=3')
+    fetch('/china.json?v=4')
       .then((res) => res.json())
       .then((geoJson) => {
         // Remove South China Sea islands (adcode 100000_JD)
         const filteredGeoJson = {
           ...geoJson,
-          features: geoJson.features.filter(
-            (f: { properties?: { adcode?: string } }) => f.properties?.adcode !== '100000_JD'
-          ),
+          features: geoJson.features.filter((f: { properties?: Record<string, unknown>; geometry?: unknown }) => {
+            const ac = String(f.properties?.adcode ?? '');
+            const name = f.properties?.name ?? '';
+            // Filter South China Sea: adcode contains JD
+            if (ac.includes('JD')) return false;
+            // Safety net: empty name + low-latitude geometry
+            if (!name && (f.geometry as any)?.coordinates) {
+              const allNums = (f.geometry as any).coordinates.flat(10) as number[];
+              const lats = allNums.filter((v: unknown, i: number) => typeof v === 'number' && i % 2 === 1) as number[];
+              if (lats.length && Math.max(...lats) < 25) return false;
+            }
+            return true;
+          }),
         };
         echarts.registerMap('china', filteredGeoJson);
         setLoaded(true);
@@ -40,12 +50,24 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
       map: 'china',
       roam: true,
       layoutCenter: ['50%', '50%'],
-      layoutSize: '115%',
+      layoutSize: '102%',
       scaleLimit: {
         min: 0.8,
         max: 3,
       },
       label: { show: false },
+      light: {
+        main: {
+          intensity: 1.2,
+          shadow: true,
+          shadowQuality: 'high' as const,
+          alpha: 45,
+          beta: 60,
+        },
+        ambient: {
+          intensity: 0.3,
+        },
+      },
       itemStyle: {
         areaColor: {
           type: 'linear' as const,
@@ -56,10 +78,12 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
             { offset: 1, color: '#b8895e' },
           ],
         },
-        borderColor: '#8d6b2a',
-        borderWidth: 1,
-        shadowColor: 'rgba(0,0,0,0.15)',
-        shadowBlur: 3,
+        borderColor: '#7a5c3e',
+        borderWidth: 1.5,
+        shadowColor: 'rgba(0,0,0,0.2)',
+        shadowBlur: 4,
+        shadowOffsetX: 1,
+        shadowOffsetY: 1,
       },
       emphasis: {
         label: { color: '#1f120c', fontSize: 11, fontWeight: 700 },
@@ -69,8 +93,8 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
           borderWidth: 2,
           shadowColor: 'rgba(53,33,24,0.5)',
           shadowBlur: 15,
-          shadowOffsetX: 2,
-          shadowOffsetY: 2,
+          shadowOffsetX: 3,
+          shadowOffsetY: 3,
         },
       },
       regions: visitedProvinces.map((name) => ({
@@ -87,8 +111,10 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
           },
           borderColor: '#ffdea5',
           borderWidth: 1.5,
-          shadowColor: 'rgba(255,222,165,0.4)',
-          shadowBlur: 10,
+          shadowColor: 'rgba(255,222,165,0.5)',
+          shadowBlur: 14,
+          shadowOffsetX: 1,
+          shadowOffsetY: 1,
         },
         label: {
           color: '#ffdea5',
@@ -176,20 +202,22 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   }
 
   return (
-    <ReactECharts
-      ref={chartRef}
-      option={option}
-      style={{ width: '100%', height: '100%' }}
-      onEvents={{
-        click: (params: { name: string; componentType: string; seriesType: string }) => {
-          if (params.seriesType === 'scatter') {
-            onCityClick?.(params.name);
-          } else {
-            const normalizedName = normalizeProvinceName(params.name);
-            onProvinceClick?.(normalizedName);
-          }
-        },
-      }}
-    />
+    <div style={{ filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.35))' }}>
+      <ReactECharts
+        ref={chartRef}
+        option={option}
+        style={{ width: '100%', height: '100%' }}
+        onEvents={{
+          click: (params: { name: string; componentType: string; seriesType: string }) => {
+            if (params.seriesType === 'scatter') {
+              onCityClick?.(params.name);
+            } else {
+              const normalizedName = normalizeProvinceName(params.name);
+              onProvinceClick?.(normalizedName);
+            }
+          },
+        }}
+      />
+    </div>
   );
 }
