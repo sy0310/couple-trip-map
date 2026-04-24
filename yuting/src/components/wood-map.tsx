@@ -283,8 +283,7 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
         </div>
       </div>
 
-      <div style={{ filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.35))' }}>
-        <ReactECharts
+      <ReactECharts
           ref={chartRef}
           option={option}
           notMerge={true}
@@ -300,7 +299,6 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
             },
           }}
         />
-      </div>
     </>
   );
 }
