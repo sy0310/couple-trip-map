@@ -89,7 +89,7 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
       aspectScale: 1,
       zoom: 1.25,
       scaleLimit: {
-        min: 1.0,
+        min: 1.01,
         max: 6,
       },
       label: { show: false },
