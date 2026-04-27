@@ -148,9 +148,9 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
           borderColor: '#ffdea5',
           borderWidth: 1.5,
           shadowColor: 'rgba(255,222,165,0.5)',
-          shadowBlur: 14,
-          shadowOffsetX: 1,
-          shadowOffsetY: 1,
+          shadowBlur: 20,
+          shadowOffsetX: 2,
+          shadowOffsetY: 3,
         },
         label: {
           color: '#ffdea5',
@@ -174,26 +174,121 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
       },
     },
     series: [
+      ...(visitedProvinces.length > 0 ? [{
+        type: 'map' as const,
+        map: 'china',
+        roam: false,
+        silent: true,
+        zlevel: 0,
+        itemStyle: {
+          areaColor: 'transparent',
+          borderColor: 'transparent',
+          borderWidth: 0,
+        },
+        lineStyle: {
+          color: 'rgba(20,12,8,0.55)',
+          width: 4,
+        },
+        emphasis: { disabled: true },
+        data: visitedProvinces.map((name) => ({
+          name: provinceToGeoJsonName(name),
+          itemStyle: { areaColor: 'transparent' },
+          lineStyle: {
+            color: 'rgba(20,12,8,0.55)',
+            width: 4,
+          },
+        })),
+      }] : []),
+      // 静态路线底纹
       ...(visitedCities.length >= 2 ? [{
         name: '旅行路线',
         type: 'lines' as const,
         coordinateSystem: 'geo' as const,
-        effect: {
-          show: true,
-          period: 5,
-          trailLength: 0.4,
-          symbol: 'arrow' as const,
-          symbolSize: 6,
-          color: '#ffdea5',
-        },
+        zlevel: 1,
         lineStyle: {
           color: '#ffdea5',
-          opacity: 0.25,
+          opacity: 0.15,
           width: 1.5,
           curveness: 0.3,
         },
+        silent: true,
         data: flightLineData,
-        zlevel: 1,
+      }] : []),
+      // 分段动画箭头
+      ...(visitedCities.length >= 2
+        ? visitedCities.slice(0, -1).map((city, i) => ({
+            name: `旅行路线-${i + 1}`,
+            type: 'lines' as const,
+            coordinateSystem: 'geo' as const,
+            zlevel: 3,
+            effect: {
+              show: true,
+              period: 5 + i * 2.5,
+              trailLength: 0.5,
+              symbol: 'arrow' as const,
+              symbolSize: 8,
+              color: '#ffdea5',
+            },
+            lineStyle: {
+              color: '#ffdea5',
+              opacity: 0,
+              width: 1.5,
+              curveness: 0.3,
+            },
+            data: [{
+              fromName: visitedCities[i].name,
+              toName: visitedCities[i + 1].name,
+              coords: [
+                [visitedCities[i].lng, visitedCities[i].lat] as [number, number],
+                [visitedCities[i + 1].lng, visitedCities[i + 1].lat] as [number, number],
+              ],
+            }],
+          }))
+        : []),
+      // 城市序号标记
+      ...(visitedCities.length >= 2 ? [{
+        name: '旅行节点',
+        type: 'scatter' as const,
+        coordinateSystem: 'geo' as const,
+        zlevel: 4,
+        symbolSize: 0,
+        label: {
+          show: true,
+          formatter: (params: { dataIndex: number }) => {
+            const n = params.dataIndex + 1;
+            const city = visitedCities[params.dataIndex];
+            return `{num|${n}}\n{name|${city?.name || ''}}`;
+          },
+          rich: {
+            num: {
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#ffdea5',
+              backgroundColor: 'rgba(53,33,24,0.85)',
+              borderRadius: 10,
+              padding: [3, 6],
+              borderColor: '#c99a6c',
+              borderWidth: 1,
+            },
+            name: {
+              fontSize: 9,
+              color: '#d4a87c',
+              padding: [2, 0, 0, 0],
+            },
+          },
+          position: 'top' as const,
+          offset: [0, 5],
+        },
+        data: visitedCities.map((city) => ({
+          name: city.name,
+          value: [city.lng, city.lat],
+        })),
+        tooltip: {
+          formatter: (params: { name: string; dataIndex: number }) => {
+            const city = visitedCities[params.dataIndex];
+            return `<b>${params.dataIndex + 1}. ${params.name}</b><br/>${city?.photoCount || 0} 张照片`;
+          },
+        },
       }] : []),
       {
         name: '已访问城市',
@@ -256,7 +351,7 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   }
 
   return (
-    <>
+    <div className="relative w-full h-full">
       <div
         className="absolute top-3 left-3 px-3 py-2 rounded-sm"
         style={{
@@ -299,6 +394,19 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
             },
           }}
         />
-    </>
+
+      {/* 木纹纹理叠加 */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 10,
+          opacity: 0.06,
+          mixBlendMode: 'multiply' as const,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.005 0.12' numOctaves='5' seed='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E")`,
+        }}
+      />
+    </div>
   );
 }
