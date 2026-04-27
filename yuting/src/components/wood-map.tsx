@@ -86,10 +86,10 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
       layoutCenter: ['50%', '50%'],
       layoutSize: '100%',
       aspectScale: 1,
-      zoom: 1.0,
+      zoom: 1.15,
       scaleLimit: {
         min: 1.0,
-        max: 5,
+        max: 6,
       },
       label: { show: false },
       light: {
