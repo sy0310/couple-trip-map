@@ -17,9 +17,10 @@ interface WoodMapProps {
   completionRate?: string;
 }
 
-// Remove polygon groups where ALL coordinates have latitude < 15 (South China Sea islands / 南沙群岛)
+// Deep clone and remove polygon groups where ALL coordinates have latitude < 15 (South China Sea islands / 南沙群岛)
 function filterSouthChinaSeaIslands(geoJson: Record<string, unknown>): Record<string, unknown> {
-  const features = (geoJson as { features?: unknown[] }).features;
+  const cleaned = JSON.parse(JSON.stringify(geoJson));
+  const features = (cleaned as { features?: unknown[] }).features;
   if (!features) return geoJson;
 
   for (const feature of features) {
@@ -34,7 +35,7 @@ function filterSouthChinaSeaIslands(geoJson: Record<string, unknown>): Record<st
     }).filter((g) => g.length > 0);
   }
 
-  return geoJson;
+  return cleaned;
 }
 
 export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick, onCityClick, onMapReady, provinceCount, cityCount, completionRate }: WoodMapProps) {
@@ -52,7 +53,7 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
   })();
 
   useEffect(() => {
-    fetch('/china.json?v=5')
+    fetch('/china.json?v=6')
       .then((res) => res.json())
       .then((geoJson: Record<string, unknown>) => {
         setTimeout(() => {
@@ -86,7 +87,7 @@ export function WoodMap({ visitedProvinces, visitedCities = [], onProvinceClick,
       layoutCenter: ['50%', '50%'],
       layoutSize: '100%',
       aspectScale: 1,
-      zoom: 1.15,
+      zoom: 1.25,
       scaleLimit: {
         min: 1.0,
         max: 6,
