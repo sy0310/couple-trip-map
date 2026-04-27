@@ -1,6 +1,6 @@
 # External Integrations
 
-**Analysis Date:** 2026-04-26
+**Analysis Date:** 2026-04-27
 
 ## Cloud Services
 
@@ -8,10 +8,11 @@
 - **SDK:** `wx-server-sdk@latest`
 - **Init:** `miniprogram/app.js:7-13` — `wx.cloud.init({ env: 'your-env-id', traceUser: true })`
 - **Environment ID placeholder:** `your-env-id` in `miniprogram/app.js:11` (must be replaced)
-- **Cloud functions:** 4 functions under `cloudfunctions/` (couple, trip, photo, login)
+- **App ID placeholder:** `wx YOUR_APP_ID` in `project.config.json:42` (must be replaced)
+- **Cloud functions:** 4 functions under `cloudfunctions/` (`couple`, `trip`, `photo`, `login`)
 - **Database:** WeChat Cloud JSON database (document-oriented)
 - **Storage:** WeChat Cloud Storage for photo files
-- **Auth:** WeChat OpenID-based authentication (automatic, no login flow needed)
+- **Auth:** WeChat OpenID-based authentication (automatic via `cloud.getWXContext()`, no login flow needed)
 
 ### Supabase (Web App Backend)
 - **SDK:** `@supabase/supabase-js` 2.103.3
@@ -21,12 +22,13 @@
 - **Auth:** Supabase Auth (email/password) — `yuting/src/lib/auth.ts` provides `signInWithPassword()`, `signUp()`, `signOut()`, `useAuth()` hook
 - **Storage:** Supabase Storage bucket named `photos` — used in `yuting/src/lib/trips.ts:378-388` (`supabase.storage.from('photos').upload()`)
 - **Database:** PostgreSQL — typed via `yuting/src/lib/database.types.ts`
+- **Realtime:** Supabase Realtime subscription used in `yuting/src/app/page.tsx:43-53` — `client.channel('home-trip-changes').on('postgres_changes', ...)` for live trip updates
 
 ## Map APIs & Geospatial
 
 ### Leaflet (Web App)
 - **Library:** `leaflet` 1.9.4 + `react-leaflet` 5.0.0
-- **TileLayer:** OpenStreetMap (default, no API key required)
+- **TileLayer:** OpenStreetMap (default, no API key required) — `yuting/src/components/leaflet-map.tsx:150`
 - **Components:**
   - `yuting/src/components/leaflet-map.tsx` — Core map with `MapContainer`, `TileLayer`, `Marker`, `Popup`, `GeoJSON`
   - `yuting/src/components/province-map-leaflet.tsx` — Province-level map
@@ -36,12 +38,17 @@
   - `yuting/src/components/city-map.tsx` — City map wrapper
   - `yuting/src/components/wood-relief-map.tsx` — Wood-textured relief map
   - `yuting/src/components/wood-relief-city-map.tsx` — City relief map
-- **GeoJSON:** `china-geojson` 1.0.0 — China province boundary data
+- **GeoJSON:** `china-geojson` 1.0.0 — China province boundary data (bundled)
 - **GeoJSON conversion:** `yuting/src/lib/geojson-to-svg.ts` — converts GeoJSON to SVG for custom map rendering
+
+### ECharts (Web App Province Maps)
+- **Library:** `echarts` 6.0.0 + `echarts-for-react` 3.0.6
+- **Runtime GeoJSON fetch:** `yuting/src/components/province-map.tsx:28` — fetches province boundaries from Aliyun DataV API: `https://geo.datav.aliyun.com/areas_v3/bound/{adcode}_full.json`
+- **Usage:** Province detail maps with scatter overlays for visited cities
 
 ### AMap (高德地图) — Optional/Configured but Unused
 - **Config:** `yuting/.env.example` defines `NEXT_PUBLIC_AMAP_KEY` and `NEXT_PUBLIC_AMAP_SECURITY_CODE`
-- **Note:** No `amap.tsx` component found in `yuting/src/components/`. AMap appears to be configured but not actively used in the current codebase. The miniprogram README mentions AMap as the intended map provider, but the web app uses Leaflet.
+- **Note:** No AMap component exists in `yuting/src/components/`. AMap is configured as optional but not actively used. The web app uses Leaflet for all map rendering.
 
 ## Database Collections
 
@@ -77,8 +84,8 @@
 ### Miniprogram (WeChat OpenID)
 1. User opens miniprogram -> `wx.cloud.init()` called in `miniprogram/app.js:7`
 2. WeChat automatically provides `OPENID` via `cloud.getWXContext()` in cloud functions
-3. Login cloud function (`cloudfunctions/login/index.js`) handles user registration
-4. Couple binding uses a 6-character alphanumeric code flow (`cloudfunctions/couple/index.js`):
+3. Login cloud function (`cloudfunctions/login/README.md`) handles user registration
+4. Couple binding uses an 8-character alphanumeric code flow (`cloudfunctions/couple/index.js`):
    - User A calls `bind` with `create` action -> generates unique binding code
    - User A shares code with User B
    - User B calls `bind` with `join` action + code -> links accounts
@@ -156,4 +163,4 @@ Implemented in `yuting/src/lib/trips.ts`:
 
 ---
 
-*Integration audit: 2026-04-26*
+*Integration audit: 2026-04-27*

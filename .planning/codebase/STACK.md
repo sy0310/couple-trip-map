@@ -1,6 +1,6 @@
 # Technology Stack
 
-**Analysis Date:** 2026-04-26
+**Analysis Date:** 2026-04-27
 
 ## Project Overview
 
@@ -43,7 +43,7 @@ Dual-frontend architecture for the 遇亭 (Yuting) couple's travel map:
 
 **Maps & Visualization:**
 - **Leaflet 1.9.4** + **react-leaflet 5.0.0** — Interactive map rendering (`yuting/src/components/leaflet-map.tsx`)
-- **ECharts 6.0.0** + **echarts-for-react 3.0.6** — Data visualization
+- **ECharts 6.0.0** + **echarts-for-react 3.0.6** — Province/city map rendering with GeoJSON (`yuting/src/components/province-map.tsx`)
 - **china-geojson 1.0.0** — China province GeoJSON data
 
 **Auth & Backend:**
@@ -55,11 +55,11 @@ Dual-frontend architecture for the 遇亭 (Yuting) couple's travel map:
 
 **Testing:**
 - **Playwright 1.59.1** — E2E testing (`yuting/playwright.config.ts`)
-- Test directory: `yuting/tests/e2e/` (5 spec files)
+- Test directory: `yuting/tests/e2e/` (5 spec files: `home.spec.ts`, `login.spec.ts`, `album.spec.ts`, `profile.spec.ts`, `navigation.spec.ts`)
 
 **Build/Dev:**
 - **Turbopack** — Next.js 16 bundler (enabled in `yuting/next.config.ts:17`)
-- **ESLint 9** + **eslint-config-next 16.2.4** — Linting (`yuting/eslint.config.mjs`)
+- **ESLint 9** + **eslint-config-next 16.2.4** — Linting
 - **TypeScript 5** — strict mode, path alias `@/*` -> `./src/*` (`yuting/tsconfig.json:22`)
 
 ## Key Dependencies
@@ -68,6 +68,7 @@ Dual-frontend architecture for the 遇亭 (Yuting) couple's travel map:
 - `@supabase/supabase-js` 2.103.3 — Primary backend for web app
 - `wx-server-sdk` latest — Cloud functions for miniprogram
 - `leaflet` 1.9.4 + `react-leaflet` 5.0.0 — Map rendering (`yuting/src/components/leaflet-map.tsx`)
+- `echarts` 6.0.0 + `echarts-for-react` 3.0.6 — Map visualization (`yuting/src/components/province-map.tsx`)
 
 **Infrastructure:**
 - `china-geojson` 1.0.0 — China province boundary data
@@ -122,4 +123,4 @@ All use `wx-server-sdk@latest` with `cloud.DYNAMIC_CURRENT_ENV`:
 
 ---
 
-*Stack analysis: 2026-04-26*
+*Stack analysis: 2026-04-27*
