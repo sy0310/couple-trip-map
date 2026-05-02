@@ -2,7 +2,7 @@ import { useContext, useState } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro, { useDidShow, getCurrentInstance } from '@tarojs/taro'
 import { AppContext } from '../../../taro-app/src/app'
-import { getVisitedCities, getTripsByCity } from '@shared/lib/trips'
+import { getVisitedCities, getTripCountsByCities } from '@shared/lib/trips'
 import { getCoupleId } from '@shared/lib/couples'
 import styles from './index.module.css'
 
@@ -26,11 +26,11 @@ export default function ProvincePage() {
     if (!cid) return
 
     const cityNames = await getVisitedCities(adapter, cid, name)
-    const cityInfos: CityInfo[] = []
-    for (const cityName of cityNames) {
-      const trips = await getTripsByCity(adapter, cid, cityName)
-      cityInfos.push({ name: cityName, tripCount: trips.length })
-    }
+    const tripCounts = await getTripCountsByCities(adapter, cid, name, cityNames)
+    const cityInfos: CityInfo[] = cityNames.map((cityName) => ({
+      name: cityName,
+      tripCount: tripCounts.get(cityName) || 0,
+    }))
     setCities(cityInfos)
   })
 

@@ -203,6 +203,70 @@ export async function getTripsByCity(
 }
 
 /**
+ * Fetch trip counts for multiple cities in a province (batch, no N+1).
+ * Returns a Map of cityName -> tripCount.
+ */
+export async function getTripCountsByCities(
+  adapter: SupabaseAdapter,
+  coupleId: string,
+  province: string,
+  cityNames: string[]
+): Promise<Map<string, number>> {
+  if (cityNames.length === 0) return new Map()
+
+  const result = await adapter
+    .from('trips')
+    .select('city')
+    .eq('couple_id', coupleId)
+    .eq('province', province)
+    .in('city', cityNames)
+
+  if (result.error) {
+    console.error('Failed to batch fetch trip counts:', result.error.message)
+    return new Map()
+  }
+
+  const data = result.data as { city: string }[] | null
+  const counts = new Map<string, number>()
+  for (const row of data ?? []) {
+    counts.set(row.city, (counts.get(row.city) || 0) + 1)
+  }
+  return counts
+}
+
+/**
+ * Fetch photos for multiple trips in one batch query (no N+1).
+ * Returns a Map of tripId -> photoUrls[].
+ */
+export async function getPhotosByTripIds(
+  adapter: SupabaseAdapter,
+  tripIds: string[]
+): Promise<Map<string, string[]>> {
+  if (tripIds.length === 0) return new Map()
+
+  const result = await adapter
+    .from('photos')
+    .select('trip_id, file_url')
+    .in('trip_id', tripIds)
+
+  if (result.error) {
+    console.error('Failed to batch fetch photos:', result.error.message)
+    return new Map()
+  }
+
+  const data = result.data as { trip_id: string | null; file_url: string }[] | null
+  const photoMap = new Map<string, string[]>()
+  for (const row of data ?? []) {
+    if (row.trip_id) {
+      const existing = photoMap.get(row.trip_id) || []
+      existing.push(row.file_url)
+      photoMap.set(row.trip_id, existing)
+    }
+  }
+  return photoMap
+}
+
+/**
  * Create a new trip record, or return existing one if
  * couple + province + city + scenic_spot + date already match.
  */

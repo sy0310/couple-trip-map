@@ -2,7 +2,7 @@ import { useContext, useState } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro, { useDidShow, getCurrentInstance, useShareAppMessage } from '@tarojs/taro'
 import { AppContext } from '../../../taro-app/src/app'
-import { getTripsByCity, getPhotosByTrip } from '@shared/lib/trips'
+import { getTripsByCity, getPhotosByTripIds } from '@shared/lib/trips'
 import { getCoupleId } from '@shared/lib/couples'
 import styles from './index.module.css'
 
@@ -34,14 +34,12 @@ export default function CityPage() {
     if (!cid) return
 
     const tripRows = await getTripsByCity(adapter, cid, cityName)
-    const tripsWithPhotos: TripWithPhotos[] = []
-    for (const trip of tripRows) {
-      const photos = await getPhotosByTrip(adapter, trip.id)
-      tripsWithPhotos.push({
-        ...trip,
-        photos: photos.map((p) => p.file_url),
-      })
-    }
+    const tripIds = tripRows.map((t) => t.id)
+    const photoMap = await getPhotosByTripIds(adapter, tripIds)
+    const tripsWithPhotos: TripWithPhotos[] = tripRows.map((trip) => ({
+      ...trip,
+      photos: photoMap.get(trip.id) || [],
+    }))
     setTrips(tripsWithPhotos)
   })
 
