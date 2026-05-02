@@ -1,4 +1,5 @@
 import type { SupabaseAdapter, QueryBuilder, StorageClient, Result } from '../../shared/lib/adapter'
+import { MiniStorageClient } from './storage'
 
 // Placeholder -- replace with real values or env config
 const SUPABASE_URL = 'https://xxx.supabase.co'
@@ -168,13 +169,7 @@ export class MiniSupabaseAdapter implements SupabaseAdapter {
   }
 
   get storage(): StorageClient {
-    // Lazy import to avoid circular dependency -- MiniStorageClient is in storage.ts
-    // For now, return a placeholder that Task 3 will replace
-    return new (class implements StorageClient {
-      from(_bucket: string) {
-        throw new Error('MiniStorageClient not yet wired -- see Task 3')
-      }
-    })()
+    return new MiniStorageClient(() => this.token)
   }
 
   async rpc<T = unknown>(fn: string, params?: Record<string, unknown>): Promise<Result<T>> {
