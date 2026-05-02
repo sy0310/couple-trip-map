@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/components/ThemeProvider";
 import { PageHeader } from "@/components/PageHeader";
 import { ChinaMap } from "@/components/ChinaMap";
@@ -15,7 +16,10 @@ export default function PosterPage() {
   const [cities, setCities] = useState<Awaited<ReturnType<typeof getVisitedCitiesWithCoords>>>([]);
   const [allPhotos, setAllPhotos] = useState<Awaited<ReturnType<typeof getAllPhotosForCouple>>>([]);
   const [daysSince, setDaysSince] = useState(0);
+  const [partnerNickname, setPartnerNickname] = useState("");
   const [copied, setCopied] = useState(false);
+  const { user } = useAuth();
+  const myLastChar = (user?.user_metadata?.nickname || user?.email?.split("@")[0] || "旅行者").slice(-1);
 
   useEffect(() => {
     getCoupleId().then((cid) => {
@@ -25,6 +29,9 @@ export default function PosterPage() {
           setProvinces(p); setCities(c); setAllPhotos(ph);
           if (ci?.sinceDate) {
             setDaysSince(Math.floor((Date.now() - new Date(ci.sinceDate).getTime()) / 86400000));
+          }
+          if (ci?.partnerNickname) {
+            setPartnerNickname(ci.partnerNickname);
           }
         });
     });
@@ -70,7 +77,7 @@ export default function PosterPage() {
           </div>
           <div style={{ background: "rgba(255,255,255,0.04)", padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: "0.08em" }}>YUTING · TRAVEL MAP · 2021–2025</div>
-            <div style={{ fontFamily: "var(--font-noto-serif-sc)", fontSize: 11, color: "rgba(255,255,255,0.35)" }}>俞 & 婷</div>
+            <div style={{ fontFamily: "var(--font-noto-serif-sc)", fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{myLastChar} & {partnerNickname.slice(-1) || "?"}</div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>

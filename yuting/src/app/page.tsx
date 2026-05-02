@@ -8,6 +8,7 @@ import { GrainOverlay } from "@/components/GrainOverlay";
 import { PageHeader } from "@/components/PageHeader";
 import { TripCard } from "@/components/TripCard";
 import { SectionLabel } from "@/components/StatBadge";
+import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/components/ThemeProvider";
 import { TOTAL_PROVINCES } from "@/lib/provinces";
 import {
@@ -21,6 +22,8 @@ import {
 export default function HomePage() {
   const router = useRouter();
   const { tokens: T } = useTheme();
+  const { user } = useAuth();
+  const myName = user?.user_metadata?.nickname || user?.email?.split("@")[0] || "旅行者";
   const [visitedProvinces, setVisitedProvinces] = useState<string[]>([]);
   const [visitedCities, setVisitedCities] = useState<
     Awaited<ReturnType<typeof getVisitedCitiesWithCoords>>
@@ -102,7 +105,7 @@ export default function HomePage() {
         rightEl={
           <div style={{ display: "flex", alignItems: "center", gap: -10 }}>
             <div style={{ width: 32, height: 32, borderRadius: 16, background: T.accent, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "white", fontFamily: "var(--font-noto-serif-sc)" }}>俞</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "white", fontFamily: "var(--font-noto-serif-sc)" }}>{myName?.[0] || "旅"}</span>
             </div>
             {coupleInfo.partnerNickname && (
               <div style={{ width: 32, height: 32, borderRadius: 16, background: T.gold, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${T.bg}` }}>
