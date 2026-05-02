@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
 import { PageHeader } from "@/components/PageHeader";
 import { ChinaMap } from "@/components/ChinaMap";
-import { getCoupleId, getVisitedProvinces, getVisitedCitiesWithCoords, getAllPhotosForCouple } from "@/lib/trips";
+import { getCoupleId, getVisitedProvinces, getVisitedCitiesWithCoords, getAllPhotosForCouple, getCoupleInfo } from "@/lib/trips";
 import { TOTAL_PROVINCES } from "@/lib/provinces";
 
 export default function PosterPage() {
@@ -14,17 +14,21 @@ export default function PosterPage() {
   const [provinces, setProvinces] = useState<string[]>([]);
   const [cities, setCities] = useState<Awaited<ReturnType<typeof getVisitedCitiesWithCoords>>>([]);
   const [allPhotos, setAllPhotos] = useState<Awaited<ReturnType<typeof getAllPhotosForCouple>>>([]);
+  const [daysSince, setDaysSince] = useState(0);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     getCoupleId().then((cid) => {
       if (!cid) return;
-      Promise.all([getVisitedProvinces(cid), getVisitedCitiesWithCoords(cid), getAllPhotosForCouple(cid)])
-        .then(([p, c, ph]) => { setProvinces(p); setCities(c); setAllPhotos(ph); });
+      Promise.all([getVisitedProvinces(cid), getVisitedCitiesWithCoords(cid), getAllPhotosForCouple(cid), getCoupleInfo()])
+        .then(([p, c, ph, ci]) => {
+          setProvinces(p); setCities(c); setAllPhotos(ph);
+          if (ci?.sinceDate) {
+            setDaysSince(Math.floor((Date.now() - new Date(ci.sinceDate).getTime()) / 86400000));
+          }
+        });
     });
   }, []);
-
-  const daysSince = Math.floor((Date.now() - new Date("2021-07-14").getTime()) / 86400000);
   const photoCount = allPhotos.length;
 
   return (

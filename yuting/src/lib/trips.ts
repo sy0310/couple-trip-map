@@ -138,7 +138,7 @@ export async function getCoupleId(userId?: string): Promise<string | null> {
  * Get the couple_id and partner info for the currently logged-in user.
  * Returns null if the user is not in any couple.
  */
-export async function getCoupleInfo(userId?: string): Promise<{ id: string; partnerId: string; partnerNickname: string } | null> {
+export async function getCoupleInfo(userId?: string): Promise<{ id: string; partnerId: string; partnerNickname: string; sinceDate: string | null; anniversary: string | null } | null> {
   const supabase = createClient();
 
   let uid = userId;
@@ -150,10 +150,10 @@ export async function getCoupleInfo(userId?: string): Promise<{ id: string; part
 
   const { data: couple } = await supabase
     .from('couples')
-    .select('id, user_a_id, user_b_id')
+    .select('id, user_a_id, user_b_id, since_date, anniversary')
     .or(`user_a_id.eq.${uid},user_b_id.eq.${uid}`)
     .not('user_b_id', 'is', null)
-    .maybeSingle() as { data: Pick<CoupleRow, 'id' | 'user_a_id' | 'user_b_id'> | null; error: { message: string } | null };
+    .maybeSingle() as { data: Pick<CoupleRow, 'id' | 'user_a_id' | 'user_b_id' | 'since_date' | 'anniversary'> | null; error: { message: string } | null };
 
   if (!couple) return null;
 
@@ -171,6 +171,8 @@ export async function getCoupleInfo(userId?: string): Promise<{ id: string; part
     id: couple.id,
     partnerId,
     partnerNickname,
+    sinceDate: couple.since_date,
+    anniversary: couple.anniversary,
   };
 }
 
@@ -578,4 +580,126 @@ export async function uploadPhotosToTrip(
     onProgress?.(uploaded, files.length);
   }
   return uploaded;
+}
+
+/**
+ * Update couple dates (since_date and anniversary).
+ */
+export async function updateCoupleDates(
+  coupleId: string,
+  fields: { since_date?: string | null; anniversary?: string | null }
+): Promise<boolean> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('couples')
+    .update(fields as never)
+    .eq('id', coupleId);
+
+  if (error) {
+    console.error('Failed to update couple dates:', error.message);
+    return false;
+  }
+
+  return true;
+}
+
+type TimelineRow = Database['public']['Tables']['timelines']['Row'];
+
+export async function getTimelines(
+  coupleId: string
+): Promise<TimelineRow[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('timelines')
+    .select('*')
+    .eq('couple_id', coupleId)
+    .order('date', { ascending: true }) as { data: TimelineRow[] | null; error: { message: string } | null };
+
+  if (error) {
+    console.error('Failed to fetch timelines:', error.message);
+    return [];
+  }
+
+  return data ?? [];
+}
+
+export async function addTimeline(
+  coupleId: string,
+  entry: { date: string; title: string; description?: string; icon?: string; type?: string }
+): Promise<string | null> {
+  const supabase = createClient();
+  const id = crypto.randomUUID();
+  const { error } = await supabase
+    .from('timelines')
+    .insert({
+      id,
+      couple_id: coupleId,
+      date: entry.date,
+      title: entry.title,
+      description: entry.description ?? null,
+      icon: entry.icon ?? null,
+      type: entry.type ?? 'milestone',
+    } as never);
+
+  if (error) {
+    console.error('Failed to add timeline:', error.message);
+    return null;
+  }
+
+  return id;
+}
+
+export async function updateTimeline(
+  timelineId: string,
+  entry: { date?: string; title?: string; description?: string | null; icon?: string | null; type?: string }
+): Promise<boolean> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('timelines')
+    .update({ ...entry, updated_at: new Date().toISOString() } as never)
+    .eq('id', timelineId);
+
+  if (error) {
+    console.error('Failed to update timeline:', error.message);
+    return false;
+  }
+
+  return true;
+}
+
+export async function deleteTimeline(timelineId: string): Promise<boolean> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('timelines')
+    .delete()
+    .eq('id', timelineId);
+
+  if (error) {
+    console.error('Failed to delete timeline:', error.message);
+    return false;
+  }
+
+  return true;
+}
+
+type UserRow = Database['public']['Tables']['users']['Row'];
+
+export async function updateUserProfile(
+  fields: { nickname?: string; avatar_url?: string | null; city?: string | null; bio?: string | null; birthday?: string | null }
+): Promise<boolean> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { error } = await supabase
+    .from('users')
+    .update(fields as never)
+    .eq('id', user.id);
+
+  if (error) {
+    console.error('Failed to update user profile:', error.message);
+    return false;
+  }
+
+  return true;
 }

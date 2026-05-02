@@ -152,7 +152,7 @@ function CityContent() {
   };
 
   return (
-    <div className="container mx-auto px-4" style={{ paddingBottom: '120px' }}>
+    <div className="container mx-auto px-4" style={{ flex: 1, overflowY: "auto", paddingBottom: 80, position: "relative" }}>
       {/* Header */}
       <div className="card text-center relative overflow-hidden mb-6">
         {/* Back button */}

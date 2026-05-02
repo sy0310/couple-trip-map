@@ -8,18 +8,27 @@ export interface Database {
           id: string;
           nickname: string;
           avatar_url: string | null;
+          city: string | null;
+          bio: string | null;
+          birthday: string | null;
           created_at: string;
         };
         Insert: {
           id: string;
           nickname: string;
           avatar_url?: string | null;
+          city?: string | null;
+          bio?: string | null;
+          birthday?: string | null;
           created_at?: string;
         };
         Update: {
           id?: string;
           nickname?: string;
           avatar_url?: string | null;
+          city?: string | null;
+          bio?: string | null;
+          birthday?: string | null;
           created_at?: string;
         };
       };
@@ -29,6 +38,8 @@ export interface Database {
           user_a_id: string;
           user_b_id: string | null;
           binding_code: string;
+          since_date: string | null;
+          anniversary: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -37,6 +48,8 @@ export interface Database {
           user_a_id: string;
           user_b_id?: string | null;
           binding_code: string;
+          since_date?: string | null;
+          anniversary?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -45,6 +58,8 @@ export interface Database {
           user_a_id?: string;
           user_b_id?: string | null;
           binding_code?: string;
+          since_date?: string | null;
+          anniversary?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -62,6 +77,7 @@ export interface Database {
           visit_date: string;
           notes: string | null;
           photo_count: number;
+          cover_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -77,6 +93,7 @@ export interface Database {
           visit_date: string;
           notes?: string | null;
           photo_count?: number;
+          cover_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -92,6 +109,7 @@ export interface Database {
           visit_date?: string;
           notes?: string | null;
           photo_count?: number;
+          cover_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -120,6 +138,41 @@ export interface Database {
           description?: string | null;
           taken_at?: string | null;
           created_at?: string;
+        };
+      };
+      timelines: {
+        Row: {
+          id: string;
+          couple_id: string;
+          date: string;
+          title: string;
+          description: string | null;
+          icon: string | null;
+          type: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          couple_id: string;
+          date: string;
+          title: string;
+          description?: string | null;
+          icon?: string | null;
+          type?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          couple_id?: string;
+          date?: string;
+          title?: string;
+          description?: string | null;
+          icon?: string | null;
+          type?: string;
+          created_at?: string;
+          updated_at?: string;
         };
       };
     };

@@ -31,7 +31,7 @@ export default function HomePage() {
   const [coupleId, setCoupleId] = useState<string | null>(null);
   const [coupleInfo, setCoupleInfo] = useState<{
     partnerNickname?: string;
-    since?: string;
+    sinceDate?: string | null;
   }>({});
   const [loading, setLoading] = useState(true);
 
@@ -89,8 +89,8 @@ export default function HomePage() {
   const visitedCount = visitedProvinces.length;
   const completionRate = ((visitedCount / TOTAL_PROVINCES) * 100).toFixed(1);
   const recentTrips = allPhotos.slice(0, 3);
-  const daysSince = coupleInfo.since
-    ? Math.floor((Date.now() - new Date(coupleInfo.since).getTime()) / 86400000)
+  const daysSince = coupleInfo.sinceDate
+    ? Math.floor((Date.now() - new Date(coupleInfo.sinceDate).getTime()) / 86400000)
     : null;
 
   return (
@@ -165,7 +165,7 @@ export default function HomePage() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 11, color: T.inkFaint, marginBottom: 2 }}>在一起</div>
-              <div style={{ fontFamily: "var(--font-noto-serif-sc)", fontWeight: 600, fontSize: 15, color: T.ink }}>{coupleInfo.since || ""} · <span style={{ color: T.accent }}>{daysSince} 天</span></div>
+              <div style={{ fontFamily: "var(--font-noto-serif-sc)", fontWeight: 600, fontSize: 15, color: T.ink }}>{coupleInfo.sinceDate || ""} · <span style={{ color: T.accent }}>{daysSince} 天</span></div>
             </div>
             <button onClick={() => router.push("/stats")} style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.bgCardAlt, color: T.accent, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-dm-sans)" }}>查看</button>
           </div>
