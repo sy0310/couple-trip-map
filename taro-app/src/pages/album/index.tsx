@@ -26,32 +26,45 @@ export default function AlbumPage() {
   const [yearGroups, setYearGroups] = useState<YearGroup[]>([])
   const [allPhotos, setAllPhotos] = useState<PhotoItem[]>([])
   const [uploading, setUploading] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const loadPhotos = async () => {
     if (!userId) return
-    const cid = await getCoupleId(adapter, userId)
-    if (!cid) return
+    setLoading(true)
+    setError(null)
+    try {
+      const cid = await getCoupleId(adapter, userId)
+      if (!cid) return
 
-    const photos = await getAllPhotosForCouple(adapter, cid)
-    setAllPhotos(photos)
+      const photos = await getAllPhotosForCouple(adapter, cid)
+      setAllPhotos(photos)
 
-    const groups = new Map<string, PhotoItem[]>()
-    for (const photo of photos) {
-      const dateStr = photo.visitDate || photo.created_at
-      const year = new Date(dateStr).getFullYear().toString()
-      if (!groups.has(year)) groups.set(year, [])
-      groups.get(year)!.push(photo)
+      const groups = new Map<string, PhotoItem[]>()
+      for (const photo of photos) {
+        const dateStr = photo.visitDate || photo.created_at
+        const year = new Date(dateStr).getFullYear().toString()
+        if (!groups.has(year)) groups.set(year, [])
+        groups.get(year)!.push(photo)
+      }
+
+      const sorted: YearGroup[] = [...groups.entries()]
+        .sort(([a], [b]) => parseInt(b) - parseInt(a))
+        .map(([year, photos]) => ({ year, photos }))
+
+      setYearGroups(sorted)
+    } catch (err) {
+      setError('加载相册失败')
+      console.error('Failed to load photos:', err)
+    } finally {
+      setLoading(false)
     }
-
-    const sorted: YearGroup[] = [...groups.entries()]
-      .sort(([a], [b]) => parseInt(b) - parseInt(a))
-      .map(([year, photos]) => ({ year, photos }))
-
-    setYearGroups(sorted)
   }
 
   useDidShow(() => {
-    loadPhotos()
+    loadPhotos().catch((err) => {
+      console.error('Failed to load photos:', err)
+    })
   })
 
   usePullDownRefresh(async () => {
@@ -149,37 +162,56 @@ export default function AlbumPage() {
         </View>
       </View>
 
-      {yearGroups.map((group) => (
-        <View key={group.year} className={styles.yearSection}>
-          <Text className={styles.yearTitle}>{group.year}年</Text>
-          <View className={styles.photoGrid}>
-            {group.photos.map((photo) => (
-              <View
-                key={photo.id}
-                className={styles.photoCard}
-                onTap={() =>
-                  handlePhotoTap(
-                    allPhotos.map((p) => p.file_url),
-                    photo.file_url
-                  )
-                }
-              >
-                <Image
-                  src={photo.file_url}
-                  mode="aspectFill"
-                  className={styles.photoImage}
-                />
-              </View>
-            ))}
+      {loading && (
+        <View className={styles.empty}>
+          <Text className={styles.emptyText}>加载中...</Text>
+        </View>
+      )}
+
+      {error && !loading && (
+        <View className={styles.empty}>
+          <Text className={styles.emptyText}>{error}</Text>
+          <View className={styles.uploadBtn} onTap={() => loadPhotos()}>
+            <Text className={styles.uploadText}>重试</Text>
           </View>
         </View>
-      ))}
+      )}
 
-      {yearGroups.length === 0 && (
+      {!loading && !error && yearGroups.length === 0 && (
         <View className={styles.empty}>
           <Text className={styles.emptyText}>还没有照片</Text>
           <Text className={styles.emptyHint}>点击上传按钮添加旅行照片</Text>
         </View>
+      )}
+
+      {!loading && !error && yearGroups.length > 0 && (
+        <>
+          {yearGroups.map((group) => (
+            <View key={group.year} className={styles.yearSection}>
+              <Text className={styles.yearTitle}>{group.year}年</Text>
+              <View className={styles.photoGrid}>
+                {group.photos.map((photo) => (
+                  <View
+                    key={photo.id}
+                    className={styles.photoCard}
+                    onTap={() =>
+                      handlePhotoTap(
+                        allPhotos.map((p) => p.file_url),
+                        photo.file_url
+                      )
+                    }
+                  >
+                    <Image
+                      src={photo.file_url}
+                      mode="aspectFill"
+                      className={styles.photoImage}
+                    />
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))}
+        </>
       )}
     </View>
   )
