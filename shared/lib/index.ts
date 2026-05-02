@@ -1,3 +1,6 @@
 export * from './types'
 export * from './provinces'
 export * from './adapter'
+export * from './utils'
+export * from './trips'
+export * from './couples'
