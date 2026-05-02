@@ -109,7 +109,7 @@ export default function HomePage() {
             </div>
             {coupleInfo.partnerNickname && (
               <div style={{ width: 32, height: 32, borderRadius: 16, background: T.gold, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${T.bg}` }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "white", fontFamily: "var(--font-noto-serif-sc)" }}>{coupleInfo.partnerNickname}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "white", fontFamily: "var(--font-noto-serif-sc)" }}>{coupleInfo.partnerNickname?.[0]}</span>
               </div>
             )}
           </div>
