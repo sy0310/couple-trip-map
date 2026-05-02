@@ -1,4 +1,4 @@
-import type { SupabaseAdapter, QueryBuilder, StorageClient, Result } from '../../shared/lib/adapter'
+import type { SupabaseAdapter, QueryBuilder, StorageClient, Result } from '@shared/lib/adapter'
 import { MiniStorageClient } from './storage'
 
 // Placeholder -- replace with real values or env config

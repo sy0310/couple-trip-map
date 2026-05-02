@@ -1,4 +1,4 @@
-import type { StorageClient, BucketClient, Result } from '../../shared/lib/adapter'
+import type { StorageClient, BucketClient, Result } from '@shared/lib/adapter'
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase'
 
 /**

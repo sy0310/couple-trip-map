@@ -1,4 +1,4 @@
-import type { SupabaseAdapter } from '../../shared/lib/adapter'
+import type { SupabaseAdapter } from '@shared/lib/adapter'
 
 const TOKEN_KEY = 'yuting_auth_token'
 const USER_KEY = 'yuting_user_id'

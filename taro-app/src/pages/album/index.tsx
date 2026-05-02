@@ -2,7 +2,7 @@ import { useContext, useState } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro, { useDidShow, usePullDownRefresh } from '@tarojs/taro'
 import { AppContext } from '../../app'
-import { getAllPhotosForCouple, getCoupleId } from '../../../shared/lib/trips'
+import { getAllPhotosForCouple, getCoupleId } from '@shared/lib/trips'
 import { compressImage } from '../../services/storage'
 import styles from './index.module.css'
 

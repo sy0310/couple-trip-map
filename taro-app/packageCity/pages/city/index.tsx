@@ -2,8 +2,8 @@ import { useContext, useState } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro, { useDidShow, getCurrentInstance, useShareAppMessage } from '@tarojs/taro'
 import { AppContext } from '../../../taro-app/src/app'
-import { getTripsByCity, getPhotosByTrip } from '../../../shared/lib/trips'
-import { getCoupleId } from '../../../shared/lib/couples'
+import { getTripsByCity, getPhotosByTrip } from '@shared/lib/trips'
+import { getCoupleId } from '@shared/lib/couples'
 import styles from './index.module.css'
 
 interface TripWithPhotos {

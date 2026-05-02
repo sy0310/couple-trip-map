@@ -3,9 +3,9 @@ import { View, Text, Input, Textarea, Picker, Image } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { AppContext } from '../../app'
 import { getUser } from '../../services/auth'
-import { updateUserProfile } from '../../../../shared/lib/trips'
+import { updateUserProfile } from '@shared/lib/trips'
 import { compressImage } from '../../services/storage'
-import { generateId } from '../../../../shared/lib/utils'
+import { generateId } from '@shared/lib/utils'
 import styles from './index.module.css'
 
 interface ProfileForm {

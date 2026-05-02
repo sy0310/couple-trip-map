@@ -2,9 +2,9 @@ import { useContext, useState } from 'react'
 import { View, Text, Input, Textarea, Picker } from '@tarojs/components'
 import Taro, { getCurrentInstance, useDidShow } from '@tarojs/taro'
 import { AppContext } from '../../app'
-import { createTrip, updateTrip } from '../../../../shared/lib/trips'
-import { getCoupleId } from '../../../../shared/lib/couples'
-import { PROVINCES } from '../../../../shared/lib/provinces'
+import { createTrip, updateTrip } from '@shared/lib/trips'
+import { getCoupleId } from '@shared/lib/couples'
+import { PROVINCES } from '@shared/lib/provinces'
 import styles from './index.module.css'
 
 interface TripForm {

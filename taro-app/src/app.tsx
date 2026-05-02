@@ -2,7 +2,7 @@ import { createContext, useState } from 'react'
 import { useLaunch } from '@tarojs/taro'
 import { MiniSupabaseAdapter } from './services/supabase'
 import { ensureAuth } from './services/auth'
-import type { SupabaseAdapter } from '../shared/lib/adapter'
+import type { SupabaseAdapter } from '@shared/lib/adapter'
 import './app.module.css'
 
 interface AppContextValue {

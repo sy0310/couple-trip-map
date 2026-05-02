@@ -5,8 +5,8 @@ import * as echarts from 'echarts'
 import { AppContext } from '../../app'
 import chinaJson from '../../assets/china.json'
 import { buildOption, filterSouthChinaSeaIslands } from './map'
-import { getCoupleId, getVisitedProvinces, getVisitedCitiesWithCoords, getAllPhotosForCouple } from '../../../shared/lib/trips'
-import { TOTAL_PROVINCES } from '../../../shared/lib/provinces'
+import { getCoupleId, getVisitedProvinces, getVisitedCitiesWithCoords, getAllPhotosForCouple } from '@shared/lib/trips'
+import { TOTAL_PROVINCES } from '@shared/lib/provinces'
 import EcCanvas from '../../components/ec-canvas'
 import styles from './index.module.css'
 
@@ -110,7 +110,7 @@ export default function Index() {
       if (params.seriesType === 'effectScatter') {
         handleCityClick(params.name)
       } else {
-        const { normalizeProvinceName } = require('../../../shared/lib/provinces')
+        const { normalizeProvinceName } = require('@shared/lib/provinces')
         handleProvinceClick(normalizeProvinceName(params.name))
       }
     })

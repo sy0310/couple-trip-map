@@ -22,7 +22,20 @@ export default defineConfig({
   compiler: 'webpack5',
   mini: {
     webpackChain(chain) {
-      chain.resolve.alias.set('@shared', path.resolve(__dirname, '../../shared'))
+      const sharedDir = path.resolve(__dirname, '../../shared')
+      chain.resolve.alias.set('@shared', sharedDir)
+
+      // Process shared/ TypeScript files with babel-loader
+      chain.module
+        .rule('shared-ts')
+        .test(/\.ts$/)
+        .include.add(sharedDir).end()
+        .use('babel')
+        .loader('babel-loader')
+        .options({
+          presets: ['@babel/preset-typescript'],
+          plugins: [],
+        })
     },
     postcss: {
       pxtransform: {

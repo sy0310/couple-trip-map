@@ -2,8 +2,8 @@ import { useContext, useState } from 'react'
 import { View, Text } from '@tarojs/components'
 import Taro, { useDidShow, getCurrentInstance } from '@tarojs/taro'
 import { AppContext } from '../../../taro-app/src/app'
-import { getVisitedCities, getTripsByCity } from '../../../shared/lib/trips'
-import { getCoupleId } from '../../../shared/lib/couples'
+import { getVisitedCities, getTripsByCity } from '@shared/lib/trips'
+import { getCoupleId } from '@shared/lib/couples'
 import styles from './index.module.css'
 
 interface CityInfo {

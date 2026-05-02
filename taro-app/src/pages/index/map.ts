@@ -1,4 +1,4 @@
-import { provinceToGeoJsonName, normalizeProvinceName } from '../../../shared/lib/provinces'
+import { provinceToGeoJsonName, normalizeProvinceName } from '@shared/lib/provinces'
 
 export interface ThemeTokens {
   accent: string

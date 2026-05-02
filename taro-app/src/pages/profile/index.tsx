@@ -8,7 +8,7 @@ import {
   generateBindingCode,
   acceptBindingCode,
   deleteCoupleBinding,
-} from '../../../shared/lib/couples'
+} from '@shared/lib/couples'
 import styles from './index.module.css'
 
 interface UserInfo {
