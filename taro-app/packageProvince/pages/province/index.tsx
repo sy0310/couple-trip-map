@@ -15,6 +15,8 @@ export default function ProvincePage() {
   const { adapter, userId } = useContext(AppContext)
   const [cities, setCities] = useState<CityInfo[]>([])
   const [province, setProvince] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useDidShow(async () => {
     const params = getCurrentInstance().router?.params
@@ -22,16 +24,25 @@ export default function ProvincePage() {
     if (!name || !userId) return
 
     setProvince(name)
-    const cid = await getCoupleId(adapter, userId)
-    if (!cid) return
+    setLoading(true)
+    setError(null)
+    try {
+      const cid = await getCoupleId(adapter, userId)
+      if (!cid) return
 
-    const cityNames = await getVisitedCities(adapter, cid, name)
-    const tripCounts = await getTripCountsByCities(adapter, cid, name, cityNames)
-    const cityInfos: CityInfo[] = cityNames.map((cityName) => ({
-      name: cityName,
-      tripCount: tripCounts.get(cityName) || 0,
-    }))
-    setCities(cityInfos)
+      const cityNames = await getVisitedCities(adapter, cid, name)
+      const tripCounts = await getTripCountsByCities(adapter, cid, name, cityNames)
+      const cityInfos: CityInfo[] = cityNames.map((cityName) => ({
+        name: cityName,
+        tripCount: tripCounts.get(cityName) || 0,
+      }))
+      setCities(cityInfos)
+    } catch (err) {
+      setError('加载省份数据失败')
+      console.error('Failed to load province data:', err)
+    } finally {
+      setLoading(false)
+    }
   })
 
   const handleCityTap = (cityName: string) => {
@@ -47,25 +58,42 @@ export default function ProvincePage() {
         <Text className={styles.subtitle}>已访问 {cities.length} 个城市</Text>
       </View>
       <View className={styles.cityList}>
-        {cities.map((city) => (
-          <View
-            key={city.name}
-            className={styles.cityItem}
-            onTap={() => handleCityTap(city.name)}
-          >
-            <View className={styles.cityInfo}>
-              <Text className={styles.cityName}>{city.name}</Text>
-              <Text className={styles.cityTripCount}>
-                {city.tripCount} 次旅行
-              </Text>
-            </View>
-            <Text className={styles.arrow}>&#8250;</Text>
+        {loading && (
+          <View className={styles.empty}>
+            <Text className={styles.emptyText}>加载中...</Text>
           </View>
-        ))}
-        {cities.length === 0 && (
+        )}
+
+        {error && !loading && (
+          <View className={styles.empty}>
+            <Text className={styles.emptyText}>{error}</Text>
+          </View>
+        )}
+
+        {!loading && !error && cities.length === 0 && (
           <View className={styles.empty}>
             <Text className={styles.emptyText}>暂无旅行记录</Text>
           </View>
+        )}
+
+        {!loading && !error && cities.length > 0 && (
+          <>
+            {cities.map((city) => (
+              <View
+                key={city.name}
+                className={styles.cityItem}
+                onTap={() => handleCityTap(city.name)}
+              >
+                <View className={styles.cityInfo}>
+                  <Text className={styles.cityName}>{city.name}</Text>
+                  <Text className={styles.cityTripCount}>
+                    {city.tripCount} 次旅行
+                  </Text>
+                </View>
+                <Text className={styles.arrow}>&#8250;</Text>
+              </View>
+            ))}
+          </>
         )}
       </View>
     </View>
