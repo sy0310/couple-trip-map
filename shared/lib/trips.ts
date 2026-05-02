@@ -372,9 +372,10 @@ export async function deleteTrip(
 
   // Delete from storage (check result per photo)
   for (const photo of photos) {
-    const urlParts = photo.file_url.split('/')
-    const fileName = urlParts[urlParts.length - 1]
-    const coupleIdPart = urlParts[urlParts.length - 2]
+    const parsed = new URL(photo.file_url)
+    const pathSegments = parsed.pathname.split('/').filter(Boolean)
+    const fileName = pathSegments[pathSegments.length - 1]
+    const coupleIdPart = pathSegments[pathSegments.length - 2]
     const storagePath = `${coupleIdPart}/${fileName}`
     const storageResult = await adapter.storage.from('photos').remove([storagePath])
     if (storageResult.error) {
@@ -520,9 +521,10 @@ export async function deletePhoto(
   fileUrl: string
 ): Promise<boolean> {
   // Extract storage path from URL
-  const urlParts = fileUrl.split('/')
-  const fileName = urlParts[urlParts.length - 1]
-  const coupleIdPart = urlParts[urlParts.length - 2]
+  const parsed = new URL(fileUrl)
+  const pathSegments = parsed.pathname.split('/').filter(Boolean)
+  const fileName = pathSegments[pathSegments.length - 1]
+  const coupleIdPart = pathSegments[pathSegments.length - 2]
   const storagePath = `${coupleIdPart}/${fileName}`
 
   // Delete from storage
