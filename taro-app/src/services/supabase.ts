@@ -1,9 +1,12 @@
 import type { SupabaseAdapter, QueryBuilder, StorageClient, Result } from '@shared/lib/adapter'
 import { MiniStorageClient } from './storage'
 
-// Placeholder -- replace with real values or env config
-const SUPABASE_URL = 'https://xxx.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJ...'
+const SUPABASE_URL = process.env.TARO_APP_SUPABASE_URL || ''
+const SUPABASE_ANON_KEY = process.env.TARO_APP_SUPABASE_ANON_KEY || ''
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('[Config] Missing TARO_APP_SUPABASE_URL or TARO_APP_SUPABASE_ANON_KEY -- check your build environment')
+}
 
 /**
  * Wraps wx.request in a Promise with proper success/fail handling.

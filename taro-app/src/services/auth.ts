@@ -27,7 +27,7 @@ export async function loginWithWeChat(
   wx.setStorageSync(USER_KEY, userId)
   wx.setStorageSync(TOKEN_EXPIRY_KEY, Date.now() + 3600 * 1000)
 
-  ;(adapter as unknown as { setToken: (t: string) => void }).setToken(token)
+  adapter.setToken(token)
 
   return { token, userId }
 }
@@ -78,7 +78,7 @@ export async function ensureAuth(adapter: SupabaseAdapter): Promise<string> {
   const userId = getUserId()
 
   if (token && userId && !isTokenExpired()) {
-    ;(adapter as unknown as { setToken: (t: string) => void }).setToken(token)
+    adapter.setToken(token)
     return userId
   }
 

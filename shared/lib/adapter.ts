@@ -29,6 +29,7 @@ export interface StorageClient {
 }
 
 export interface SupabaseAdapter {
+  setToken(token: string): void;
   from(table: string): QueryBuilder;
   storage: StorageClient;
   rpc<T = unknown>(fn: string, params?: Record<string, unknown>): Promise<Result<T>>;
