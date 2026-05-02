@@ -36,6 +36,20 @@
   display: block;
 }
 
+.editBtn {
+  margin-top: 10px;
+  padding: 6px 20px;
+  background-color: transparent;
+  border: 1.5px solid var(--color-accent);
+  border-radius: 16px;
+}
+
+.editBtnText {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
 .section {
   margin: 16px;
   padding: 16px;

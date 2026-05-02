@@ -122,6 +122,12 @@ export default function ProfilePage() {
           <Text className={styles.avatarText}>{nickname[0]}</Text>
         </View>
         <Text className={styles.nickname}>{nickname}</Text>
+        <View
+          className={styles.editBtn}
+          onTap={() => Taro.navigateTo({ url: '/pages/profile-edit/index' })}
+        >
+          <Text className={styles.editBtnText}>编辑资料</Text>
+        </View>
       </View>
 
       {/* Couple Section */}
