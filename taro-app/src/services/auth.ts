@@ -56,7 +56,7 @@ export async function getUser(adapter: SupabaseAdapter) {
 
   const result = await adapter
     .from('users')
-    .select('*')
+    .select('id, nickname, avatar_url')
     .eq('id', userId)
     .maybeSingle()
 

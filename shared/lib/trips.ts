@@ -442,7 +442,7 @@ export async function getPhotosByTrip(
 ): Promise<PhotoRow[]> {
   const result = await adapter
     .from('photos')
-    .select('*')
+    .select('id, trip_id, file_url, description, taken_at, created_at')
     .eq('trip_id', tripId)
     .order('created_at', { ascending: true })
 
@@ -580,7 +580,7 @@ export async function getTimelines(
 ): Promise<TimelineRow[]> {
   const result = await adapter
     .from('timelines')
-    .select('*')
+    .select('id, couple_id, date, title, description, icon, type, created_at, updated_at')
     .eq('couple_id', coupleId)
     .order('date', { ascending: true })
 
