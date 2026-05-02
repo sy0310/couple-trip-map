@@ -1,0 +1,53 @@
+/* Wood theme (default) */
+page {
+  --color-accent: #FF6B81;
+  --color-accent-light: #FF6B8120;
+  --color-gold: #D4A574;
+  --color-bg: #FFF5F5;
+  --color-bg-card: #FFFFFF;
+  --color-bg-card-alt: #FFF0F0;
+  --color-text: #2D2D2D;
+  --color-text-faint: #999999;
+  --color-border: #F0E0E0;
+  --color-border-mid: #E0D0D0;
+  --theme-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  --radius: 12px;
+}
+
+/* Night theme */
+page.dark {
+  --color-bg: #1A1A2E;
+  --color-bg-card: #252540;
+  --color-bg-card-alt: #2A2A45;
+  --color-text: #F0E0E0;
+  --color-text-faint: #888899;
+  --color-border: #3A3A55;
+  --color-border-mid: #4A4A65;
+}
+
+/* Spring theme */
+page.spring {
+  --color-accent: #7BC67E;
+  --color-accent-light: #7BC67E20;
+  --color-bg: #F0FFF0;
+  --color-bg-card: #FFFFFF;
+  --color-bg-card-alt: #E8F5E9;
+  --color-text: #2D3A2D;
+  --color-text-faint: #88AA88;
+  --color-border: #C8E6C9;
+  --color-border-mid: #A5D6A7;
+}
+
+page {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
