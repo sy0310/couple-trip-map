@@ -2,7 +2,8 @@ export default defineAppConfig({
   pages: [
     'pages/index/index',
     'pages/album/index',
-    'pages/profile/index'
+    'pages/profile/index',
+    'pages/trip-edit/index'
   ],
   subPackages: [
     { root: 'packageProvince', pages: ['pages/province/index'] },
