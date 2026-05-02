@@ -1,0 +1,38 @@
+{
+  "name": "yuting-taro",
+  "version": "0.1.0",
+  "private": true,
+  "description": "遇亭 - 情侣旅行地图小程序",
+  "scripts": {
+    "build:weapp": "taro build --type weapp",
+    "build:h5": "taro build --type h5",
+    "dev:weapp": "npm run build:weapp -- --watch"
+  },
+  "dependencies": {
+    "@tarojs/components": "4.2.0",
+    "@tarojs/helper": "4.2.0",
+    "@tarojs/plugin-platform-alipay": "4.2.0",
+    "@tarojs/plugin-platform-h5": "4.2.0",
+    "@tarojs/plugin-platform-qq": "4.2.0",
+    "@tarojs/plugin-platform-swan": "4.2.0",
+    "@tarojs/plugin-platform-tt": "4.2.0",
+    "@tarojs/plugin-platform-weapp": "4.2.0",
+    "@tarojs/react": "4.2.0",
+    "@tarojs/router": "4.2.0",
+    "@tarojs/runtime": "4.2.0",
+    "@tarojs/shared": "4.2.0",
+    "@tarojs/taro": "4.2.0",
+    "@tarojs/plugin-html": "4.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tarojs/cli": "4.2.0",
+    "@tarojs/webpack5-runner": "4.2.0",
+    "@types/react": "^19",
+    "typescript": "^5",
+    "@babel/core": "^7.24.0",
+    "babel-preset-taro": "4.2.0",
+    "eslint-config-taro": "4.2.0"
+  }
+}
