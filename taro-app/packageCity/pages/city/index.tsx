@@ -20,6 +20,8 @@ export default function CityPage() {
   const [trips, setTrips] = useState<TripWithPhotos[]>([])
   const [city, setCity] = useState('')
   const [province, setProvince] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useDidShow(async () => {
     const params = getCurrentInstance().router?.params
@@ -29,18 +31,26 @@ export default function CityPage() {
 
     setCity(cityName)
     setProvince(provinceName)
+    setLoading(true)
+    setError(null)
+    try {
+      const cid = await getCoupleId(adapter, userId)
+      if (!cid) return
 
-    const cid = await getCoupleId(adapter, userId)
-    if (!cid) return
-
-    const tripRows = await getTripsByCity(adapter, cid, cityName)
-    const tripIds = tripRows.map((t) => t.id)
-    const photoMap = await getPhotosByTripIds(adapter, tripIds)
-    const tripsWithPhotos: TripWithPhotos[] = tripRows.map((trip) => ({
-      ...trip,
-      photos: photoMap.get(trip.id) || [],
-    }))
-    setTrips(tripsWithPhotos)
+      const tripRows = await getTripsByCity(adapter, cid, cityName)
+      const tripIds = tripRows.map((t) => t.id)
+      const photoMap = await getPhotosByTripIds(adapter, tripIds)
+      const tripsWithPhotos: TripWithPhotos[] = tripRows.map((trip) => ({
+        ...trip,
+        photos: photoMap.get(trip.id) || [],
+      }))
+      setTrips(tripsWithPhotos)
+    } catch (err) {
+      setError('加载城市数据失败')
+      console.error('Failed to load city data:', err)
+    } finally {
+      setLoading(false)
+    }
   })
 
   useShareAppMessage(() => ({
@@ -64,40 +74,56 @@ export default function CityPage() {
         </Text>
       </View>
 
-      {trips.map((trip) => (
-        <View key={trip.id} className={styles.tripCard}>
-          <View className={styles.tripInfo}>
-            <Text className={styles.tripLocation}>{trip.location_name}</Text>
-            {trip.scenic_spot && (
-              <Text className={styles.tripSpot}>{trip.scenic_spot}</Text>
-            )}
-            <Text className={styles.tripDate}>{trip.visit_date}</Text>
-          </View>
-
-          {trip.notes && (
-            <Text className={styles.tripNotes}>{trip.notes}</Text>
-          )}
-
-          {trip.photos.length > 0 && (
-            <View className={styles.photoGrid}>
-              {trip.photos.map((url, idx) => (
-                <Image
-                  key={idx}
-                  src={url}
-                  mode="aspectFill"
-                  className={styles.photoImage}
-                  onTap={() => handlePhotoTap(trip.photos, url)}
-                />
-              ))}
-            </View>
-          )}
+      {loading && (
+        <View className={styles.empty}>
+          <Text className={styles.emptyText}>加载中...</Text>
         </View>
-      ))}
+      )}
 
-      {trips.length === 0 && (
+      {error && !loading && (
+        <View className={styles.empty}>
+          <Text className={styles.emptyText}>{error}</Text>
+        </View>
+      )}
+
+      {!loading && !error && trips.length === 0 && (
         <View className={styles.empty}>
           <Text className={styles.emptyText}>暂无旅行记录</Text>
         </View>
+      )}
+
+      {!loading && !error && trips.length > 0 && (
+        <>
+          {trips.map((trip) => (
+            <View key={trip.id} className={styles.tripCard}>
+              <View className={styles.tripInfo}>
+                <Text className={styles.tripLocation}>{trip.location_name}</Text>
+                {trip.scenic_spot && (
+                  <Text className={styles.tripSpot}>{trip.scenic_spot}</Text>
+                )}
+                <Text className={styles.tripDate}>{trip.visit_date}</Text>
+              </View>
+
+              {trip.notes && (
+                <Text className={styles.tripNotes}>{trip.notes}</Text>
+              )}
+
+              {trip.photos.length > 0 && (
+                <View className={styles.photoGrid}>
+                  {trip.photos.map((url, idx) => (
+                    <Image
+                      key={idx}
+                      src={url}
+                      mode="aspectFill"
+                      className={styles.photoImage}
+                      onTap={() => handlePhotoTap(trip.photos, url)}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          ))}
+        </>
       )}
     </View>
   )
