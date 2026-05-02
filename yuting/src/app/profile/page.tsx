@@ -1,11 +1,21 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { BottomNav } from '@/components/bottom-nav';
-import { getCoupleInfo, generateBindingCode, acceptBindingCode, deleteCoupleBinding } from '@/lib/trips';
-import { useAuth, signOut } from '@/lib/auth';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { BottomNav } from "@/components/BottomNav";
+import { PageHeader } from "@/components/PageHeader";
+import { GrainOverlay } from "@/components/GrainOverlay";
+import { ModalSheet } from "@/components/ModalSheet";
+import { ThemedBtn, ThemedInput } from "@/components/ThemedBtn";
+import { ProgressBar, Pill, StatBadge } from "@/components/StatBadge";
+import { useTheme } from "@/components/ThemeProvider";
+import { getCoupleInfo, generateBindingCode, acceptBindingCode, deleteCoupleBinding } from "@/lib/trips";
+import { useAuth, signOut } from "@/lib/auth";
+import { TOTAL_PROVINCES } from "@/lib/provinces";
 
 export default function ProfilePage() {
+  const router = useRouter();
+  const { tokens: T } = useTheme();
   const { user } = useAuth();
   const [coupleId, setCoupleId] = useState<string | null>(null);
   const [partnerNickname, setPartnerNickname] = useState<string | null>(null);
@@ -13,15 +23,15 @@ export default function ProfilePage() {
   const [tripCount, setTripCount] = useState(0);
   const [showCoupleModal, setShowCoupleModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [newNickname, setNewNickname] = useState('');
+  const [newNickname, setNewNickname] = useState("");
   const [nicknameSaving, setNicknameSaving] = useState(false);
   const [nicknameSaved, setNicknameSaved] = useState(false);
-  const [nicknameError, setNicknameError] = useState('');
-  const [bindingCode, setBindingCode] = useState('');
-  const [inputCode, setInputCode] = useState('');
+  const [nicknameError, setNicknameError] = useState("");
+  const [bindingCode, setBindingCode] = useState("");
+  const [inputCode, setInputCode] = useState("");
   const [codeLoading, setCodeLoading] = useState(false);
   const [acceptLoading, setAcceptLoading] = useState(false);
-  const [bindError, setBindError] = useState('');
+  const [bindError, setBindError] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -30,546 +40,224 @@ export default function ProfilePage() {
       setCoupleId(coupleInfo?.id ?? null);
       setPartnerNickname(coupleInfo?.partnerNickname ?? null);
       if (coupleInfo?.id) {
-        const sup = await import('@/lib/supabase-browser');
+        const sup = await import("@/lib/supabase-browser");
         const client = sup.createClient();
-        const { count: tripTotal } = await client
-          .from('trips')
-          .select('*', { count: 'exact', head: true })
-          .eq('couple_id', coupleInfo.id);
+        const { count: tripTotal } = await client.from("trips").select("*", { count: "exact", head: true }).eq("couple_id", coupleInfo.id);
         setTripCount(tripTotal ?? 0);
-
-        const { data: provinces }: { data: { province: string }[] | null } = await client
-          .from('trips')
-          .select('province')
-          .eq('couple_id', coupleInfo.id);
+        const { data: provinces }: { data: { province: string }[] | null } = await client.from("trips").select("province").eq("couple_id", coupleInfo.id);
         setVisitedProvinces(new Set((provinces ?? []).map((t) => t.province)).size);
       }
     };
     load();
   }, [user]);
 
-  const nickname = user?.user_metadata?.nickname || user?.email?.split('@')[0] || '旅行者';
-  const progressPercent = visitedProvinces > 0 ? Math.round((visitedProvinces / 34) * 100) : 0;
+  const nickname = user?.user_metadata?.nickname || user?.email?.split("@")[0] || "旅行者";
+  const progressPercent = visitedProvinces > 0 ? Math.round((visitedProvinces / TOTAL_PROVINCES) * 100) : 0;
+
+  const generateCode = async () => {
+    setCodeLoading(true);
+    const code = await generateBindingCode();
+    setCodeLoading(false);
+    if (code) setBindingCode(code);
+  };
+
+  const acceptCode = async () => {
+    if (!inputCode.trim()) return;
+    setBindError(""); setAcceptLoading(true);
+    const success = await acceptBindingCode(inputCode);
+    setAcceptLoading(false);
+    if (success) {
+      const info = await getCoupleInfo();
+      setCoupleId(info?.id ?? null);
+      setPartnerNickname(info?.partnerNickname ?? null);
+      setShowCoupleModal(false);
+    } else setBindError("绑定码无效或已被使用");
+  };
+
+  const handleUnbind = async () => {
+    const success = await deleteCoupleBinding();
+    if (success) { setCoupleId(null); setPartnerNickname(null); setBindingCode(""); setShowCoupleModal(false); }
+  };
+
+  const handleUpdateNickname = async () => {
+    const trimmed = newNickname.trim();
+    if (!trimmed) return;
+    setNicknameSaving(true); setNicknameError("");
+    const sup = await import("@/lib/supabase-browser");
+    const client = sup.createClient();
+    const { error } = await client.from("users").update({ nickname: trimmed } as never).eq("id", user!.id);
+    setNicknameSaving(false);
+    if (error) { setNicknameError(error.message); return; }
+    setNicknameSaved(true);
+    setTimeout(() => setNicknameSaved(false), 2000);
+    setNewNickname("");
+    await client.auth.updateUser({ data: { nickname: trimmed } });
+  };
 
   if (!user) {
     return (
-      <div className="min-h-screen relative pb-32 overflow-hidden" style={{ background: 'linear-gradient(135deg, #4a2e1d 0%, #352118 50%, #2a1b14 100%)' }}>
-        <div className="relative z-10 max-w-4xl mx-auto px-6 pt-24 pb-32">
-          <h1 className="text-3xl font-bold tracking-tight mb-8" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
-            个人中心
-          </h1>
-          <div className="text-center py-20" style={{ color: '#9A8B7A' }}>
-            <p className="text-base mb-3" style={{ fontFamily: "'Newsreader', serif", fontStyle: 'italic', fontSize: '1.125rem' }}>请先登录</p>
-            <a href="/login" className="inline-flex px-6 py-2.5 rounded-lg text-sm font-medium transition-all" style={{ background: 'linear-gradient(135deg, #c99a6c, #b8895e)', color: '#221a0f' }}>
-              前往登录
-            </a>
-          </div>
+      <div style={{ flex: 1, background: T.bg, paddingBottom: 80, position: "relative", minHeight: "100vh" }}>
+        <GrainOverlay />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh" }}>
+          <p style={{ color: T.inkFaint, fontFamily: "var(--font-noto-serif-sc)", fontStyle: "italic", fontSize: 18, marginBottom: 12 }}>请先登录</p>
+          <ThemedBtn onClick={() => router.push("/login")}>前往登录</ThemedBtn>
         </div>
         <BottomNav />
       </div>
     );
   }
 
-  const generateCode = async () => {
-    setCodeLoading(true);
-    const code = await generateBindingCode();
-    setCodeLoading(false);
-    if (code) {
-      setBindingCode(code);
-    }
-  };
-
-  const acceptCode = async () => {
-    if (!inputCode.trim()) return;
-    setBindError('');
-    setAcceptLoading(true);
-    const success = await acceptBindingCode(inputCode);
-    setAcceptLoading(false);
-    if (success) {
-      setInputCode('');
-      const info = await getCoupleInfo();
-      setCoupleId(info?.id ?? null);
-      setPartnerNickname(info?.partnerNickname ?? null);
-      setShowCoupleModal(false);
-    } else {
-      setBindError('绑定码无效或已被使用');
-    }
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    setShowSettingsModal(false);
-  };
-
-  const handleUnbind = async () => {
-    const success = await deleteCoupleBinding();
-    if (success) {
-      setCoupleId(null);
-      setPartnerNickname(null);
-      setBindingCode('');
-      setShowCoupleModal(false);
-    }
-  };
-
-  const handleUpdateNickname = async () => {
-    const trimmed = newNickname.trim();
-    if (!trimmed) return;
-    setNicknameSaving(true);
-    setNicknameError('');
-    const sup = await import('@/lib/supabase-browser');
-    const client = sup.createClient();
-    const { error } = await client.from('users').update({ nickname: trimmed } as never).eq('id', user.id);
-    setNicknameSaving(false);
-    if (error) {
-      setNicknameError(error.message);
-    } else {
-      setNicknameSaved(true);
-      setTimeout(() => setNicknameSaved(false), 2000);
-      setNewNickname('');
-      await client.auth.updateUser({ data: { nickname: trimmed } });
-    }
-  };
-
-  // Couple binding modal content
-  const coupleModalContent = (
-    <div className="space-y-6">
-      <h3 className="text-xl font-bold text-center" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
-        {coupleId ? `情侣 · ${partnerNickname || '对方'}` : '绑定情侣'}
-      </h3>
-
-      {coupleId ? (
-        <div className="space-y-6">
-          <div className="text-center py-4">
-            <div
-              className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
-              style={{ background: 'rgba(201,154,108,0.15)' }}
-            >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c99a6c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
-            </div>
-            <p className="text-sm mb-1" style={{ color: '#dac2b6' }}>已绑定情侣关系</p>
-            <p className="text-lg font-bold" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
-              {partnerNickname || '对方'}
-            </p>
-          </div>
-
-          {/* Unbind section */}
-          <div className="rounded-xl p-5 border" style={{ background: 'rgba(255,50,50,0.03)', borderColor: 'rgba(255,107,129,0.1)' }}>
-            <h4 className="text-sm font-semibold mb-2" style={{ color: '#ff6b6b' }}>解除绑定</h4>
-            <p className="text-xs mb-3" style={{ color: '#9A8B7A' }}>解除后双方的旅行记录将保持独立</p>
-            <button
-              onClick={handleUnbind}
-              className="w-full py-2.5 rounded-lg text-sm font-medium"
-              style={{
-                background: 'rgba(255,107,129,0.1)',
-                border: '1px solid rgba(255,107,129,0.2)',
-                color: '#FF6B81',
-              }}
-            >
-              解除情侣绑定
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Generate code */}
-          <div className="rounded-xl p-5 border" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,222,165,0.1)' }}>
-            <h4 className="text-sm font-semibold mb-2" style={{ color: '#ffdea5' }}>生成你的绑定码</h4>
-            <p className="text-xs mb-3" style={{ color: '#9A8B7A' }}>生成一个唯一绑定码，分享给你的另一半</p>
-            {bindingCode ? (
-              <div className="text-center">
-                <div
-                  className="text-3xl font-bold tracking-widest py-4 rounded-lg font-mono"
-                  style={{
-                    background: 'rgba(201,154,108,0.1)',
-                    border: '1px solid rgba(201,154,108,0.3)',
-                    color: '#ffdea5',
-                  }}
-                >
-                  {bindingCode}
-                </div>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(bindingCode);
-                  }}
-                  className="mt-3 text-xs underline"
-                  style={{ color: '#c99a6c' }}
-                >
-                  复制到剪贴板
-                </button>
-                <button
-                  onClick={() => setBindingCode('')}
-                  className="ml-3 text-xs underline"
-                  style={{ color: '#9A8B7A' }}
-                >
-                  重新生成
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={generateCode}
-                disabled={codeLoading}
-                className="w-full py-2.5 rounded-lg text-sm font-medium disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #c99a6c, #b8895e)', color: '#221a0f' }}
-              >
-                {codeLoading ? '生成中...' : '生成绑定码'}
-              </button>
-            )}
-          </div>
-
-          {/* Accept code */}
-          <div className="rounded-xl p-5 border" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,222,165,0.1)' }}>
-            <h4 className="text-sm font-semibold mb-2" style={{ color: '#ffdea5' }}>输入对方的绑定码</h4>
-            {bindError && (
-              <p className="text-xs mb-2" style={{ color: '#ff6b6b' }}>{bindError}</p>
-            )}
-            <div className="flex gap-3">
-              <input
-                type="text"
-                value={inputCode}
-                onChange={(e) => { setInputCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)); setBindError(''); }}
-                placeholder="输入6位码"
-                className="flex-1 px-4 py-2.5 rounded-lg text-sm text-center tracking-widest font-mono"
-                maxLength={6}
-                style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,222,165,0.2)',
-                  color: '#ffdea5',
-                }}
-              />
-              <button
-                onClick={acceptCode}
-                disabled={!inputCode || acceptLoading}
-                className="px-5 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50"
-                style={{
-                  background: 'rgba(255,222,165,0.1)',
-                  border: '1px solid rgba(255,222,165,0.2)',
-                  color: '#ffdea5',
-                }}
-              >
-                {acceptLoading ? '绑定中...' : '绑定'}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-
-  // Settings modal content
-  const settingsModalContent = (
-    <div className="space-y-6">
-      <h3 className="text-xl font-bold text-center" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif", fontStyle: 'italic' }}>
-        设置
-      </h3>
-
-      {/* Account info */}
-      <div className="rounded-xl p-5 border" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,222,165,0.1)' }}>
-        <h4 className="text-sm font-semibold mb-3" style={{ color: '#ffdea5' }}>账号信息</h4>
-        <div className="space-y-3">
-          <div className="flex justify-between text-sm">
-            <span style={{ color: '#9A8B7A' }}>昵称</span>
-            <span style={{ color: '#dac2b6' }}>{nickname}</span>
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newNickname}
-              onChange={(e) => { setNewNickname(e.target.value); setNicknameError(''); }}
-              placeholder="输入新昵称"
-              className="flex-1 px-4 py-2.5 rounded-lg text-sm"
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,222,165,0.2)',
-                color: '#ffdea5',
-                fontFamily: 'var(--font-manrope)',
-              }}
-            />
-            <button
-              onClick={handleUpdateNickname}
-              disabled={!newNickname.trim() || nicknameSaving}
-              className="px-5 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50"
-              style={{
-                background: nicknameSaved ? 'rgba(201,154,108,0.3)' : 'linear-gradient(135deg, #c99a6c, #b8895e)',
-                color: '#221a0f',
-              }}
-            >
-              {nicknameSaving ? '保存中' : nicknameSaved ? '已保存' : '修改'}
-            </button>
-          </div>
-          {nicknameError && (
-            <p className="text-xs" style={{ color: '#ff6b6b' }}>{nicknameError}</p>
-          )}
-          <div className="flex justify-between text-sm">
-            <span style={{ color: '#9A8B7A' }}>邮箱</span>
-            <span style={{ color: '#dac2b6' }}>{user?.email}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span style={{ color: '#9A8B7A' }}>UID</span>
-            <span className="font-mono text-xs" style={{ color: '#dac2b6' }}>{user?.id?.slice(0, 8)}...</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Danger zone */}
-      <div className="rounded-xl p-5 border" style={{ background: 'rgba(255,50,50,0.05)', borderColor: 'rgba(255,107,129,0.15)' }}>
-        <h4 className="text-sm font-semibold mb-3" style={{ color: '#ff6b6b' }}>退出登录</h4>
-        <p className="text-xs mb-3" style={{ color: '#9A8B7A' }}>退出后需要重新登录才能访问旅行数据</p>
-        <button
-          onClick={handleSignOut}
-          className="w-full py-2.5 rounded-lg text-sm font-medium"
-          style={{
-            background: 'rgba(255,107,129,0.1)',
-            border: '1px solid rgba(255,107,129,0.2)',
-            color: '#FF6B81',
-          }}
-        >
-          确认退出
-        </button>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen relative pb-32 overflow-hidden" style={{ background: 'linear-gradient(135deg, #4a2e1d 0%, #352118 50%, #2a1b14 100%)' }}>
-      {/* Grain overlay */}
-      <div
-        className="fixed inset-0 pointer-events-none z-0"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E")`,
-          opacity: 0.03,
-        }}
-      />
-
-      <div className="relative z-10 max-w-4xl mx-auto px-6 pt-24 pb-32">
-        {/* ID Card — birch profile card */}
-        <section className="mb-10">
-          <div
-            className="rounded-lg shadow-2xl border relative overflow-hidden"
-            style={{
-              background: 'linear-gradient(135deg, rgba(245,230,211,0.08) 0%, rgba(230,216,197,0.05) 100%)',
-              borderColor: 'rgba(255,222,165,0.1)',
-              boxShadow: '0 15px 45px rgba(0,0,0,0.5)',
-            }}
-          >
-            <div className="border-2 border-[rgba(201,154,108,0.15)] rounded-sm p-6 flex flex-col md:flex-row items-center md:items-start gap-6">
-              {/* Avatar with brass ring */}
-              <div className="relative">
-                <div
-                  className="w-28 h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center"
-                  style={{
-                    background: 'linear-gradient(135deg, #c99a6c, #b8895e, #ffdea5)',
-                    padding: '2px',
-                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.4)',
-                  }}
-                >
-                  <div className="w-full h-full rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(255,222,165,0.15), rgba(201,154,108,0.1))' }}>
-                    {nickname ? (
-                      <span className="text-5xl font-bold" style={{ color: '#ffdea5' }}>{nickname[0]}</span>
-                    ) : (
-                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9A8B7A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="8" r="4" />
-                        <path d="M20 21a8 8 0 1 0-16 0" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Details */}
-              <div className="flex-1 text-center md:text-left space-y-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] mb-1" style={{ color: '#9A8B7A' }}>Authenticated Explorer</p>
-                  <h2 className="text-3xl font-bold tracking-tight" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}>
-                    {nickname}
-                  </h2>
-                  {user?.email && (
-                    <p className="text-xs" style={{ color: '#9A8B7A' }}>{user.email}</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[rgba(201,154,108,0.1)]">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest" style={{ color: '#9A8B7A' }}>旅行次数</p>
-                    <p className="font-bold" style={{ color: '#c99a6c' }}>{tripCount} 次</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest" style={{ color: '#9A8B7A' }}>去过的省份</p>
-                    <p className="font-bold" style={{ color: '#c99a6c' }}>{visitedProvinces} / 34</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest" style={{ color: '#9A8B7A' }}>情侣状态</p>
-                    <p className="font-bold" style={{ color: coupleId ? '#c99a6c' : '#9A8B7A' }}>
-                      {coupleId ? '已绑定' : '未绑定'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-widest" style={{ color: '#9A8B7A' }}>完成度</p>
-                    <p className="font-bold" style={{ color: '#c99a6c' }}>{progressPercent}%</p>
-                  </div>
-                </div>
-              </div>
+    <div style={{ flex: 1, overflowY: "auto", background: T.bg, paddingBottom: 80, position: "relative" }}>
+      <GrainOverlay />
+      <PageHeader title="个人中心" />
+      <div style={{ padding: "16px" }}>
+        {/* ID Card */}
+        <div style={{ background: `linear-gradient(135deg, ${T.accent}20, ${T.bgCard})`, borderRadius: 20, padding: "20px", border: `1.5px solid ${T.accent}30`, marginBottom: 20, boxShadow: T.shadowDeep, position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", right: -10, top: -10, fontSize: 100, opacity: 0.04, fontFamily: "var(--font-noto-serif-sc)", fontWeight: 700, color: T.ink, pointerEvents: "none" }}>亭</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+            <div style={{ width: 56, height: 56, borderRadius: 28, background: T.accent, display: "flex", alignItems: "center", justifyContent: "center", border: `3px solid ${T.bgCard}`, boxShadow: `0 0 0 2px ${T.accent}40` }}>
+              <span style={{ fontFamily: "var(--font-noto-serif-sc)", fontWeight: 700, fontSize: 22, color: "white" }}>{nickname[0]}</span>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: T.inkFaint, letterSpacing: "0.1em", marginBottom: 3, fontFamily: "var(--font-dm-sans)" }}>AUTHENTICATED EXPLORER</div>
+              <div style={{ fontFamily: "var(--font-noto-serif-sc)", fontWeight: 700, fontSize: 20, color: T.ink }}>{nickname}</div>
+              {user?.email && <div style={{ fontSize: 11, color: T.inkFaint }}>{user.email}</div>}
             </div>
           </div>
-        </section>
-
-        {/* Mastery Progress */}
-        <section className="mb-10">
-          <div
-            className="rounded-xl p-6 border"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              borderColor: 'rgba(218,194,182,0.1)',
-            }}
-          >
-            <h4 className="text-[10px] uppercase tracking-[0.2em] mb-4" style={{ color: '#ffdea5' }}>探索进度</h4>
-            <div className="space-y-4">
-              <div className="flex justify-between text-xs" style={{ color: '#dac2b6' }}>
-                <span>省份覆盖</span>
-                <span>{progressPercent}%</span>
-              </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(201,154,108,0.2)' }}>
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${progressPercent}%`,
-                    background: 'linear-gradient(90deg, #c99a6c, #ffdea5)',
-                    boxShadow: `0 0 10px rgba(201,154,108,0.5)`,
-                  }}
-                />
-              </div>
-              <div className="flex justify-between text-xs mt-2" style={{ color: '#dac2b6' }}>
-                <span>已探索 {visitedProvinces} / 全国 34</span>
-                <span>旅行 {tripCount} 次</span>
-              </div>
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
+            <StatBadge value={`${tripCount} 次`} label="旅行次数" />
+            <StatBadge value={`${visitedProvinces}/${TOTAL_PROVINCES}`} label="省份" />
+            <StatBadge value={coupleId ? "已绑定" : "未绑定"} label="情侣状态" accent={!!coupleId} />
+            <StatBadge value={`${progressPercent}%`} label="完成度" accent />
           </div>
-        </section>
+        </div>
 
-        {/* Shelf menu */}
-        <section className="space-y-3 mb-10">
-          {/* Couple binding shelf */}
-          <button
-            type="button"
-            onClick={() => setShowCoupleModal(true)}
-            className="w-full cursor-pointer rounded-xl p-5 flex items-center justify-between transition-all duration-300 border-b"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              borderColor: 'rgba(255,255,255,0.05)',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
-          >
-            <div className="flex items-center gap-4">
-              <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center relative"
-                style={{ background: 'rgba(201,154,108,0.15)' }}
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c99a6c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-                {!coupleId && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full" style={{ background: '#c99a6c' }} />
-                )}
-              </div>
-              <div className="text-left">
-                <h3 className="text-lg font-bold" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}>
-                  {coupleId ? `情侣 · ${partnerNickname || '对方'}` : '情侣绑定'}
-                </h3>
-                <p className="text-xs" style={{ color: '#9A8B7A' }}>
-                  {coupleId ? '已成功绑定，一起记录旅行回忆' : '生成绑定码分享给另一半'}
-                </p>
-              </div>
+        {/* Progress */}
+        <div style={{ background: T.bgCard, borderRadius: 16, padding: "16px", border: `1px solid ${T.border}`, marginBottom: 20, boxShadow: T.shadow }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: T.ink, marginBottom: 12, fontFamily: "var(--font-dm-sans)", letterSpacing: "0.06em", textTransform: "uppercase" }}>探索进度</div>
+          <ProgressBar value={visitedProvinces} max={TOTAL_PROVINCES} showLabel height={10} />
+        </div>
+
+        {/* Menu */}
+        {[
+          {
+            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
+            title: coupleId ? `情侣 · ${partnerNickname || "对方"}` : "情侣绑定",
+            sub: coupleId ? "已绑定，一起记录旅行回忆" : "生成绑定码分享给另一半",
+            badge: coupleId ? "已绑定" : null,
+            dot: !coupleId,
+            action: () => setShowCoupleModal(true),
+          },
+          {
+            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+            title: "设置",
+            sub: "账号与安全设置",
+            action: () => setShowSettingsModal(true),
+          },
+          {
+            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>,
+            title: "生成旅行海报",
+            sub: "分享你们的旅行地图",
+            action: () => router.push("/poster"),
+          },
+        ].map((item, i) => (
+          <button key={i} onClick={item.action} style={{
+            width: "100%", background: T.bgCard, borderRadius: 14, padding: "14px 16px", border: `1px solid ${T.border}`,
+            marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
+            boxShadow: T.shadow, textAlign: "left",
+          }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: T.accentFaint, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative" }}>
+              {item.icon}
+              {item.dot && <span style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: 4, background: T.gold, border: `2px solid ${T.bgCard}` }} />}
             </div>
-            <div className="flex items-center gap-2">
-              {coupleId && (
-                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(201,154,108,0.15)', color: '#c99a6c' }}>已绑定</span>
-              )}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,222,165,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 18l6-6-6-6" />
-              </svg>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: "var(--font-noto-serif-sc)", fontWeight: 600, fontSize: 14, color: T.ink }}>{item.title}</div>
+              <div style={{ fontSize: 11, color: T.inkFaint, marginTop: 2 }}>{item.sub}</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {item.badge && <Pill small accent>{item.badge}</Pill>}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.inkFaint} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </div>
           </button>
-
-          {/* Settings shelf */}
-          <button
-            type="button"
-            onClick={() => setShowSettingsModal(true)}
-            className="w-full cursor-pointer rounded-xl p-5 flex items-center justify-between transition-all duration-300 border-b"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              borderColor: 'rgba(255,255,255,0.05)',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
-          >
-            <div className="flex items-center gap-4">
-              <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center"
-                style={{ background: 'rgba(201,154,108,0.15)' }}
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c99a6c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-              </div>
-              <div className="text-left">
-                <h3 className="text-lg font-bold" style={{ color: '#ffdea5', fontFamily: "'Newsreader', serif" }}>设置</h3>
-                <p className="text-xs" style={{ color: '#9A8B7A' }}>账号与安全设置</p>
-              </div>
-            </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,222,165,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
-        </section>
-
-        {/* Couple binding modal */}
-        {showCoupleModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/70" onClick={() => { setShowCoupleModal(false); setBindingCode(''); }} />
-            <div
-              className="relative w-full max-w-md rounded-2xl overflow-hidden max-h-[85vh] overflow-y-auto"
-              style={{ background: 'linear-gradient(180deg, #4a2e1d 0%, #352118 100%)', boxShadow: '0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,222,165,0.1)' }}
-            >
-              <div className="p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
-                {coupleModalContent}
-                <button
-                  onClick={() => { setShowCoupleModal(false); setBindingCode(''); }}
-                  className="w-full mt-6 py-2.5 rounded-lg text-sm font-medium"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,222,165,0.15)', color: '#dac2b6' }}
-                >
-                  关闭
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Settings modal */}
-        {showSettingsModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/70" onClick={() => { setShowSettingsModal(false); setNewNickname(''); setNicknameError(''); }} />
-            <div
-              className="relative w-full max-w-md rounded-2xl overflow-hidden max-h-[85vh] overflow-y-auto"
-              style={{ background: 'linear-gradient(180deg, #4a2e1d 0%, #352118 100%)', boxShadow: '0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,222,165,0.1)' }}
-            >
-              <div className="p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
-                {settingsModalContent}
-                <button
-                  onClick={() => setShowSettingsModal(false)}
-                  className="w-full mt-6 py-2.5 rounded-lg text-sm font-medium"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,222,165,0.15)', color: '#dac2b6' }}
-                >
-                  关闭
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
+        ))}
       </div>
+
+      {/* Couple modal */}
+      <ModalSheet open={showCoupleModal} onClose={() => { setShowCoupleModal(false); setBindingCode(""); }} title={coupleId ? `情侣 · ${partnerNickname || "对方"}` : "情侣绑定"}>
+        {coupleId ? (
+          <div>
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <div style={{ width: 52, height: 52, borderRadius: 26, background: T.accent, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", border: `3px solid ${T.bgCard}` }}>
+                <span style={{ fontFamily: "var(--font-noto-serif-sc)", fontWeight: 700, fontSize: 20, color: "white" }}>{partnerNickname?.[0] || "?"}</span>
+              </div>
+              <div style={{ fontFamily: "var(--font-noto-serif-sc)", fontWeight: 700, fontSize: 18, color: T.ink }}>{partnerNickname || "对方"}</div>
+              <div style={{ fontSize: 12, color: T.inkFaint, marginTop: 4 }}>已绑定情侣关系</div>
+            </div>
+            <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgba(200,50,50,0.03)", border: "1px solid rgba(200,50,50,0.1)", marginTop: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#C44444", marginBottom: 4 }}>解除绑定</div>
+              <div style={{ fontSize: 11, color: T.inkFaint, marginBottom: 10 }}>解除后双方旅行记录将保持独立</div>
+              <ThemedBtn variant="outline" full onClick={handleUnbind}>解除情侣绑定</ThemedBtn>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ background: T.bgCardAlt, borderRadius: 12, padding: "16px", border: `1px solid ${T.border}`, marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, marginBottom: 6 }}>生成绑定码</div>
+              <div style={{ fontSize: 11, color: T.inkFaint, marginBottom: 12 }}>生成唯一绑定码，分享给另一半</div>
+              {bindingCode ? (
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontFamily: "monospace", fontWeight: 800, fontSize: 28, letterSpacing: "0.2em", color: T.accent, background: T.accentFaint, padding: "12px 20px", borderRadius: 10, border: `1.5px solid ${T.accent}40`, marginBottom: 8 }}>{bindingCode}</div>
+                  <button onClick={() => navigator.clipboard.writeText(bindingCode)} style={{ fontSize: 11, color: T.accent, background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>复制到剪贴板</button>
+                  <button onClick={() => setBindingCode("")} style={{ fontSize: 11, color: T.inkFaint, background: "none", border: "none", cursor: "pointer", textDecoration: "underline", marginLeft: 12 }}>重新生成</button>
+                </div>
+              ) : (
+                <ThemedBtn full onClick={generateCode} disabled={codeLoading}>{codeLoading ? "生成中..." : "生成绑定码"}</ThemedBtn>
+              )}
+            </div>
+            <div style={{ background: T.bgCardAlt, borderRadius: 12, padding: "16px", border: `1px solid ${T.border}` }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, marginBottom: 6 }}>输入绑定码</div>
+              {bindError && <p style={{ fontSize: 11, color: "#C44444", marginBottom: 8 }}>{bindError}</p>}
+              <div style={{ display: "flex", gap: 8 }}>
+                <input value={inputCode} onChange={(e) => { setInputCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6)); setBindError(""); }} placeholder="6位码" maxLength={6}
+                  style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${T.border}`, background: T.bgCard, color: T.ink, fontSize: 16, fontFamily: "monospace", letterSpacing: "0.2em", textAlign: "center", fontWeight: 700, outline: "none" }} />
+                <ThemedBtn onClick={acceptCode} disabled={!inputCode || acceptLoading}>{acceptLoading ? "绑定中..." : "绑定"}</ThemedBtn>
+              </div>
+            </div>
+          </div>
+        )}
+      </ModalSheet>
+
+      {/* Settings modal */}
+      <ModalSheet open={showSettingsModal} onClose={() => setShowSettingsModal(false)} title="设置">
+        <div style={{ background: T.bgCardAlt, borderRadius: 12, padding: "16px", border: `1px solid ${T.border}`, marginBottom: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, marginBottom: 12 }}>账号信息</div>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${T.border}` }}>
+            <span style={{ fontSize: 12, color: T.inkFaint }}>昵称</span>
+            <span style={{ fontSize: 12, color: T.inkMid, fontWeight: 500 }}>{nickname}</span>
+          </div>
+          <div style={{ padding: "8px 0", borderBottom: `1px solid ${T.border}` }}>
+            <ThemedInput label="修改昵称" value={newNickname} onChange={(v) => { setNewNickname(v); setNicknameError(""); }} placeholder="输入新昵称" />
+            <div style={{ display: "flex", gap: 8 }}>
+              <ThemedBtn onClick={handleUpdateNickname} disabled={!newNickname.trim() || nicknameSaving} small>{nicknameSaving ? "保存中" : nicknameSaved ? "已保存 ✓" : "修改"}</ThemedBtn>
+            </div>
+          </div>
+          {nicknameError && <p style={{ fontSize: 11, color: "#C44444", marginTop: 8 }}>{nicknameError}</p>}
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${T.border}` }}>
+            <span style={{ fontSize: 12, color: T.inkFaint }}>邮箱</span>
+            <span style={{ fontSize: 12, color: T.inkMid, fontWeight: 500 }}>{user?.email}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}>
+            <span style={{ fontSize: 12, color: T.inkFaint }}>UID</span>
+            <span style={{ fontSize: 12, color: T.inkMid, fontWeight: 500, fontFamily: "monospace" }}>{user?.id?.slice(0, 8)}...</span>
+          </div>
+        </div>
+        <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgba(200,50,50,0.03)", border: "1px solid rgba(200,50,50,0.1)" }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#C44444", marginBottom: 4 }}>退出登录</div>
+          <div style={{ fontSize: 11, color: T.inkFaint, marginBottom: 10 }}>退出后需重新登录才能访问旅行数据</div>
+          <ThemedBtn variant="outline" full onClick={async () => { await signOut(); setShowSettingsModal(false); }}>确认退出</ThemedBtn>
+        </div>
+      </ModalSheet>
 
       <BottomNav />
     </div>

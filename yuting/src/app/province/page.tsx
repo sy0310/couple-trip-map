@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { BottomNav } from '@/components/bottom-nav';
+import { BottomNav } from '@/components/BottomNav';
 import { RoomPanel } from '@/components/furniture';
 import { WoodReliefMap as ProvinceMap } from '@/components/wood-relief-map';
 import { WoodReliefCityMap as CityMap } from '@/components/wood-relief-city-map';

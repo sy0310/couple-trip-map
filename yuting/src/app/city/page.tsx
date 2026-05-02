@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { BottomNav } from '@/components/bottom-nav';
+import { BottomNav } from '@/components/BottomNav';
 import { RoomPanel } from '@/components/furniture';
 import { WoodReliefCityMap as CityMap } from '@/components/wood-relief-city-map';
 import { getCoupleId, getTripsByCity, getPhotosByTrip } from '@/lib/trips';
