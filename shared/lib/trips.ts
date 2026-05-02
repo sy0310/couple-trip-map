@@ -306,13 +306,17 @@ export async function deleteTrip(
   // Fetch photos to delete from storage
   const photos = await getPhotosByTrip(adapter, tripId)
 
-  // Delete from storage
+  // Delete from storage (check result per photo)
   for (const photo of photos) {
     const urlParts = photo.file_url.split('/')
     const fileName = urlParts[urlParts.length - 1]
     const coupleIdPart = urlParts[urlParts.length - 2]
     const storagePath = `${coupleIdPart}/${fileName}`
-    await adapter.storage.from('photos').remove([storagePath])
+    const storageResult = await adapter.storage.from('photos').remove([storagePath])
+    if (storageResult.error) {
+      console.error('Storage delete failed for', storagePath, ':', storageResult.error.message)
+      // Continue with other photos -- don't abort the entire deletion
+    }
   }
 
   // Delete photo records from DB
@@ -458,7 +462,11 @@ export async function deletePhoto(
   const storagePath = `${coupleIdPart}/${fileName}`
 
   // Delete from storage
-  await adapter.storage.from('photos').remove([storagePath])
+  const storageResult = await adapter.storage.from('photos').remove([storagePath])
+  if (storageResult.error) {
+    console.error('Storage delete failed:', storageResult.error.message)
+    return false
+  }
 
   // Delete from DB
   const result = await adapter
