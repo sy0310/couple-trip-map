@@ -140,7 +140,7 @@ export default function AlbumPage() {
 
   if (loading) {
     return (
-      <div style={{ flex: 1, background: T.bg, position: "relative" }}>
+      <div style={{ flex: 1, overflowY: "auto", background: T.bg, position: "relative", minHeight: "100vh" }}>
         <LoadingScreen message="加载相册中..." subMessage="正在翻阅你们的回忆..." />
         <BottomNav />
       </div>
