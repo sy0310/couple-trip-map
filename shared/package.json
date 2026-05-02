@@ -3,5 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "main": "lib/index.ts",
-  "types": "lib/index.ts"
+  "types": "lib/index.ts",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
 }
