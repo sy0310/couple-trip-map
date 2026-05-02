@@ -2,7 +2,8 @@ import { useContext, useState } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro, { useDidShow, usePullDownRefresh } from '@tarojs/taro'
 import { AppContext } from '../../app'
-import { getAllPhotosForCouple, getCoupleId } from '@shared/lib/trips'
+import { getAllPhotosForCouple, getCoupleId, createPhotoRecord, createTrip } from '@shared/lib/trips'
+import { generateId } from '@shared/lib/utils'
 import { compressImage } from '../../services/storage'
 import styles from './index.module.css'
 
@@ -67,19 +68,62 @@ export default function AlbumPage() {
 
       setUploading(true)
 
-      for (const tempPath of res.tempFilePaths) {
-        const compressed = await compressImage(tempPath)
-        const fileName = compressed.split('/').pop() || 'photo.jpg'
-        await adapter.storage
-          .from('photos')
-          .upload(
-            `${userId}/${Date.now()}-${fileName}`,
-            { tempFilePath: compressed } as never,
-            { contentType: 'image/jpeg' }
-          )
+      const cid = await getCoupleId(adapter, userId!)
+      if (!cid) {
+        Taro.showToast({ title: '请先绑定情侣', icon: 'error' })
+        return
       }
 
-      Taro.showToast({ title: '上传成功', icon: 'success' })
+      let albumTripId: string | null = null
+
+      let successCount = 0
+      for (const tempPath of res.tempFilePaths) {
+        try {
+          const compressed = await compressImage(tempPath)
+          const ext = compressed.split('.').pop() || 'jpg'
+          const fileName = `${cid}/${generateId()}.${ext}`
+          const uploadResult = await adapter.storage
+            .from('photos')
+            .upload(
+              fileName,
+              { tempFilePath: compressed } as never,
+              { contentType: 'image/jpeg' }
+            )
+
+          if (uploadResult.error) {
+            console.error('Photo upload failed:', uploadResult.error.message)
+            continue // D-05: skip this file, continue with rest
+          }
+
+          const { data } = adapter.storage.from('photos').getPublicUrl(fileName)
+
+          // D-04: Create DB record linked to a trip
+          if (!albumTripId) {
+            const tripResult = await createTrip(adapter, cid, {
+              location_name: '相册',
+              province: '未分类',
+              city: '未分类',
+              visit_date: new Date().toISOString().split('T')[0],
+            })
+            albumTripId = tripResult?.id ?? null
+          }
+
+          if (albumTripId) {
+            await createPhotoRecord(adapter, albumTripId, data.publicUrl)
+          }
+
+          successCount++
+        } catch (err) {
+          // D-05: Error isolation -- one file failure does NOT abort remaining files
+          console.error('Single photo upload error:', err)
+        }
+      }
+
+      if (successCount > 0) {
+        Taro.showToast({ title: `上传成功 ${successCount} 张`, icon: 'success' })
+      } else {
+        Taro.showToast({ title: '上传失败', icon: 'error' })
+      }
       await loadPhotos()
     } catch (err) {
       console.error('Upload failed:', err)
