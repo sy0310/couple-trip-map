@@ -75,8 +75,8 @@ class MiniBucketClient implements BucketClient {
         url,
         method: 'POST',
         header: {
-          ...this.headers(contentType + '; base64'),
-          'Content-Type': contentType,
+          ...this.headers(),
+          'Content-Type': contentType + '; base64',
         },
         data: wx.base64ToArrayBuffer(base64),
         success: (res) => resolve({ statusCode: res.statusCode, data: res.data }),

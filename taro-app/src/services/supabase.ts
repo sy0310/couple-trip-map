@@ -96,8 +96,12 @@ class PostgrestQueryBuilder implements QueryBuilder {
   }
 
   in(column: string, values: unknown[]): QueryBuilder {
-    // PostgREST: ?column=in.(val1,val2,val3)
-    this.params[column] = `in.(${values.join(',')})`
+    // PostgREST: ?column=in.("val1","val2","val3")
+    // Quote string values, leave numbers unquoted
+    const formatted = values.map(v =>
+      typeof v === 'string' ? `"${v}"` : String(v)
+    ).join(',')
+    this.params[column] = `in.(${formatted})`
     return this
   }
 
