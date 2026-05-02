@@ -1,61 +1,77 @@
 ---
-plan: P01-scaffold
 phase: 01-miniprogram-migration
 status: complete
+completed: 2026-05-02
+plans: 4
+commits: 20
 ---
 
-# P01 Scaffold — Summary
+# Phase 1: 微信小程序迁移 — Summary
 
-## What Was Built
+## Overview
 
-Taro 4.2 mini program project scaffold at `taro-app/` with webpack5 + React 18, subpackage configuration for province/city pages, TabBar (3 tabs), and a shared data layer package at `shared/` containing platform-agnostic types, province data, and the SupabaseAdapter interface.
+将 Next.js web 应用 (yuting/) 成功迁移为微信小程序，使用 Taro 4.2 (React 18) + webpack5。小程序与 web 版共享同一个 Supabase 数据库。
 
-## Key Files Created
+## Plans Executed
 
-- `taro-app/package.json` — Taro 4.2.0 + React 18.3 + all @tarojs/* packages
-- `taro-app/config/index.ts` — Taro config with `designWidth: 750`, `@tarojs/plugin-html`, `@shared` webpack alias
-- `taro-app/config/dev.ts`, `config/prod.ts` — Environment configs
-- `taro-app/tsconfig.json` — TypeScript config with `@shared/*` path alias
-- `taro-app/babel.config.js` — Babel with TS support via `babel-preset-taro`
-- `taro-app/src/app.config.ts` — App config with tabBar, subPackages, window, libVersion (implicit via Taro 4.2)
-- `taro-app/src/app.tsx` — App entry with `useLaunch` hook
-- `taro-app/src/app.wxss` — Global CSS variables (primary #FF6B81)
-- `taro-app/src/pages/index/index.tsx` — Map tab skeleton
-- `taro-app/src/pages/album/index.tsx` — Album tab skeleton
-- `taro-app/src/pages/profile/index.tsx` — Profile tab skeleton
-- `taro-app/src/packageProvince/pages/province/index.tsx` — Province subpackage skeleton
-- `taro-app/src/packageCity/pages/city/index.tsx` — City subpackage skeleton
-- `taro-app/src/assets/tab-*.png` — 6 placeholder PNG icons (81x81px)
-- `shared/package.json` — yuting-shared, zero dependencies
-- `shared/tsconfig.json` — Strict TS config
-- `shared/lib/types.ts` — Database interface (copied from yuting/src/lib/database.types.ts)
-- `shared/lib/provinces.ts` — PROVINCES data + normalization (copied from yuting/src/lib/provinces.ts)
-- `shared/lib/adapter.ts` — SupabaseAdapter interface (QueryBuilder, StorageClient, BucketClient, Result)
-- `shared/lib/index.ts` — Barrel export
+| Plan | Description | Status |
+|------|-------------|--------|
+| P01 | Taro 脚手架 + shared 包 + SupabaseAdapter 接口 | PASS |
+| P02 | MiniSupabaseAdapter + 认证 + 业务逻辑抽取 | PASS |
+| P03 | ECharts 地图 + 5 个页面 + CSS 3 主题 | PASS |
+| P04 | 旅行表单 + 个人资料编辑 | PASS |
 
-## Deviations
+## Architecture
 
-- **React version**: Downgraded from ^19 to ^18.3.1 because Taro 4.2.0 has a `peer react@"^18"` requirement on @tarojs/react.
-- **Additional deps**: Had to add `@tarojs/plugin-framework-react`, `@babel/preset-react`, `@babel/preset-typescript` which were not in the plan's dependency list but required by Taro's build pipeline.
-- **libVersion**: The plan specifies `libVersion: '2.25.0'` in app.config.ts but Taro 4.2 manages this automatically via the platform plugin. If a specific version is needed, it can be added later.
-- **TabBar icons**: Generated via Node.js script (solid color PNGs) instead of ImageMagick. They are valid 81x81px PNGs but are simple solid-color squares, not icon designs.
+```
+taro-app/                     # Taro 小程序
+├── src/
+│   ├── services/             # 数据层
+│   │   ├── supabase.ts       # MiniSupabaseAdapter (PostgREST via wx.request)
+│   │   ├── storage.ts        # MiniStorageClient (wx.uploadFile)
+│   │   └── auth.ts           # WeChat 登录 → Supabase JWT
+│   ├── pages/                # 主包页面
+│   │   ├── index/            # 首页: ECharts 地图 + 照片卡片
+│   │   ├── album/            # 相册: 年份分组时间线
+│   │   ├── profile/          # 个人: 情侣绑定/解绑
+│   │   ├── profile-edit/     # 资料编辑 + 头像上传
+│   │   └── trip-edit/        # 旅行记录表单
+│   ├── components/ec-canvas/ # ECharts canvas 组件
+│   └── app.tsx               # AppContext (adapter, userId, loading)
+├── packageProvince/          # 分包: 省份详情
+├── packageCity/              # 分包: 城市详情
+└── config/index.ts           # webpack config + @shared alias
 
-## Self-Check: PASSED
+shared/lib/                   # 平台无关共享逻辑
+├── adapter.ts                # SupabaseAdapter 接口
+├── trips.ts                  # 旅行 CRUD (N+1 查询已修复)
+├── couples.ts                # 情侣绑定
+├── types.ts                  # 数据库类型
+├── provinces.ts              # 省份数据
+└── utils.ts                  # generateId, UploadFile
+```
 
-1. `taro-app/package.json` exists with `@tarojs/taro` — PASS
-2. `taro-app/config/index.ts` exists with `designWidth: 750` and `plugins: ['@tarojs/plugin-html']` — PASS
-3. `taro-app/config/index.ts` has `@shared` webpack alias — PASS
-4. `taro-app/src/app.config.ts` has pages (index, album, profile) — PASS
-5. `taro-app/src/app.config.ts` has subPackages (packageProvince, packageCity) — PASS
-6. `taro-app/src/app.config.ts` has window config (#FF6B81, 遇亭, white) — PASS
-7. `taro-app/tsconfig.json` has `@shared/*` path alias — PASS
-8. `taro-app/src/app.tsx` exists with `useLaunch` hook — PASS
-9. `shared/package.json` has `name: "yuting-shared"`, no dependencies — PASS
-10. `shared/lib/types.ts` re-exports Database interface — PASS
-11. `shared/lib/provinces.ts` has PROVINCES array — PASS
-12. `shared/lib/adapter.ts` has `interface SupabaseAdapter` with all methods — PASS
-13. `shared/lib/index.ts` barrel exports all three modules — PASS
-14. 6 TabBar icon PNGs exist (81x81px) — PASS
-15. `npx taro build --type weapp` exits 0 — PASS
-16. shared `npx tsc --noEmit` exits 0 — PASS
-17. No `@supabase/supabase-js` dependency in shared — PASS
+## Key Decisions
+
+- **PostgREST 直调**: 不用 @supabase/supabase-js，用 wx.request 封装适配层
+- **Shared 包**: 业务逻辑抽离为平台无关模块，web/小程序共用
+- **CSS Modules**: 3 主题 (wood/night/spring) 通过条件 class 切换
+- **ECharts**: 自定义 ec-canvas 组件（echarts-for-miniprogram 不可用）
+- **Subpackages**: 省/市详情页分包，控制主包大小
+
+## Build Fix
+
+构建修复 (commit 231bb12) 解决了两个问题：
+1. shared/ TypeScript 文件未被 webpack 处理 → 添加 babel-loader + @babel/preset-typescript 规则
+2. 相对路径 `../../../shared/` 无法解析 → 统一改为 `@shared/` alias
+
+## Deferred (Not in Scope)
+
+- 3D 房间场景 (可用 Three.js 小程序版)
+- 统计图表页
+- 分享卡片自定义
+- 订阅消息推送
+
+## Next Phase
+
+Phase 1 完成。可进入下一阶段开发（待定义）。
