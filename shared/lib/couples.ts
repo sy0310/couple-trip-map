@@ -18,33 +18,40 @@ export async function generateBindingCode(
   adapter: SupabaseAdapter,
   userId: string
 ): Promise<string | null> {
-  // Generate a unique 6-char alphanumeric code
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let code = ''
-  for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)]
+  const MAX_ATTEMPTS = 5
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const randomBytes = new Uint8Array(6)
+    wx.getRandomValues(randomBytes)
+    let code = ''
+    for (let i = 0; i < 6; i++) {
+      code += chars[randomBytes[i] % chars.length]
+    }
+
+    const existingResult = await adapter
+      .from('couples')
+      .select('id')
+      .eq('binding_code', code)
+      .maybeSingle()
+
+    if (existingResult.data) continue // collision, try next attempt
+
+    // Unique code found -- insert
+    const id = generateId()
+    const result = await adapter
+      .from('couples')
+      .insert({ id, user_a_id: userId, binding_code: code })
+
+    if (result.error) {
+      console.error('Failed to generate binding code:', result.error.message)
+      return null
+    }
+    return code
   }
 
-  // Check uniqueness, regenerate if taken
-  const existingResult = await adapter
-    .from('couples')
-    .select('id')
-    .eq('binding_code', code)
-    .maybeSingle()
-
-  if (existingResult.data) return generateBindingCode(adapter, userId) // retry
-
-  const id = generateId()
-  const result = await adapter
-    .from('couples')
-    .insert({ id, user_a_id: userId, binding_code: code })
-
-  if (result.error) {
-    console.error('Failed to generate binding code:', result.error.message)
-    return null
-  }
-
-  return code
+  console.error('Failed to generate unique binding code after', MAX_ATTEMPTS, 'attempts')
+  return null
 }
 
 /**
