@@ -154,11 +154,11 @@ export default function HomePage() {
         <SectionLabel action="全部" onAction={() => router.push("/album")}>最近旅行</SectionLabel>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           {recentTrips.slice(0, 2).map((photo) => (
-            <TripCard key={photo.id} location={photo.tripLocation || "旅行"} province="" city="" date={photo.created_at.slice(0, 10)} coverUrl={photo.file_url} />
+            <TripCard key={photo.id} location={photo.tripLocation || "旅行"} province="" city="" date={photo.visitDate || photo.created_at.slice(0, 10)} coverUrl={photo.file_url} />
           ))}
         </div>
         {recentTrips[2] && (
-          <div style={{ marginTop: 10 }}><TripCard location={recentTrips[2].tripLocation || "旅行"} province="" city="" date={recentTrips[2].created_at.slice(0, 10)} coverUrl={recentTrips[2].file_url} /></div>
+          <div style={{ marginTop: 10 }}><TripCard location={recentTrips[2].tripLocation || "旅行"} province="" city="" date={recentTrips[2].visitDate || recentTrips[2].created_at.slice(0, 10)} coverUrl={recentTrips[2].file_url} /></div>
         )}
         {/* Anniversary counter */}
         {daysSince !== null && (

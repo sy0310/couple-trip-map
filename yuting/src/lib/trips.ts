@@ -414,13 +414,13 @@ export async function getPhotosByTrip(tripId: string): Promise<PhotoRow[]> {
  */
 export async function getAllPhotosForCouple(
   coupleId: string
-): Promise<{ id: string; file_url: string; created_at: string; tripLocation?: string }[]> {
+): Promise<{ id: string; file_url: string; created_at: string; visitDate?: string; tripLocation?: string }[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from('photos')
-    .select('id, file_url, created_at, trips!inner(location_name)')
+    .select('id, file_url, created_at, trips!inner(location_name, visit_date)')
     .eq('trips.couple_id', coupleId)
-    .order('created_at', { ascending: false }) as { data: { id: string; file_url: string; created_at: string; trips: { location_name: string | null } }[] | null; error: { message: string } | null };
+    .order('created_at', { ascending: false }) as { data: { id: string; file_url: string; created_at: string; trips: { location_name: string | null; visit_date: string } }[] | null; error: { message: string } | null };
 
   if (error) {
     console.error('Failed to fetch couple photos:', error.message);
@@ -431,6 +431,7 @@ export async function getAllPhotosForCouple(
     id: p.id,
     file_url: p.file_url,
     created_at: p.created_at,
+    visitDate: p.trips?.visit_date,
     tripLocation: p.trips?.location_name ?? undefined,
   }));
 }
