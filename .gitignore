@@ -1,21 +1,29 @@
 # dependencies
 node_modules/
-.pnp
-.pnp.*
+**/node_modules/
 
 # testing
 /coverage
+**/playwright-report/
+**/test-results/
+**/playwright-results.json
 
 # next.js
 .next/
+**/ .next/
 out/
 
 # production
 build/
+dist/
+**/dist/
 
 # misc
 .DS_Store
+**/.DS_Store
 *.pem
+*.swc
+**/.swc
 
 # debug
 npm-debug.log*
@@ -29,6 +37,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env*
 
 # vercel
 .vercel
@@ -48,10 +57,11 @@ next-env.d.ts
 .claude/
 .planning/
 .mcp.json
+**/.agents/
+**/.claude/
+**/.planning/
+**/.mcp.json
 skills-lock.json
 
 # taro
-dist/
-node_modules/
-yarn-error.log
 dev.log
