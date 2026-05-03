@@ -16,18 +16,20 @@ interface TripForm {
   notes: string
 }
 
-const EMPTY_FORM: TripForm = {
-  location_name: '',
-  province: '',
-  city: '',
-  scenic_spot: '',
-  visit_date: '',
-  notes: '',
+function createEmptyTripForm(): TripForm {
+  return {
+    location_name: '',
+    province: '',
+    city: '',
+    scenic_spot: '',
+    visit_date: '',
+    notes: '',
+  }
 }
 
 export default function TripEditPage() {
   const { adapter, userId } = useContext(AppContext)
-  const [form, setForm] = useState<TripForm>(EMPTY_FORM)
+  const [form, setForm] = useState<TripForm>(createEmptyTripForm)
   const [tripId, setTripId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [coupleId, setCoupleId] = useState<string | null>(null)

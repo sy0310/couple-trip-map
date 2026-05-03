@@ -16,17 +16,19 @@ interface ProfileForm {
   birthday: string
 }
 
-const EMPTY_FORM: ProfileForm = {
-  nickname: '',
-  avatar_url: null,
-  bio: '',
-  city: '',
-  birthday: '',
+function createEmptyProfileForm(): ProfileForm {
+  return {
+    nickname: '',
+    avatar_url: null,
+    bio: '',
+    city: '',
+    birthday: '',
+  }
 }
 
 export default function ProfileEditPage() {
   const { adapter, userId } = useContext(AppContext)
-  const [form, setForm] = useState<ProfileForm>(EMPTY_FORM)
+  const [form, setForm] = useState<ProfileForm>(createEmptyProfileForm)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
 
