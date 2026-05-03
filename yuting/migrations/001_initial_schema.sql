@@ -3,6 +3,7 @@
 
 -- ── users ──
 create table if not exists users (
+  -- NOTE: users.id changed from uuid to text in 002_uuid_to_text.sql (WeChat openid compatibility)
   id uuid primary key default gen_random_uuid(),
   nickname text not null,
   avatar_url text,
@@ -12,7 +13,9 @@ create table if not exists users (
 -- ── couples ──
 create table if not exists couples (
   id uuid primary key default gen_random_uuid(),
+  -- NOTE: user_a_id changed from uuid to text in 002_uuid_to_text.sql
   user_a_id uuid not null references users(id),
+  -- NOTE: user_b_id changed from uuid to text in 002_uuid_to_text.sql
   user_b_id uuid references users(id),
   binding_code text not null unique,
   created_at timestamptz not null default now(),
