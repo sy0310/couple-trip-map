@@ -1,0 +1,94 @@
+.container {
+  min-height: 100vh;
+  background-color: var(--color-bg);
+}
+
+.header {
+  padding: 24px 20px 16px;
+  background-color: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text);
+  display: block;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--color-text-faint);
+  margin-top: 4px;
+  display: block;
+}
+
+.tripCard {
+  margin: 12px 16px;
+  padding: 16px;
+  background-color: var(--color-bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--theme-shadow);
+}
+
+.tripInfo {
+  margin-bottom: 8px;
+}
+
+.tripLocation {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  display: block;
+}
+
+.tripSpot {
+  font-size: 13px;
+  color: var(--color-accent);
+  margin-top: 2px;
+  display: block;
+}
+
+.tripDate {
+  font-size: 12px;
+  color: var(--color-text-faint);
+  margin-top: 4px;
+  display: block;
+}
+
+.tripNotes {
+  font-size: 13px;
+  color: var(--color-text-faint);
+  line-height: 1.6;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+  display: block;
+}
+
+.photoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.photoImage {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: block;
+}
+
+.empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 0;
+}
+
+.emptyText {
+  font-size: 14px;
+  color: var(--color-text-faint);
+}
