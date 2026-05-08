@@ -1,9 +1,10 @@
 import { useContext, useState } from 'react'
 import { View, Text, Input, Textarea, Picker, Image } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { AppContext } from '../../app'
+import { AppContext } from '../../context'
 import { getUser } from '../../services/auth'
 import { updateUserProfile } from '@shared/lib/trips'
+import { getCoupleInfo, updateCoupleDates } from '@shared/lib/couples'
 import { compressImage } from '../../services/storage'
 import { generateId } from '@shared/lib/utils'
 import styles from './index.module.css'
@@ -14,6 +15,8 @@ interface ProfileForm {
   bio: string
   city: string
   birthday: string
+  since_date: string
+  anniversary: string
 }
 
 function createEmptyProfileForm(): ProfileForm {
@@ -23,17 +26,20 @@ function createEmptyProfileForm(): ProfileForm {
     bio: '',
     city: '',
     birthday: '',
+    since_date: '',
+    anniversary: '',
   }
 }
 
 export default function ProfileEditPage() {
   const { adapter, userId } = useContext(AppContext)
   const [form, setForm] = useState<ProfileForm>(createEmptyProfileForm)
+  const [coupleId, setCoupleId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
 
   const load = async () => {
-    if (!adapter) return
+    if (!adapter || !userId) return
     const user = await getUser(adapter)
     if (user) {
       const fullUser = user as {
@@ -43,13 +49,23 @@ export default function ProfileEditPage() {
         city: string | null
         birthday: string | null
       }
-      setForm({
+      setForm((prev) => ({
+        ...prev,
         nickname: fullUser.nickname || '',
         avatar_url: fullUser.avatar_url,
         bio: fullUser.bio ?? '',
         city: fullUser.city ?? '',
         birthday: fullUser.birthday ?? '',
-      })
+      }))
+    }
+    const coupleInfo = await getCoupleInfo(adapter, userId)
+    if (coupleInfo) {
+      setForm((prev) => ({
+        ...prev,
+        since_date: coupleInfo.sinceDate || '',
+        anniversary: coupleInfo.anniversary || '',
+      }))
+      setCoupleId(coupleInfo.id)
     }
   }
 
@@ -112,6 +128,13 @@ export default function ProfileEditPage() {
         city: form.city.trim() || null,
         birthday: form.birthday || null,
       })
+
+      if (ok && coupleId) {
+        await updateCoupleDates(adapter, coupleId, {
+          since_date: form.since_date || null,
+          anniversary: form.anniversary || null,
+        })
+      }
 
       if (ok) {
         Taro.showToast({ title: '保存成功', icon: 'success' })
@@ -194,6 +217,34 @@ export default function ProfileEditPage() {
           <View className={styles.picker}>
             <Text className={form.birthday ? styles.pickerText : styles.pickerPlaceholder}>
               {form.birthday || '请选择生日'}
+            </Text>
+          </View>
+        </Picker>
+      </View>
+
+      {/* Since date */}
+      <View className={styles.field}>
+        <Text className={styles.label}>在一起日期</Text>
+        <Picker mode="date" onChange={(e: { detail: { value: string } }) =>
+          setForm((prev) => ({ ...prev, since_date: e.detail.value }))
+        }>
+          <View className={styles.picker}>
+            <Text className={form.since_date ? styles.pickerText : styles.pickerPlaceholder}>
+              {form.since_date || '请选择日期'}
+            </Text>
+          </View>
+        </Picker>
+      </View>
+
+      {/* Anniversary */}
+      <View className={styles.field}>
+        <Text className={styles.label}>纪念日（可选）</Text>
+        <Picker mode="date" onChange={(e: { detail: { value: string } }) =>
+          setForm((prev) => ({ ...prev, anniversary: e.detail.value }))
+        }>
+          <View className={styles.picker}>
+            <Text className={form.anniversary ? styles.pickerText : styles.pickerPlaceholder}>
+              {form.anniversary || '请选择日期'}
             </Text>
           </View>
         </Picker>

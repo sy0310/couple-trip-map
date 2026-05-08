@@ -222,6 +222,12 @@ export default function ProfilePage() {
             sub: "分享你们的旅行地图",
             action: () => router.push("/poster"),
           },
+          {
+            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={T.accent} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>,
+            title: "关于遇亭",
+            sub: "了解遇亭的故事与愿景",
+            action: () => router.push("/about"),
+          },
         ].map((item, i) => (
           <button key={i} onClick={item.action} style={{
             width: "100%", background: T.bgCard, borderRadius: 14, padding: "14px 16px", border: `1px solid ${T.border}`,

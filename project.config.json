@@ -1,5 +1,5 @@
 {
-  "miniprogramRoot": "miniprogram/",
+  "miniprogramRoot": "taro-app/dist/",
   "cloudfunctionRoot": "cloudfunctions/",
   "setting": {
     "urlCheck": true,
@@ -37,12 +37,24 @@
     "disableUseStrict": false,
     "minifyWXML": true,
     "showES6CompileOption": false,
-    "useCompilerPlugins": []
+    "useCompilerPlugins": [],
+    "compileWorklet": false,
+    "localPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
   },
-  "appid": "wx YOUR_APP_ID",
+  "appid": "wx609c3e490b76fff5",
   "projectname": "yuting-map",
   "libVersion": "2.19.4",
   "cloudfunctionTemplateRoot": "cloudfunctionTemplate/",
   "condition": {},
-  "srcMiniprogramRoot": "miniprogram/"
+  "srcMiniprogramRoot": "taro-app/dist/",
+  "compileType": "miniprogram",
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "editorSetting": {}
 }

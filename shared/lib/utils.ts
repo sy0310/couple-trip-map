@@ -3,10 +3,8 @@
  * crypto.randomUUID() is not available in WeChat mini programs.
  */
 export function generateId(): string {
-  const bytes = new Uint8Array(16)
-  wx.getRandomValues(bytes)
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c, i) => {
-    const r = bytes[i] % 16
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0
     const v = c === 'x' ? r : (r & 0x3) | 0x8
     return v.toString(16)
   })

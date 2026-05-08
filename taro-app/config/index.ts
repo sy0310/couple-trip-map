@@ -13,7 +13,10 @@ export default defineConfig({
   sourceRoot: 'src',
   outputRoot: 'dist',
   plugins: ['@tarojs/plugin-html'],
-  defineConstants: {},
+  defineConstants: {
+    'process.env.TARO_APP_SUPABASE_URL': JSON.stringify(process.env.TARO_APP_SUPABASE_URL),
+    'process.env.TARO_APP_SUPABASE_ANON_KEY': JSON.stringify(process.env.TARO_APP_SUPABASE_ANON_KEY),
+  },
   copy: {
     patterns: [],
     options: {},
@@ -48,6 +51,13 @@ export default defineConfig({
           limit: 1024,
         },
       },
+      cssModules: {
+        enable: true,
+        config: {
+          namingPattern: 'module',
+          generateScopedName: '[name]__[local]___[hash:base64:5]'
+        }
+      }
     },
   },
   h5: {

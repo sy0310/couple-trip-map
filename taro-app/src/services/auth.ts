@@ -1,35 +1,169 @@
 import type { SupabaseAdapter } from '@shared/lib/adapter'
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase'
 
 const TOKEN_KEY = 'yuting_auth_token'
 const USER_KEY = 'yuting_user_id'
 const TOKEN_EXPIRY_KEY = 'yuting_token_expiry'
+const LINKED_AUTH_USER_KEY = 'yuting_linked_auth_user'
+const LINKED_EMAIL_KEY = 'yuting_linked_email'
 
 interface AuthResult {
   token: string
   userId: string
+  openid: string
   isNew: boolean
+}
+
+interface SupabaseAuthResponse {
+  access_token: string
+  token_type: string
+  expires_in: number
+  refresh_token: string
+  user: {
+    id: string
+    email: string
+  }
 }
 
 export async function loginWithWeChat(
   adapter: SupabaseAdapter
 ): Promise<{ token: string; userId: string }> {
+  console.log('Auth: 1. Starting wx.login...')
   const loginRes = await wx.login()
+  console.log('Auth: 2. wx.login finished', loginRes.code ? 'with code' : 'failed')
+  
   if (!loginRes.code) throw new Error('wx.login failed')
 
-  const cloudRes = (await wx.cloud.callFunction({
-    name: 'wechat-login',
-    data: { code: loginRes.code },
-  })) as { result: AuthResult }
+  console.log('Auth: 3. Calling cloud function "login"...')
+  try {
+    const cloudRes = (await wx.cloud.callFunction({
+      name: 'login',
+      data: { code: loginRes.code },
+      config: { timeout: 20000 }
+    })) as { result: AuthResult }
+    
+    const { openid } = cloudRes.result
+    const userId = openid
+    const token = 'placeholder-token'
+    
+    console.log('Auth: 4. Cloud function returned openid:', userId)
 
-  const { token, userId } = cloudRes.result
+    wx.setStorageSync(TOKEN_KEY, token)
+    wx.setStorageSync(USER_KEY, userId)
+    wx.setStorageSync(TOKEN_EXPIRY_KEY, Date.now() + 3600 * 1000)
 
-  wx.setStorageSync(TOKEN_KEY, token)
-  wx.setStorageSync(USER_KEY, userId)
-  wx.setStorageSync(TOKEN_EXPIRY_KEY, Date.now() + 3600 * 1000)
+    adapter.setToken(token)
 
-  adapter.setToken(token)
+    // Create user row on first login; fire-and-forget so it never delays auth
+    adapter.from('users').insert({ id: userId, nickname: '旅行者', avatar_url: null }).catch(() => {})
 
-  return { token, userId }
+    console.log('Auth: 5. Auth process complete')
+
+    return { token, userId }
+  } catch (err) {
+    console.error('Auth: Error in cloud call:', err)
+    throw err
+  }
+}
+
+export async function linkExistingAccount(
+  adapter: SupabaseAdapter,
+  email: string,
+  password: string
+): Promise<{ success: boolean; error?: string }> {
+  const openid = getUserId()
+  if (!openid) return { success: false, error: '未登录，请先微信登录' }
+  if (getLinkedAuthUserId()) return { success: false, error: '已绑定其他账号' }
+
+  // Ensure no trailing slash in URL
+  const baseUrl = SUPABASE_URL.replace(/\/$/, '')
+
+  try {
+    console.log('[linkExistingAccount] Attempting auth for:', email)
+    const authResult = await new Promise<any>((resolve, reject) => {
+      wx.request({
+        url: `${baseUrl}/auth/v1/token?grant_type=password`,
+        method: 'POST',
+        header: {
+          apikey: SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        data: {
+          email: email.trim().toLowerCase(),
+          password,
+        },
+        timeout: 15000,
+        success: (res) => resolve(res),
+        fail: (err) => {
+          console.error('[linkExistingAccount] Auth request failed:', err)
+          reject(err)
+        },
+      })
+    })
+
+    console.log('[linkExistingAccount] Auth status:', authResult.statusCode, 'body:', JSON.stringify(authResult.data))
+
+    if (authResult.statusCode !== 200) {
+      const body = authResult.data as any
+      if (authResult.statusCode === 400 || authResult.statusCode === 401) {
+        const msg = body?.msg || body?.error_description || body?.message || ''
+        if (msg.includes('Invalid login credentials') || msg.includes('Email not confirmed')) {
+          return { success: false, error: '邮箱或密码错误' }
+        }
+        return { success: false, error: msg || '认证失败' }
+      }
+      return { success: false, error: `服务器错误 (${authResult.statusCode})` }
+    }
+
+    const authData = authResult.data as SupabaseAuthResponse
+
+    console.log('[linkExistingAccount] Attempting RPC link_account...')
+    // Call link_account RPC directly via wx.request
+    const rpcResult = await new Promise<any>((resolve) => {
+      wx.request({
+        url: `${baseUrl}/rest/v1/rpc/link_account`,
+        method: 'POST',
+        header: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${authData.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        data: {
+          p_openid: openid,
+          p_auth_user_id: authData.user.id,
+          p_email: authData.user.email,
+        },
+        timeout: 15000,
+        success: (res) => resolve(res),
+        fail: (err) => {
+          console.error('[linkExistingAccount] RPC request failed:', err)
+          resolve({ statusCode: 0, data: err })
+        },
+      })
+    })
+
+    console.log('[linkExistingAccount] RPC status:', rpcResult.statusCode, 'body:', JSON.stringify(rpcResult.data))
+
+    if (rpcResult.statusCode !== 200) {
+      console.error('Failed to store account link:', rpcResult.data)
+      const rpcError = rpcResult.data?.message || rpcResult.data?.error || ''
+      return { success: false, error: rpcError ? `绑定失败: ${rpcError}` : '绑定失败，请稍后重试' }
+    }
+
+    wx.setStorageSync(LINKED_AUTH_USER_KEY, authData.user.id)
+    wx.setStorageSync(LINKED_EMAIL_KEY, authData.user.email)
+    adapter.setToken(authData.access_token)
+
+    console.log('[linkExistingAccount] Successfully linked!')
+    return { success: true }
+  } catch (err: any) {
+    console.error('[linkExistingAccount] Fatal error:', err)
+    const errMsg = err?.errMsg || err?.message || ''
+    if (errMsg.includes('url not in domain list')) {
+      return { success: false, error: '网络错误：请求域名未加入合法列表' }
+    }
+    return { success: false, error: '网络错误，请检查网络后重试' }
+  }
 }
 
 export function getToken(): string | null {
@@ -50,38 +184,66 @@ export async function refreshToken(adapter: SupabaseAdapter): Promise<void> {
   await loginWithWeChat(adapter)
 }
 
+export function getLinkedAuthUserId(): string | null {
+  return wx.getStorageSync(LINKED_AUTH_USER_KEY) || null
+}
+
+export function getLinkedEmail(): string | null {
+  return wx.getStorageSync(LINKED_EMAIL_KEY) || null
+}
+
+export function isAccountLinked(): boolean {
+  return !!getLinkedAuthUserId()
+}
+
+export function getEffectiveUserId(): string | null {
+  return getLinkedAuthUserId() || getUserId()
+}
+
+export function unlinkAccount(): void {
+  wx.removeStorageSync(LINKED_AUTH_USER_KEY)
+  wx.removeStorageSync(LINKED_EMAIL_KEY)
+}
+
 export async function getUser(adapter: SupabaseAdapter) {
-  const userId = getUserId()
+  const linkedUserId = getLinkedAuthUserId()
+  const userId = linkedUserId || getUserId()
+  console.log('[getUser] linkedUserId:', linkedUserId, 'openid:', getUserId(), 'using:', userId)
   if (!userId) return null
 
-  const result = await adapter
-    .from('users')
-    .select('id, nickname, avatar_url')
-    .eq('id', userId)
-    .maybeSingle()
-
-  return result.data as {
+  const result = await adapter.rpc<{
     id: string
     nickname: string
     avatar_url: string | null
-  } | null
+    city: string | null
+    bio: string | null
+    birthday: string | null
+  }[]>('get_user_profile', { p_user_id: userId })
+
+  console.log('[getUser] result:', JSON.stringify(result.data), 'error:', result.error?.message)
+  const row = result.data && result.data.length > 0 ? result.data[0] : null
+  return row
 }
 
 export function logout(): void {
   wx.removeStorageSync(TOKEN_KEY)
   wx.removeStorageSync(USER_KEY)
   wx.removeStorageSync(TOKEN_EXPIRY_KEY)
+  wx.removeStorageSync(LINKED_AUTH_USER_KEY)
+  wx.removeStorageSync(LINKED_EMAIL_KEY)
+  wx.removeStorageSync('has_logged_in')
 }
 
-export async function ensureAuth(adapter: SupabaseAdapter): Promise<string> {
+export async function ensureAuth(
+  adapter: SupabaseAdapter
+): Promise<{ token: string; userId: string }> {
   const token = getToken()
   const userId = getUserId()
 
   if (token && userId && !isTokenExpired()) {
     adapter.setToken(token)
-    return userId
+    return { token, userId }
   }
 
-  const result = await loginWithWeChat(adapter)
-  return result.userId
+  return loginWithWeChat(adapter)
 }

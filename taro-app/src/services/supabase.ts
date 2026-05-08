@@ -5,7 +5,9 @@ const SUPABASE_URL = process.env.TARO_APP_SUPABASE_URL || ''
 const SUPABASE_ANON_KEY = process.env.TARO_APP_SUPABASE_ANON_KEY || ''
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('[Config] Missing TARO_APP_SUPABASE_URL or TARO_APP_SUPABASE_ANON_KEY -- check your build environment')
+  console.error('[Config] Missing TARO_APP_SUPABASE_URL or TARO_APP_SUPABASE_ANON_KEY')
+} else {
+  console.log('[Config] Supabase URL:', SUPABASE_URL)
 }
 
 /**
@@ -17,14 +19,25 @@ function wxRequest(
   headers: Record<string, string>,
   body?: unknown
 ): Promise<{ data: unknown; status: number }> {
+  // Fix double slashes in URL
+  const fixedUrl = url.replace(/([^:]\/)\/+/g, "$1")
+  console.log(`[Supabase] ${method} ${fixedUrl}`)
+  
   return new Promise((resolve, reject) => {
     wx.request({
-      url,
+      url: fixedUrl,
       method: method as 'GET' | 'POST' | 'PATCH' | 'DELETE',
       header: headers,
       data: body,
-      success: (res) => resolve({ data: res.data, status: res.statusCode }),
-      fail: reject,
+      timeout: 15000, // 15s timeout
+      success: (res) => {
+        console.log(`[Supabase] Response ${res.statusCode}`)
+        resolve({ data: res.data, status: res.statusCode })
+      },
+      fail: (err) => {
+        console.error(`[Supabase] Request failed:`, err)
+        reject(err)
+      },
     })
   })
 }
@@ -54,16 +67,26 @@ class PostgrestQueryBuilder implements QueryBuilder {
 
   private headers(): Record<string, string> {
     const token = this.getToken()
+    const authHeader = (token && token !== 'placeholder-token') 
+      ? `Bearer ${token}` 
+      : `Bearer ${SUPABASE_ANON_KEY}`
+    
     return {
       apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${token}`,
+      Authorization: authHeader,
       'Content-Type': 'application/json',
     }
   }
 
   private url(): string {
     const qs = Object.entries(this.params)
-      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+      .map(([k, v]) => {
+        if (k === 'or') {
+          // or filter values shouldn't have their parentheses or commas encoded for PostgREST
+          return `${k}=${v.replace(/ /g, '%20')}` 
+        }
+        return `${k}=${encodeURIComponent(v)}`
+      })
       .join('&')
     return `${this.baseUrl}/rest/v1/${this.table}${qs ? '?' + qs : ''}`
   }
@@ -84,7 +107,7 @@ class PostgrestQueryBuilder implements QueryBuilder {
   }
 
   or(filter: string): QueryBuilder {
-    this.params['or'] = filter
+    this.params['or'] = `(${filter})`
     return this
   }
 
@@ -181,9 +204,13 @@ export class MiniSupabaseAdapter implements SupabaseAdapter {
 
   async rpc<T = unknown>(fn: string, params?: Record<string, unknown>): Promise<Result<T>> {
     const url = `${SUPABASE_URL}/rest/v1/rpc/${fn}`
+    const token = this.token
+    const authHeader = (token && token !== 'placeholder-token')
+      ? `Bearer ${token}`
+      : `Bearer ${SUPABASE_ANON_KEY}`
     const headers = {
       apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${this.token}`,
+      Authorization: authHeader,
       'Content-Type': 'application/json',
     }
     const result = await wxRequest('POST', url, headers, params ?? {})

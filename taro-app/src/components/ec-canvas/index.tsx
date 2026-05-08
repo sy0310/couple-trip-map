@@ -12,16 +12,75 @@ interface EcCanvasProps {
   style?: React.CSSProperties
 }
 
-/**
- * ECharts canvas component for Taro mini programs.
- * Uses Canvas 2D API to initialize echarts.
- */
+class WxCanvas {
+  ctx: any
+  canvasNode: any
+  chart: any = null
+  id: string
+
+  constructor(ctx: any, canvasNode: any, canvasId: string) {
+    this.ctx = ctx
+    this.canvasNode = canvasNode
+    this.id = canvasId
+    this._initEvent()
+  }
+
+  getContext(_type: string) {
+    return this.ctx
+  }
+
+  // Taro simulates browser env, echarts checks window.addEventListener → must be noop
+  addEventListener() {}
+  removeEventListener() {}
+  dispatchEvent() {}
+  attachEvent() {}
+  detachEvent() {}
+
+  set width(w: number) { if (this.canvasNode) this.canvasNode.width = w }
+  set height(h: number) { if (this.canvasNode) this.canvasNode.height = h }
+  get width() { return this.canvasNode ? this.canvasNode.width : 0 }
+  get height() { return this.canvasNode ? this.canvasNode.height : 0 }
+
+  _initEvent() {
+    this.ctx.onTouchStart = (e: any) => this._dispatch('mousedown', e)
+    this.ctx.onTouchMove = (e: any) => this._dispatch('mousemove', e)
+    this.ctx.onTouchEnd = (e: any) => this._dispatch('mouseup', e)
+  }
+
+  _dispatch(type: string, e: any) {
+    if (!this.chart) return
+    const touch = e.touches?.[0] || e.changedTouches?.[0]
+    if (!touch) return
+    const handler = (this.chart.getZr() as any).handler
+    if (!handler) return
+    handler.dispatch(type, {
+      target: this,
+      zrX: touch.x,
+      zrY: touch.y,
+      offsetX: touch.x,
+      offsetY: touch.y,
+    })
+    handler.dispatch('mousemove', {
+      target: this,
+      zrX: touch.x,
+      zrY: touch.y,
+      offsetX: touch.x,
+      offsetY: touch.y,
+    })
+  }
+}
+
 export default function EcCanvas({
   ec,
   canvasId = 'ec-canvas',
   style,
 }: EcCanvasProps) {
   const chartRef = useRef<echarts.ECharts | null>(null)
+  const onInitRef = useRef(ec.onInit)
+
+  useEffect(() => {
+    onInitRef.current = ec.onInit
+  })
 
   const initChart = useCallback(() => {
     if (chartRef.current) return
@@ -36,29 +95,38 @@ export default function EcCanvas({
           return
         }
 
-        const canvas = res[0].node as unknown as HTMLCanvasElement
-
+        const canvasNode = res[0].node as any
         const dpr = Taro.getSystemInfoSync().pixelRatio
-        canvas.width = res[0].width * dpr
-        canvas.height = res[0].height * dpr
+        canvasNode.width = res[0].width * dpr
+        canvasNode.height = res[0].height * dpr
 
-        const chart = echarts.init(canvas as never, undefined, {
+        const ctx = canvasNode.getContext('2d')
+        const wxCanvas = new WxCanvas(ctx, canvasNode, canvasId)
+
+        echarts.setPlatformAPI({
+          createCanvas() {
+            return wxCanvas
+          },
+        })
+
+        const chart = echarts.init(wxCanvas, undefined, {
           width: res[0].width,
           height: res[0].height,
           devicePixelRatio: dpr,
         })
 
+        wxCanvas.chart = chart
         chartRef.current = chart
 
-        if (ec.onInit) {
-          ec.onInit(chart)
+        if (onInitRef.current) {
+          onInitRef.current(chart)
         }
 
         if (ec.option) {
           chart.setOption(ec.option)
         }
       })
-  }, [canvasId, ec])
+  }, [canvasId])
 
   useEffect(() => {
     setTimeout(initChart, 300)
@@ -75,6 +143,13 @@ export default function EcCanvas({
       chartRef.current.setOption(ec.option)
     }
   }, [ec.option])
+
+  useEffect(() => {
+    if (chartRef.current && ec.onInit) {
+      chartRef.current.off('click')
+      ec.onInit(chartRef.current)
+    }
+  }, [ec.onInit])
 
   return (
     <Canvas

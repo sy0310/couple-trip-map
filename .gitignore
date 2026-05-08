@@ -65,3 +65,6 @@ skills-lock.json
 
 # taro
 dev.log
+
+# miniprogram private config
+project.private.config.json

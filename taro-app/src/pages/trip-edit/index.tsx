@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react'
 import { View, Text, Input, Textarea, Picker } from '@tarojs/components'
 import Taro, { getCurrentInstance, useDidShow } from '@tarojs/taro'
-import { AppContext } from '../../app'
+import { AppContext } from '../../context'
 import { createTrip, updateTrip } from '@shared/lib/trips'
 import { getCoupleId } from '@shared/lib/couples'
 import { PROVINCES } from '@shared/lib/provinces'

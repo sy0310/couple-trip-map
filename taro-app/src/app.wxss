@@ -1,10 +1,59 @@
+/* 木色 theme (default) */
 page {
-  --color-primary: #FF6B81;
-  --color-text: #333333;
-  --color-text-secondary: #999999;
-  --color-bg: #ffffff;
-  --color-border: #eeeeee;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  color: var(--color-text);
+  --color-accent: #4A7C59;
+  --color-accent-light: #7AAD8A;
+  --color-gold: #C9943A;
+  --color-bg: #F5EFE4;
+  --color-bg-card: #FFFCF7;
+  --color-bg-card-alt: #F8F2E8;
+  --color-text: #2C1F14;
+  --color-text-faint: #A89070;
+  --color-border: rgba(100,70,40,0.12);
+  --color-border-mid: rgba(100,70,40,0.22);
+  --theme-shadow: 0 4px 24px rgba(44,31,20,0.12);
+  --radius: 12px;
+}
+
+/* 深夜 theme */
+page.dark {
+  --color-accent: #6FB3F5;
+  --color-accent-light: #A8D4FA;
+  --color-gold: #E8C87A;
+  --color-bg: #0E1117;
+  --color-bg-card: #161B24;
+  --color-bg-card-alt: #1C2230;
+  --color-text: #EDF2F7;
+  --color-text-faint: #4A5A6E;
+  --color-border: rgba(100,130,160,0.12);
+  --color-border-mid: rgba(100,130,160,0.22);
+  --theme-shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+
+/* 春日 theme */
+page.spring {
+  --color-accent: #C4547A;
+  --color-accent-light: #E890AA;
+  --color-gold: #E8904A;
+  --color-bg: #FDF4F7;
+  --color-bg-card: #FFFAFC;
+  --color-bg-card-alt: #FDF0F5;
+  --color-text: #2A1520;
+  --color-text-faint: #B890A4;
+  --color-border: rgba(180,80,120,0.1);
+  --color-border-mid: rgba(180,80,120,0.2);
+  --theme-shadow: 0 4px 24px rgba(42,21,32,0.1);
+}
+
+page {
   background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }

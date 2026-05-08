@@ -662,10 +662,13 @@ export async function updateUserProfile(
   userId: string,
   fields: { nickname?: string; avatar_url?: string | null; city?: string | null; bio?: string | null; birthday?: string | null }
 ): Promise<boolean> {
-  const result = await adapter
-    .from('users')
-    .update(fields)
-    .eq('id', userId)
+  const result = await adapter.rpc<boolean>('update_user_profile', {
+    p_user_id: userId,
+    p_nickname: fields.nickname || null,
+    p_city: fields.city || null,
+    p_bio: fields.bio || null,
+    p_birthday: fields.birthday || null,
+  })
 
   if (result.error) {
     console.error('Failed to update user profile:', result.error.message)

@@ -17,6 +17,12 @@ export class WebSupabaseAdapter implements SupabaseAdapter {
     this.client = createClient()
   }
 
+  setToken(token: string): void {
+    // For supabase-js on web, session management is typically handled internally.
+    // We implement this to satisfy the SupabaseAdapter interface.
+    console.log('WebSupabaseAdapter: setToken called (no-op on web)')
+  }
+
   from(table: string): QueryBuilder {
     // The supabase-js client's .from() returns a compatible builder.
     // We cast to our QueryBuilder interface since the shapes match.
