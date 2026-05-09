@@ -13,7 +13,7 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 /**
  * Wraps wx.request in a Promise with proper success/fail handling.
  */
-function wxRequest(
+export function wxRequest(
   method: string,
   url: string,
   headers: Record<string, string>,

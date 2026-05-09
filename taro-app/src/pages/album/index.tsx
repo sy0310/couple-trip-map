@@ -29,6 +29,11 @@ export default function AlbumPage() {
   const loadTrips = async () => {
     if (!userId) return
     setLoading(true)
+    
+    // Reset states before loading new data to avoid showing stale data
+    setTrips([])
+    setAllUrls([])
+    
     try {
       const cid = await getCoupleId(adapter, userId)
       if (!cid) { setLoading(false); return }

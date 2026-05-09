@@ -25,6 +25,14 @@ export default function Stats() {
 
   const loadData = async () => {
     if (!userId) return
+    
+    // Reset states before loading new data to avoid showing stale data from previous identity
+    setProvinces([])
+    setCities([])
+    setAllPhotos([])
+    setDaysSince(0)
+    setSinceDateLabel('')
+    
     const coupleInfo = await getCoupleInfo(adapter, userId)
     if (!coupleInfo) return
 

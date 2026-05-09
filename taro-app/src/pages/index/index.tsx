@@ -1,6 +1,6 @@
 import { useContext, useState, useEffect } from 'react'
 import { View, Text, ScrollView } from '@tarojs/components'
-import Taro, { useReady, usePullDownRefresh, useShareAppMessage } from '@tarojs/taro'
+import Taro, { useReady, useDidShow, usePullDownRefresh, useShareAppMessage } from '@tarojs/taro'
 import { AppContext } from '../../context'
 import chinaJson from '../../assets/china.json'
 import { filterSouthChinaSeaIslands } from './map'
@@ -44,6 +44,13 @@ export default function Index() {
     if (!userId) return
     setLoading(true)
     setError(null)
+
+    // Reset states before loading new data to avoid showing stale data from previous identity
+    setVisitedProvinces([])
+    setVisitedCities([])
+    setAllPhotos([])
+    setCoupleId(null)
+
     try {
       const cid = await getCoupleId(adapter, userId)
       setCoupleId(cid)
@@ -86,6 +93,13 @@ export default function Index() {
       loadCoupleInfo()
     }
   }, [userId])
+
+  useDidShow(() => {
+    if (userId) {
+      loadData()
+      loadCoupleInfo()
+    }
+  })
 
   useReady(() => {
     if (userId) {

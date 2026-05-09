@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import { View, Text, ScrollView, Input, Picker } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { AppContext } from '../../context'
@@ -59,7 +59,7 @@ const TIMELINE_TYPE_OPTIONS = ['里程碑', '周年', '旅行']
 const TIMELINE_TYPE_VALUES = ['milestone', 'anniversary', 'trip']
 
 export default function ProfilePage() {
-  const { adapter, userId } = useContext(AppContext)
+  const { adapter, userId, setUserId } = useContext(AppContext)
   const { tokens: T, theme, setTheme } = useTheme()
   const [user, setUser] = useState<UserInfo | null>(null)
   const [couple, setCouple] = useState<CoupleData | null>(null)
@@ -95,9 +95,18 @@ export default function ProfilePage() {
   })
   const [timelineLoading, setTimelineLoading] = useState(false)
 
-  const loadProfile = async () => {
-    console.log('[loadProfile] userId from context:', userId, 'linkedAuthUser:', getLinkedAuthUserId())
-    if (!userId) return
+  const loadProfile = async (targetId?: string) => {
+    const id = targetId || userId
+    console.log('[loadProfile] loading for ID:', id, 'linkedAuthUser:', getLinkedAuthUserId())
+    if (!id) return
+
+    // Reset states to avoid showing stale data from previous identity
+    setUser(null)
+    setCouple(null)
+    setTripCount(0)
+    setVisitedProvinces(0)
+    setTimelines([])
+    
     const userInfo = await getUser(adapter)
     console.log('[loadProfile] userInfo:', JSON.stringify(userInfo))
     setUser(userInfo)
@@ -109,7 +118,7 @@ export default function ProfilePage() {
       setEditBirthday(userInfo.birthday || '')
     }
 
-    const effectiveUserId = getLinkedAuthUserId() || userId
+    const effectiveUserId = getLinkedAuthUserId() || id
     console.log('[loadProfile] couple query with userId:', effectiveUserId)
     const coupleInfo = await getCoupleInfo(adapter, effectiveUserId)
     console.log('[loadProfile] coupleInfo:', JSON.stringify(coupleInfo))
@@ -129,6 +138,10 @@ export default function ProfilePage() {
       setTimelines(tlResult as TimelineEntry[])
     }
   }
+
+  useEffect(() => {
+    loadProfile()
+  }, [userId])
 
   useDidShow(() => {
     loadProfile()
@@ -381,16 +394,16 @@ export default function ProfilePage() {
             paddingTop: 14,
           }}>
             <View style={{ flex: 1 }}>
-              <StatBadge value={`${tripCount} 次`} label="旅行次数" />
+              <StatBadge value={couple ? `${tripCount} 次` : '0 次'} label="旅行次数" />
             </View>
             <View style={{ flex: 1 }}>
-              <StatBadge value={`${visitedProvinces}/${TOTAL_PROVINCES}`} label="省份" />
+              <StatBadge value={couple ? `${visitedProvinces}/${TOTAL_PROVINCES}` : `0/${TOTAL_PROVINCES}`} label="省份" />
             </View>
             <View style={{ flex: 1 }}>
               <StatBadge value={couple ? '已绑定' : '未绑定'} label="情侣状态" accent={!!couple} />
             </View>
             <View style={{ flex: 1 }}>
-              <StatBadge value={`${progressPercent}%`} label="完成度" accent />
+              <StatBadge value={couple ? `${progressPercent}%` : '0%'} label="完成度" accent={!!couple} />
             </View>
           </View>
         </View>
@@ -402,9 +415,9 @@ export default function ProfilePage() {
           boxShadow: T.shadow,
         }}>
           <Text style={{ fontSize: 12, fontWeight: 600, color: T.ink, marginBottom: 12, letterSpacing: '0.06em' }}>
-            探索进度
+            探索进度 {couple ? `${visitedProvinces}/${TOTAL_PROVINCES}` : `0/${TOTAL_PROVINCES}`}
           </Text>
-          <ProgressBar value={visitedProvinces} max={TOTAL_PROVINCES} showLabel height={10} />
+          <ProgressBar value={couple ? visitedProvinces : 0} max={TOTAL_PROVINCES} showLabel height={10} />
         </View>
 
         {/* Menu items */}
@@ -761,8 +774,20 @@ export default function ProfilePage() {
                 confirmColor: '#c44444',
               })
               if (res.confirm) {
-                unlinkAccount()
+                // Immediate UI reset for instant feedback
+                setTripCount(0)
+                setVisitedProvinces(0)
+                setUser(null)
+                setCouple(null)
+                setTimelines([])
+                
+                await unlinkAccount(adapter)
                 Taro.showToast({ title: '已解除', icon: 'success' })
+                
+                // Switch back to WeChat openid
+                const originalId = wx.getStorageSync('yuting_user_id')
+                if (originalId) setUserId(originalId)
+                
                 await loadProfile()
               }
             }}>

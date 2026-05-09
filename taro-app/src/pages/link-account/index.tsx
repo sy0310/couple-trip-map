@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useState, useContext } from 'react'
 import { View, Text, Input } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { linkExistingAccount, isAccountLinked, getLinkedEmail } from '../../services/auth'
+import { linkExistingAccount, isAccountLinked, getLinkedEmail, getEffectiveUserId } from '../../services/auth'
 import { useTheme } from '../../components/theme/ThemeProvider'
 import { PageHeader } from '../../components/page-header'
 import { ThemedBtn } from '../../components/themed-btn'
 import { MiniSupabaseAdapter } from '../../services/supabase'
+import { AppContext } from '../../context'
 
 export default function LinkAccountPage() {
   const { tokens: T } = useTheme()
+  const { setUserId } = useContext(AppContext)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -52,6 +54,11 @@ export default function LinkAccountPage() {
 
     if (result.success) {
       Taro.showToast({ title: '绑定成功', icon: 'success' })
+      
+      // Update global user state with the newly linked auth ID
+      const newId = getEffectiveUserId()
+      if (newId) setUserId(newId)
+
       setTimeout(() => Taro.navigateBack(), 1500)
     } else {
       setError(result.error || '绑定失败')

@@ -6,10 +6,12 @@ interface AppContextValue {
   adapter: SupabaseAdapter
   userId: string | null
   loading: boolean
+  setUserId: (id: string | null) => void
 }
 
 export const AppContext = createContext<AppContextValue>({
   adapter: new MiniSupabaseAdapter(),
   userId: null,
   loading: true,
+  setUserId: () => {},
 })

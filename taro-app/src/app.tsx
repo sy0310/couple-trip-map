@@ -38,7 +38,7 @@ function App({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeProvider>
-      <AppContext.Provider value={{ adapter, userId, loading }}>
+      <AppContext.Provider value={{ adapter, userId, loading, setUserId }}>
         {children}
       </AppContext.Provider>
     </ThemeProvider>

@@ -271,8 +271,24 @@ const ChinaMap = forwardRef<ChinaMapHandle, ChinaMapProps>((
 
   useImperativeHandle(ref, () => ({ redraw: () => { buildPixelData() } }))
 
-  useEffect(() => { setTimeout(initCanvas, 300) }, [initCanvas])
-  useEffect(() => { buildPixelData() }, [visitedProvinces, visitedCities, buildPixelData])
+  useEffect(() => {
+    let retryCount = 0
+    const tryInit = () => {
+      if (ctxRef.current) return
+      initCanvas()
+      if (retryCount < 5) {
+        retryCount++
+        setTimeout(tryInit, 500)
+      }
+    }
+    setTimeout(tryInit, 300)
+  }, [initCanvas])
+
+  useEffect(() => { 
+    if (ctxRef.current) {
+      buildPixelData() 
+    }
+  }, [visitedProvinces, visitedCities, buildPixelData])
   useEffect(() => () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current) }, [])
   useDidHide(() => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current) })
   useDidShow(() => {

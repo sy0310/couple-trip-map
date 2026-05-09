@@ -1,11 +1,13 @@
 import type { SupabaseAdapter } from '@shared/lib/adapter'
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase'
+import { SUPABASE_URL, SUPABASE_ANON_KEY, wxRequest } from './supabase'
 
 const TOKEN_KEY = 'yuting_auth_token'
 const USER_KEY = 'yuting_user_id'
 const TOKEN_EXPIRY_KEY = 'yuting_token_expiry'
 const LINKED_AUTH_USER_KEY = 'yuting_linked_auth_user'
 const LINKED_EMAIL_KEY = 'yuting_linked_email'
+
+const LINKED_TOKEN_KEY = 'yuting_linked_token'
 
 interface AuthResult {
   token: string
@@ -75,76 +77,61 @@ export async function linkExistingAccount(
   if (!openid) return { success: false, error: '未登录，请先微信登录' }
   if (getLinkedAuthUserId()) return { success: false, error: '已绑定其他账号' }
 
-  // Ensure no trailing slash in URL
+  if (!SUPABASE_URL) return { success: false, error: '配置错误：Supabase URL 为空' }
   const baseUrl = SUPABASE_URL.replace(/\/$/, '')
 
   try {
     console.log('[linkExistingAccount] Attempting auth for:', email)
-    const authResult = await new Promise<any>((resolve, reject) => {
-      wx.request({
-        url: `${baseUrl}/auth/v1/token?grant_type=password`,
-        method: 'POST',
-        header: {
-          apikey: SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
-        data: {
-          email: email.trim().toLowerCase(),
-          password,
-        },
-        timeout: 15000,
-        success: (res) => resolve(res),
-        fail: (err) => {
-          console.error('[linkExistingAccount] Auth request failed:', err)
-          reject(err)
-        },
-      })
-    })
+    
+    const authResult = await wxRequest(
+      'POST',
+      `${baseUrl}/auth/v1/token?grant_type=password`,
+      {
+        apikey: SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+      {
+        email: email.trim().toLowerCase(),
+        password,
+      }
+    )
 
-    console.log('[linkExistingAccount] Auth status:', authResult.statusCode, 'body:', JSON.stringify(authResult.data))
+    console.log('[linkExistingAccount] Auth status:', authResult.status, 'body:', JSON.stringify(authResult.data))
 
-    if (authResult.statusCode !== 200) {
+    if (authResult.status !== 200) {
       const body = authResult.data as any
-      if (authResult.statusCode === 400 || authResult.statusCode === 401) {
+      if (authResult.status === 400 || authResult.status === 401) {
         const msg = body?.msg || body?.error_description || body?.message || ''
         if (msg.includes('Invalid login credentials') || msg.includes('Email not confirmed')) {
           return { success: false, error: '邮箱或密码错误' }
         }
         return { success: false, error: msg || '认证失败' }
       }
-      return { success: false, error: `服务器错误 (${authResult.statusCode})` }
+      return { success: false, error: `服务器错误 (${authResult.status})` }
     }
 
     const authData = authResult.data as SupabaseAuthResponse
 
     console.log('[linkExistingAccount] Attempting RPC link_account...')
     // Call link_account RPC directly via wx.request
-    const rpcResult = await new Promise<any>((resolve) => {
-      wx.request({
-        url: `${baseUrl}/rest/v1/rpc/link_account`,
-        method: 'POST',
-        header: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${authData.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        data: {
-          p_openid: openid,
-          p_auth_user_id: authData.user.id,
-          p_email: authData.user.email,
-        },
-        timeout: 15000,
-        success: (res) => resolve(res),
-        fail: (err) => {
-          console.error('[linkExistingAccount] RPC request failed:', err)
-          resolve({ statusCode: 0, data: err })
-        },
-      })
-    })
+    const rpcResult = await wxRequest(
+      'POST',
+      `${baseUrl}/rest/v1/rpc/link_account`,
+      {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${authData.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      {
+        p_openid: openid,
+        p_auth_user_id: authData.user.id,
+        p_email: authData.user.email,
+      }
+    ).catch(err => ({ status: 0, data: err }))
 
-    console.log('[linkExistingAccount] RPC status:', rpcResult.statusCode, 'body:', JSON.stringify(rpcResult.data))
+    console.log('[linkExistingAccount] RPC status:', rpcResult.status, 'body:', JSON.stringify(rpcResult.data))
 
-    if (rpcResult.statusCode !== 200) {
+    if (rpcResult.status !== 200) {
       console.error('Failed to store account link:', rpcResult.data)
       const rpcError = rpcResult.data?.message || rpcResult.data?.error || ''
       return { success: false, error: rpcError ? `绑定失败: ${rpcError}` : '绑定失败，请稍后重试' }
@@ -152,6 +139,7 @@ export async function linkExistingAccount(
 
     wx.setStorageSync(LINKED_AUTH_USER_KEY, authData.user.id)
     wx.setStorageSync(LINKED_EMAIL_KEY, authData.user.email)
+    wx.setStorageSync(LINKED_TOKEN_KEY, authData.access_token)
     adapter.setToken(authData.access_token)
 
     console.log('[linkExistingAccount] Successfully linked!')
@@ -159,10 +147,10 @@ export async function linkExistingAccount(
   } catch (err: any) {
     console.error('[linkExistingAccount] Fatal error:', err)
     const errMsg = err?.errMsg || err?.message || ''
-    if (errMsg.includes('url not in domain list')) {
-      return { success: false, error: '网络错误：请求域名未加入合法列表' }
+    if (errMsg.includes('url not in domain list') || errMsg.includes('domain list')) {
+      return { success: false, error: '网络错误：Supabase 域名未加入微信合法列表' }
     }
-    return { success: false, error: '网络错误，请检查网络后重试' }
+    return { success: false, error: `网络错误 (${errMsg || '未知错误'})，请检查网络或域名配置` }
   }
 }
 
@@ -200,9 +188,19 @@ export function getEffectiveUserId(): string | null {
   return getLinkedAuthUserId() || getUserId()
 }
 
-export function unlinkAccount(): void {
+export async function unlinkAccount(adapter: SupabaseAdapter): Promise<void> {
+  const openid = getUserId()
+  if (openid) {
+    try {
+      await adapter.rpc('unlink_account', { p_openid: openid })
+    } catch (err) {
+      console.error('[unlinkAccount] RPC failed:', err)
+    }
+  }
   wx.removeStorageSync(LINKED_AUTH_USER_KEY)
   wx.removeStorageSync(LINKED_EMAIL_KEY)
+  wx.removeStorageSync(LINKED_TOKEN_KEY)
+  adapter.setToken('placeholder-token')
 }
 
 export async function getUser(adapter: SupabaseAdapter) {
@@ -231,13 +229,15 @@ export function logout(): void {
   wx.removeStorageSync(TOKEN_EXPIRY_KEY)
   wx.removeStorageSync(LINKED_AUTH_USER_KEY)
   wx.removeStorageSync(LINKED_EMAIL_KEY)
+  wx.removeStorageSync(LINKED_TOKEN_KEY)
   wx.removeStorageSync('has_logged_in')
 }
 
 export async function ensureAuth(
   adapter: SupabaseAdapter
 ): Promise<{ token: string; userId: string }> {
-  const token = getToken()
+  const linkedToken = wx.getStorageSync(LINKED_TOKEN_KEY)
+  const token = linkedToken || getToken()
   const userId = getUserId()
 
   if (token && userId && !isTokenExpired()) {
