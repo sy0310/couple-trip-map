@@ -2,7 +2,7 @@ import { useContext, useState, useEffect } from 'react'
 import { View, Text, ScrollView, Input, Picker } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { AppContext } from '../../context'
-import { getUser, logout, isAccountLinked, getLinkedEmail, getLinkedAuthUserId, unlinkAccount } from '../../services/auth'
+import { getUser, logout, isAccountLinked, getLinkedEmail, getLinkedAuthUserId, unlinkAccount, getUserId } from '../../services/auth'
 import {
   getCoupleInfo,
   generateBindingCode,
@@ -96,7 +96,8 @@ export default function ProfilePage() {
   const [timelineLoading, setTimelineLoading] = useState(false)
 
   const loadProfile = async (targetId?: string) => {
-    const id = targetId || userId
+    // Priority: explicit ID > fresh storage ID > context state (might be stale)
+    const id = targetId || getUserId() || userId
     console.log('[loadProfile] loading for ID:', id, 'linkedAuthUser:', getLinkedAuthUserId())
     if (!id) return
 
@@ -340,7 +341,7 @@ export default function ProfilePage() {
 
   return (
     <View style={{ flex: 1, position: 'relative', background: T.bg }}>
-      <ScrollView scrollY style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <PageHeader title="个人中心" />
 
         <View style={{ padding: '16px', paddingBottom: 80 }}>
@@ -460,7 +461,7 @@ export default function ProfilePage() {
           </View>
         ))}
       </View>
-      </ScrollView>
+      </View>
 
       {/* Couple binding modal */}
       <ModalSheet
@@ -788,7 +789,8 @@ export default function ProfilePage() {
                 const originalId = wx.getStorageSync('yuting_user_id')
                 if (originalId) setUserId(originalId)
                 
-                await loadProfile()
+                // Use originalId explicitly to avoid waiting for context state update
+                await loadProfile(originalId || undefined)
               }
             }}>
               解除绑定

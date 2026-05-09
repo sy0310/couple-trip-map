@@ -236,14 +236,44 @@ export function logout(): void {
 export async function ensureAuth(
   adapter: SupabaseAdapter
 ): Promise<{ token: string; userId: string }> {
-  const linkedToken = wx.getStorageSync(LINKED_TOKEN_KEY)
-  const token = linkedToken || getToken()
   const userId = getUserId()
-
-  if (token && userId && !isTokenExpired()) {
-    adapter.setToken(token)
-    return { token, userId }
+  let linkedToken = wx.getStorageSync(LINKED_TOKEN_KEY)
+  
+  // Sync link status from DB
+  if (userId) {
+    try {
+      console.log('[ensureAuth] Syncing link status from DB...')
+      const linkResult = await adapter.rpc<{ auth_user_id: string; email: string }[]>('get_user_link', { p_openid: userId })
+      if (linkResult.data && linkResult.data.length > 0) {
+        const link = linkResult.data[0]
+        if (!wx.getStorageSync(LINKED_AUTH_USER_KEY)) {
+          console.log('[ensureAuth] Found missing link in DB:', link.email)
+          wx.setStorageSync(LINKED_AUTH_USER_KEY, link.auth_user_id)
+          wx.setStorageSync(LINKED_EMAIL_KEY, link.email)
+        }
+      } else if (wx.getStorageSync(LINKED_AUTH_USER_KEY)) {
+        console.log('[ensureAuth] Link no longer exists in DB, clearing local storage')
+        wx.removeStorageSync(LINKED_AUTH_USER_KEY)
+        wx.removeStorageSync(LINKED_EMAIL_KEY)
+        wx.removeStorageSync(LINKED_TOKEN_KEY)
+      }
+    } catch (err) {
+      console.error('[ensureAuth] Link sync failed:', err)
+    }
   }
 
-  return loginWithWeChat(adapter)
+  linkedToken = wx.getStorageSync(LINKED_TOKEN_KEY)
+  const token = linkedToken || getToken()
+  const effectiveUserId = getEffectiveUserId() || userId
+
+  if (token && effectiveUserId && !isTokenExpired()) {
+    adapter.setToken(token)
+    return { token, userId: effectiveUserId }
+  }
+
+  const result = await loginWithWeChat(adapter)
+  return {
+    token: result.token,
+    userId: getEffectiveUserId() || result.userId
+  }
 }

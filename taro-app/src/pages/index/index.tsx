@@ -55,6 +55,11 @@ export default function Index() {
       const cid = await getCoupleId(adapter, userId)
       setCoupleId(cid)
       if (!cid) {
+        // Still try to load user info even if no couple
+        try {
+          const user = await getUser(adapter)
+          if (user) setUserInfo({ nickname: user.nickname })
+        } catch {}
         setLoading(false)
         return
       }
@@ -83,6 +88,8 @@ export default function Index() {
       const info = await getCoupleInfo(adapter, userId)
       if (info) {
         setCoupleInfo({ partnerNickname: info.partnerNickname, sinceDate: info.sinceDate })
+      } else {
+        setCoupleInfo({})
       }
     } catch {}
   }
@@ -170,11 +177,7 @@ export default function Index() {
   const recentPhotos = allPhotos.slice(0, 6)
 
   return (
-    <ScrollView
-      scrollY
-      style={{ flex: 1, background: T.bg }}
-      refresherEnabled
-    >
+    <View style={{ minHeight: '100vh', background: T.bg }}>
       <PageHeader
         title="遇亭"
         subtitle="我们的旅行地图"
@@ -192,7 +195,7 @@ export default function Index() {
         }
       />
 
-      <View style={{ padding: '0 16px', paddingBottom: 80 }}>
+      <View style={{ padding: '0 16px', paddingBottom: 16 }}>
         {/* Stats strip */}
         <View style={{ display: 'flex', flexDirection: 'row', margin: '16px 0', background: T.bgCard, borderRadius: 16, border: `1px solid ${T.border}`, overflow: 'hidden', boxShadow: T.shadow }}>
           {[
@@ -299,6 +302,6 @@ export default function Index() {
           </View>
         )}
       </View>
-    </ScrollView>
+    </View>
   )
 }

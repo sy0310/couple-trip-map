@@ -60,7 +60,7 @@ function buildOption(
   return {
     geo: {
       map: "china",
-      roam: true,
+      roam: "scale", // On mobile, only allow zoom to avoid stealing vertical scroll
       layoutCenter: ["50%", "50%"],
       layoutSize: "100%",
       aspectScale: 1,
@@ -181,7 +181,20 @@ export function ChinaMap({ visitedProvinces, visitedCities = [], onProvinceClick
   const chartRef = useRef<ReactECharts>(null);
   const [loaded, setLoaded] = useState(false);
   const { tokens: T } = useTheme();
-  const option = useMemo(() => buildOption(T, visitedProvinces, visitedCities, provinceCount, cityCount, completionRate), [T, visitedProvinces, visitedCities, provinceCount, cityCount, completionRate]);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+  }, []);
+
+  const option = useMemo(() => {
+    const opt = buildOption(T, visitedProvinces, visitedCities, provinceCount, cityCount, completionRate);
+    if (isMobile) {
+      // @ts-ignore
+      opt.geo.roam = "scale"; 
+    }
+    return opt
+  }, [T, visitedProvinces, visitedCities, provinceCount, cityCount, completionRate, isMobile]);
 
   useEffect(() => {
     fetch("/china.json?v=6")

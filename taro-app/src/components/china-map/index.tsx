@@ -1,5 +1,5 @@
-import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react'
-import { Canvas } from '@tarojs/components'
+import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef, useState } from 'react'
+import { Canvas, View } from '@tarojs/components'
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro'
 import type { ThemeTokens } from '../../pages/index/map'
 
@@ -91,6 +91,7 @@ const ChinaMap = forwardRef<ChinaMapHandle, ChinaMapProps>((
   const canvasSizeRef = useRef({ w: 0, h: 0, dpr: 1 })
   const animFrameRef = useRef(0)
   const animStartRef = useRef(0)
+  const [isVisible, setIsVisible] = useState(true)
 
   // View transform state
   const zoomRef = useRef(1)
@@ -146,7 +147,7 @@ const ChinaMap = forwardRef<ChinaMapHandle, ChinaMapProps>((
 
     const cityPixels = visitedCities.map((c) => {
       const { x, y } = geoToPixel(c.lng, c.lat, bounds, scale, offsetRef.current)
-      return { x, y, name: c.name, r: 10 + Math.min(8, Math.floor(c.photoCount / 10)) }
+      return { x, y, name: c.name, r: 4 + Math.min(4, Math.floor(c.photoCount / 20)) }
     })
     cityPixelsRef.current = cityPixels
   }, [geoJson, visitedCities])
@@ -160,7 +161,7 @@ const ChinaMap = forwardRef<ChinaMapHandle, ChinaMapProps>((
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     ctx.clearRect(0, 0, w, h)
 
-    // Apply view transform (zoom toward center, then pan)
+    // Apply view transform
     const zoom = zoomRef.current
     const pan = panRef.current
     const cx = w / 2
@@ -172,24 +173,46 @@ const ChinaMap = forwardRef<ChinaMapHandle, ChinaMapProps>((
     const polys = polygonsRef.current
     const visitedSet = new Set(visitedProvinces)
 
-    // Draw each polygon independently
-    for (const { rings, name } of polys) {
-      const isVisited = visitedSet.has(name)
-      ctx.fillStyle = isVisited ? theme.accent : theme.bgCardAlt
-      ctx.strokeStyle = isVisited ? theme.gold : theme.border
-      ctx.lineWidth = isVisited ? 2 : 1
+    // Group polygons by style to minimize ctx state changes and fill calls
+    const visitedPolys: PixelPolygon[] = []
+    const normalPolys: PixelPolygon[] = []
 
-      for (const ring of rings) {
-        ctx.beginPath()
+    for (const p of polys) {
+      if (visitedSet.has(p.name)) visitedPolys.push(p)
+      else normalPolys.push(p)
+    }
+
+    // Draw normal provinces
+    ctx.fillStyle = theme.bgCardAlt
+    ctx.strokeStyle = theme.border
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    for (const p of normalPolys) {
+      for (const ring of p.rings) {
         for (let i = 0; i < ring.length; i++) {
           if (i === 0) ctx.moveTo(ring[i][0], ring[i][1])
           else ctx.lineTo(ring[i][0], ring[i][1])
         }
-        ctx.closePath()
-        ctx.fill()
-        ctx.stroke()
       }
     }
+    ctx.fill()
+    ctx.stroke()
+
+    // Draw visited provinces
+    ctx.fillStyle = theme.accent
+    ctx.strokeStyle = theme.gold
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    for (const p of visitedPolys) {
+      for (const ring of p.rings) {
+        for (let i = 0; i < ring.length; i++) {
+          if (i === 0) ctx.moveTo(ring[i][0], ring[i][1])
+          else ctx.lineTo(ring[i][0], ring[i][1])
+        }
+      }
+    }
+    ctx.fill()
+    ctx.stroke()
 
     // City connecting lines
     const cityPixels = cityPixelsRef.current
@@ -248,7 +271,14 @@ const ChinaMap = forwardRef<ChinaMapHandle, ChinaMapProps>((
     }
 
     ctx.restore()
-    animFrameRef.current = requestAnimationFrame(draw)
+    
+    // Only continue animation if there are dynamic elements or interaction
+    const shouldAnimate = cityPixels.length >= 2 || touchState.current.type !== 'none'
+    if (shouldAnimate) {
+      animFrameRef.current = requestAnimationFrame(draw)
+    } else {
+      animFrameRef.current = 0
+    }
   }, [visitedProvinces, theme, visitedCities])
 
   const initCanvas = useCallback(() => {
@@ -272,26 +302,29 @@ const ChinaMap = forwardRef<ChinaMapHandle, ChinaMapProps>((
   useImperativeHandle(ref, () => ({ redraw: () => { buildPixelData() } }))
 
   useEffect(() => {
-    let retryCount = 0
-    const tryInit = () => {
-      if (ctxRef.current) return
-      initCanvas()
-      if (retryCount < 5) {
-        retryCount++
-        setTimeout(tryInit, 500)
-      }
+    if (isVisible) {
+      // Small delay to ensure Canvas node is ready in mini-program
+      const timer = setTimeout(() => {
+        initCanvas()
+      }, 300)
+      return () => clearTimeout(timer)
     }
-    setTimeout(tryInit, 300)
-  }, [initCanvas])
+  }, [isVisible, initCanvas])
 
   useEffect(() => { 
     if (ctxRef.current) {
       buildPixelData() 
     }
   }, [visitedProvinces, visitedCities, buildPixelData])
-  useEffect(() => () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current) }, [])
-  useDidHide(() => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current) })
+  useEffect(() => () => { 
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current) 
+  }, [])
+  useDidHide(() => { 
+    setIsVisible(false)
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current) 
+  })
   useDidShow(() => {
+    setIsVisible(true)
     buildPixelData()
     animStartRef.current = Date.now()
     animFrameRef.current = requestAnimationFrame(draw)
@@ -345,9 +378,9 @@ const ChinaMap = forwardRef<ChinaMapHandle, ChinaMapProps>((
     if (touchState.current.type === 'pinch' && touches.length >= 2) {
       const dx = touches[0].x - touches[1].x
       const dy = touches[0].y - touches[1].y
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      const ratio = dist / touchState.current.pinchDist
-      const newZoom = Math.max(0.5, Math.min(4, touchState.current.pinchZoom * ratio))
+      const currentDist = Math.sqrt(dx * dx + dy * dy)
+      const ratio = currentDist / touchState.current.pinchDist
+      const newZoom = Math.max(0.8, Math.min(6, touchState.current.pinchZoom * ratio))
       // Adjust pan to keep pinch center stationary
       const pc = touchState.current.pinchCenter
       const oldZoom = zoomRef.current
@@ -364,9 +397,17 @@ const ChinaMap = forwardRef<ChinaMapHandle, ChinaMapProps>((
       }
       touchState.current.lastPos = { x: t.x, y: t.y }
     }
+    
+    // Ensure we redraw during interaction
+    if (!animFrameRef.current) {
+      animFrameRef.current = requestAnimationFrame(draw)
+    }
   }
 
   const handleTouchEnd = (e: any) => {
+    const touches = e.touches
+    const isMultiTouch = touchState.current.type === 'pinch'
+
     if (touchState.current.type === 'pan') {
       const dx = panRef.current.x - touchState.current.startPan.x
       const dy = panRef.current.y - touchState.current.startPan.y
@@ -376,7 +417,7 @@ const ChinaMap = forwardRef<ChinaMapHandle, ChinaMapProps>((
           const pos = reverseTransformPoint(touch.x, touch.y)
           for (const cp of cityPixelsRef.current) {
             const ddx = pos.x - cp.x, ddy = pos.y - cp.y
-            if (ddx * ddx + ddy * ddy < (cp.r + 12) * (cp.r + 12)) {
+            if (ddx * ddx + ddy * ddy < (cp.r + 15) * (cp.r + 15)) {
               onCityClick?.(cp.name)
               touchState.current.type = 'none'
               return
@@ -395,28 +436,42 @@ const ChinaMap = forwardRef<ChinaMapHandle, ChinaMapProps>((
       }
     }
 
-    // Double-tap to reset zoom
+    // Handle double-tap reset, but ONLY for single finger tap
     const now = Date.now()
-    if (now - lastTapRef.current < 300) {
-      zoomRef.current = 1
-      panRef.current = { x: 0, y: 0 }
+    if (!isMultiTouch && touches.length === 0) {
+      const gap = now - lastTapRef.current
+      if (gap > 40 && gap < 300) {
+        zoomRef.current = 1
+        panRef.current = { x: 0, y: 0 }
+      }
+      lastTapRef.current = now
+    } else if (isMultiTouch) {
+      // If was pinching, set lastTap to future to block immediate double tap detection
+      lastTapRef.current = now + 1000
     }
-    lastTapRef.current = now
+    
     touchState.current.type = 'none'
+    
+    // Ensure one last draw to settle state
+    if (!animFrameRef.current) {
+      animFrameRef.current = requestAnimationFrame(draw)
+    }
   }
 
-  return (
-    <Canvas
-      id={canvasId}
-      canvasId={canvasId}
-      type="2d"
-      disableScroll
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      style={{ width: '100%', height: '100%', ...style }}
-    />
-  )
+    if (!isVisible) return <View style={{ width: '100%', height: '100%', ...style, background: theme.bgCard }} />
+
+    return (
+      <Canvas
+        id={canvasId}
+        canvasId={canvasId}
+        type="2d"
+        disableScroll
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ width: '100%', height: '100%', ...style }}
+      />
+    )
 })
 
 export default ChinaMap

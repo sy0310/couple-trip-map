@@ -34,7 +34,11 @@ export default function Stats() {
     setSinceDateLabel('')
     
     const coupleInfo = await getCoupleInfo(adapter, userId)
-    if (!coupleInfo) return
+    if (!coupleInfo) {
+      setDaysSince(0)
+      setSinceDateLabel('')
+      return
+    }
 
     const cid = coupleInfo.id
     const [p, c, ph] = await Promise.all([
@@ -75,7 +79,7 @@ export default function Stats() {
   }
 
   return (
-    <ScrollView scrollY style={{ flex: 1, background: T.bg }}>
+    <View style={{ minHeight: '100vh', background: T.bg }}>
       <PageHeader title="统计 & 纪念" />
 
       {/* Tab switcher */}
@@ -191,6 +195,6 @@ export default function Stats() {
           </View>
         </View>
       )}
-    </ScrollView>
+    </View>
   )
 }
